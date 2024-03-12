@@ -1,0 +1,46 @@
+.tex {
+    box-sizing: border-box;
+    resize: both;
+    background-color: rgb(32, 32, 32);
+    padding: 1px;
+    border: none;
+    color: antiquewhite;
+    display: none;
+    width: 100%;
+    height: 100%;
+}
+.tex_render {
+    resize: both;
+    overflow: auto;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-height: 25px;
+    min-width: 150px;
+    background-color: rgb(32, 32, 32);
+    cursor: move;
+}
+.node {
+    position: absolute;
+    z-index: 9;
+    border: 3px solid aqua;
+    top: 200px;
+    left: 250px;
+}
+.node_header {
+    user-select: none;
+    height: 20px;
+    cursor: move;
+    z-index: 10;
+    text-align: center;
+    background-color: #cecece;
+    color: black;
+    padding: 2px;
+    font-style: italic;
+}
+.close_button {
+    background-color: red;
+    padding: 1px 1px;
+    color: white;
+    float: right;
+}

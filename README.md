@@ -1,2 +1,3 @@
 # kltn
-programmable C linter 
+
+a website that support drawing math proof and expressions
