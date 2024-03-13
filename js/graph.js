@@ -37,7 +37,11 @@ class Node {
         let html_node = document.createElement('div');
         html_node.classList.add("node");
         
-        html_node.onmousedown = (e) => {
+        this.create_header();
+        this.create_math();
+        this.create_editor();
+        
+        this.header.onmousedown = (e) => {
             let relative_x = html_node.offsetLeft - e.clientX;
             let relative_y = html_node.offsetTop - e.clientY;
 
@@ -54,10 +58,6 @@ class Node {
             html_node.style.zIndex = 20;
             window.previous_node = html_node;
         }
-
-        this.create_header();
-        this.create_math();
-        this.create_editor();
 
         html_node.appendChild(this.header);
         html_node.appendChild(this.display_math);
@@ -90,28 +90,33 @@ class Node {
         this.display_math = document.createElement('div');
         this.display_math.classList.add("tex_render");
 
-        let show_math = (e) => {
-
+        let show_raw_math = (e) => {
             this.display_math.ondblclick = null;
             this.display_math.style.display = "none";
 
             this.editor.onblur = () => {
+                this.raw_math = this.editor.value;
+                this.display_math.ondblclick = show_raw_math;
+                this.display_math.style.display = "block";
+                this.display_math.innerHTML = '';
+                this.display_math.appendChild(document.createTextNode(this.raw_math));
+                         
                 this.editor.value = "";
                 this.editor.style.display = "none";
                 this.editor.onblur = null;
-
-                this.raw_math = this.editor.value;
-                this.display_math.ondblclick = show_math;
-                this.display_math.style.display = "block";
+                this.display_math.style.width = this.editor.style.width;
+                this.display_math.style.height = this.editor.style.height;
 
                 MathJax.Hub.Queue(["Typeset", MathJax.Hub, this.display_math]);
             };
 
+            this.editor.style.width = this.display_math.style.width;
+            this.editor.style.height = this.display_math.style.height;
             this.editor.value = this.raw_math;
             this.editor.style.display = "block";
             this.editor.focus();
         }
-        this.display_math.ondblclick = show_math;
+        this.display_math.ondblclick = show_raw_math;
     }
 }
 
