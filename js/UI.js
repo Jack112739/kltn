@@ -141,6 +141,7 @@ class NodeUI {
     }
 }
 
+//TODO: fix this function properly! the latex component will not render when mouse over it,
 //might rewrite later
 function is_node_component(elem) {
     return elem?.parentNode?.assoc_node;
