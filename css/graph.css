@@ -18,6 +18,7 @@
     min-height: 25px;
     min-width: 150px;
     background-color: rgb(32, 32, 32);
+    font-size: large;
 }
 .node {
     position: absolute;
@@ -29,7 +30,7 @@
 .node_header {
     user-select: none;
     height: 20px;
-    cursor: move;
+    cursor: grab;
     z-index: 10;
     text-align: center;
     background-color: #cecece;
@@ -39,7 +40,13 @@
 }
 .close_button {
     background-color: red;
-    padding: 1px 1px;
     color: white;
     float: right;
+    font-size: 10px;
+}
+#dot {
+    position: absolute;
+    display: none;
+    height: 0;
+    width: 0;
 }

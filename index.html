@@ -1,21 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/x-mathjax-config">
-        MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+    <script>
+        MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']]
+          },
+          svg: {
+            fontCache: 'global'
+          }
+        };
     </script>
-    <script src="js/graph.js"></script>
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+    <script src="dependency/leader-line.min.js"></script>
+    <script src="js/UI.js"></script>
     <link rel="stylesheet" href="css/graph.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style>
-        body {
+        html, body {
             background-color: rgb(32, 32, 32);
             color: antiquewhite;
+            height: 100%;
         }
     </style>
 </head>
 <body>
 
-    <button onclick="test()" id="begin"> create a draggable div!</button>
+    <button onclick="new_node()" id="begin"> create a node! </button>
+    <button onclick="new_edge(event)"> connect two nodes! </button>
+    <div id="dot"></div>
 </body>
 </html>
