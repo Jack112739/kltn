@@ -34,7 +34,9 @@ class NodeUI {
     from; 
     //list of {LeaderLines, Node}, the out edges
     to;
-    //
+    //bool, true if the node is hightlight
+    highlighted
+
     constructor(id) {
         this.id = id;
         this.raw_math = "";
@@ -79,9 +81,16 @@ class NodeUI {
         this.header.innerHTML += this.id;
 
         let close_button = document.createElement('button');
-        close_button.onclick = () => {
-            for(let in_edges of this.from) in_edges.display.remove()
-            for(let out_edges of this.to) out_edges.display.remove();
+        close_button.onclick = (e) => {
+            e.preventDefault()
+            for(let in_edges of this.from) {
+                in_edges.remove();
+                in_edges.start.assoc_node.to.remove(in_edges);
+            }
+            for(let out_edges of this.to) {
+                out_edges.remove();
+                out_edges.end.assoc_node.from.remove(out_edges);
+            }
             document.body.removeChild(this.header.parentNode);
         }
         close_button.classList.add("close_button");
@@ -131,10 +140,10 @@ class NodeUI {
         let assoc_node = this.header.parentNode;
         assoc_node.style.zIndex = 20;
         assoc_node.style.borderColor = "yellow";
-        if(notdisturb) this.notdisturb = notdisturb;
+        this.highlighted = true;
     }
     fade() {
-        if(this.notdisturb) return;
+        this.highlighted = false;
         let assoc_node = this.header.parentNode;
         assoc_node.style.zIndex = 9;
         assoc_node.style.borderColor = "aqua";
@@ -152,7 +161,7 @@ let counter = 0, highlighting = null;
 function highlight_unique(e) {
     let node = is_node_component(e.target);
     highlighting?.fade();
-    if(!node || node.notdisturb) return;
+    if(!node || node.highlighted) return;
     highlighting = node;
     node.highlight();
 };
@@ -183,7 +192,8 @@ function new_edge(e) {
         dot.style.left = e.clientX + "px";
         dot.style.display = "block";
         
-        start.highlight(true);
+        start.highlight();
+        highlighting = null;
         let line = new LeaderLine(e.target.parentNode, dot, {dash: true});
 
         document.onmousemove = (e) => {
@@ -198,14 +208,13 @@ function new_edge(e) {
             let end = is_node_component(e.target);
             if(end && end != start) {
                 line.setOptions({end: e.target.parentNode, dash: false});
-                end.from.push({display: line, v: start});
-                start.to.push({display: line, v: end});
-
+                end.from.push(line);
+                start.to.push(line);
             }
             else line.remove();
 
             end?.fade();
-            start.notdisturb = undefined, start.fade();
+            start.fade();
 
             document.onmousemove = null;
             document.onclick = null;
