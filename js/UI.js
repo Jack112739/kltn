@@ -40,8 +40,8 @@ class NodeUI {
     constructor(id) {
         this.id = id;
         this.raw_math = "";
-        this.from = [];
-        this.to = [];
+        this.from = new Map();
+        this.to = new Map();
         
         let html_div = document.createElement('div');
         html_div.classList.add("node");
@@ -59,8 +59,8 @@ class NodeUI {
                 html_div.style.left = e.clientX + relative_x + "px";
                 html_div.style.top = e.clientY + relative_y + "px";
                 // fuck javascript for in syntax
-                for(let in_edges of this.from) in_edges.display.position();
-                for(let out_edges of this.to) out_edges.display.position();
+                for(let [_, in_edges] of this.from) in_edges.position();
+                for(let [_, out_edges] of this.to) out_edges.position();
             }
             document.onmouseup = (e) => {
                 document.onmousemove = null;
@@ -83,13 +83,13 @@ class NodeUI {
         let close_button = document.createElement('button');
         close_button.onclick = (e) => {
             e.preventDefault()
-            for(let in_edges of this.from) {
-                in_edges.remove();
-                in_edges.start.assoc_node.to.remove(in_edges);
+            for(let[id, line] of this.from) {
+                id.to.delete(this);
+                line.remove();
             }
-            for(let out_edges of this.to) {
-                out_edges.remove();
-                out_edges.end.assoc_node.from.remove(out_edges);
+            for(let [id, line] of this.to) {
+                id.from.delete(this);
+                line.remove();
             }
             document.body.removeChild(this.header.parentNode);
         }
@@ -194,7 +194,7 @@ function new_edge(e) {
         
         start.highlight();
         highlighting = null;
-        let line = new LeaderLine(e.target.parentNode, dot, {dash: true});
+        let line = new LeaderLine(e.target.parentNode, dot, {dash: true, path: 'magnet'});
 
         document.onmousemove = (e) => {
             dot.style.left = e.clientX + "px";
@@ -207,9 +207,9 @@ function new_edge(e) {
             if(e.target == dot) return;
             let end = is_node_component(e.target);
             if(end && end != start) {
-                line.setOptions({end: e.target.parentNode, dash: false});
-                end.from.push(line);
-                start.to.push(line);
+                line.setOptions({end: e.target.parentNode, dash: false, });
+                end.from.set(start, line);
+                start.to.set(end, line);
             }
             else line.remove();
 
