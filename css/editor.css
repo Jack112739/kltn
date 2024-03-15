@@ -1,0 +1,8 @@
+.editor {
+    z-index: 40;
+}
+
+/* when using in other devices, maybe not needed*/
+@media screen {
+    
+}

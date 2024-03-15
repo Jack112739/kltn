@@ -1,0 +1,47 @@
+Do not modify the requirement to a great extend!!
+
+Specification:
+    1: the play-ground with graphs
+        v every node will be hightlighted when clicked (event onmousedown)
+        v the nodes can be dragged
+        v the top of the screen will have the link with style "lemma 1 > lemma 1,1 > lemma 1.1.1"
+        v user can click on the link to go back to the higher level proof
+        v can create link between nodes
+        v external node have different display
+        v double click the node will switch to the content inside the node and re-render the screen
+        - make the page scrollable
+        - shortcuts for edit, create node,...
+        - have different modes
+        - hide and show edges
+    2: the latex editor
+        - options are edit, rename, delete, resize (might be changed later)
+        - a link between node represent the relation with the proof within only be created by \ref, \cite
+        - have all of the options for the nodes resize, rename, edit,...
+        - have a preview
+        - have a latex suggestor
+        - support other writing, bold, italic, listing,...
+        - have a preview bellow
+        - rollback option
+    3: computer can understand the proof and judges wether it's true or not
+        - user can explain their intention with the node further
+        - every node is a "simple" mathematical arguement
+    4: the website:
+        - able to save the proof into a file
+        - able to read to proof from a file
+        - include 
+            + write an introduction into index file
+            + playground which is for user playing with the graph functionality
+            + a manual document on what this website provide
+            + a resource page provide basic fundalmental theorem for mathematic 
+            + a problem set for user to solve them online
+
+Aim (sort by priority):
+make the graph fully functional
+make the editor work
+
+automate linking math argument
+vim-like editor
+linting for typing latex
+
+make the compiler understand wether the proof is correct or not (at certain degree)
+make this a compeptitive website

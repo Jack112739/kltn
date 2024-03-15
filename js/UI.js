@@ -1,11 +1,4 @@
 
-
-//setup function for this page
-(function setup() {
-    document.onmousedown = highlight_unique;
-})()
-
-
 /**
  * Represent the element of the proof, as a directed graph
  * 
@@ -14,51 +7,51 @@ class NodeUI {
 
     //String, name of the node
     id;
-    
-    // <div>, mathjax will render math here
-    display_math;
 
-    // The raw latex string
-    raw_math;
-    
-    // <div>, the header of the node, will contain delete button, id
-    header;
-    
-    // editor_ui, user double click this to edit the math content
-    editor;
-    
-    // TODO: add this properties
-    // //Math structure of this node
-    // math
-    //list of {LeaderLines, Node}, the in edges
-    from; 
-    //list of {LeaderLines, Node}, the out edges
-    to;
-    //bool, true if the node is hightlight
-    highlighted
+    //String, The raw latex string
+    raw_text;
+    //TODO represent the logic behind the latex string, currently undefined
+    math_logic;
 
-    constructor(id) {
+    // Map<NodeUI, LeaderLine> the in-edges and out-edges of this node
+    from; to;
+
+    //bool, true if the node is highlight
+    highlighted;
+
+    //GraphUI the detail of the proof presented in this node if needed
+    detail;
+
+    //GraphUI, the graph contain this node
+    graph;
+
+    //the HTML element respected to this node
+    html_div;
+
+    constructor(id, graph) {
         this.id = id;
-        this.raw_math = "";
+        this.raw_text = "";
         this.from = new Map();
         this.to = new Map();
+        this.highlighted = false;
+        this.detail = null;
+        this.graph = graph;
         
-        let html_div = document.createElement('div');
-        html_div.classList.add("node");
-        
-        this.create_header();
-        this.create_math();
-        this.create_editor();
+        this.html_div = document.createElement('div');
+        this.html_div.classList.add("node");
+        this.html_div.insertAdjacentHTML('beforeend', `
+            <div class="node_header">${id}</div>
+            <div class="tex_render"></div>
+        `);
 
-        this.header.onmousedown = (e) => {
+        this.html_div.onmousedown = (e) => {
             e.preventDefault();
-            let relative_x = html_div.offsetLeft - e.clientX;
-            let relative_y = html_div.offsetTop - e.clientY;
+            let relative_x = this.html_div.offsetLeft - e.clientX;
+            let relative_y = this.html_div.offsetTop - e.clientY;
 
             document.onmousemove = (e) => {
-                html_div.style.left = e.clientX + relative_x + "px";
-                html_div.style.top = e.clientY + relative_y + "px";
-                // fuck javascript for in syntax
+                this.html_div.style.left = e.clientX + relative_x + "px";
+                this.html_div.style.top = e.clientY + relative_y + "px";
                 for(let [_, in_edges] of this.from) in_edges.position();
                 for(let [_, out_edges] of this.to) out_edges.position();
             }
@@ -67,160 +60,222 @@ class NodeUI {
                 document.onmouseup = null;
             }
         }
-
-        html_div.appendChild(this.header);
-        html_div.appendChild(this.display_math);
-        html_div.appendChild(this.editor);
-        html_div.assoc_node = this;
-        
-        document.body.appendChild(html_div);
-    }
-    create_header() {
-        this.header = document.createElement('div');
-        this.header.classList.add("node_header");
-        this.header.innerHTML += this.id;
-
-        let close_button = document.createElement('button');
-        close_button.onclick = (e) => {
-            e.preventDefault()
-            for(let[id, line] of this.from) {
-                id.to.delete(this);
-                line.remove();
+        this.html_div.ondblclick = (e) => {
+            if(this.detail == null) {
+                //TODO: not allow if the math inside this is a simple substitution or using other lemma
+                this.detail = new GraphUI(this);
             }
-            for(let [id, line] of this.to) {
-                id.from.delete(this);
-                line.remove();
-            }
-            document.body.removeChild(this.header.parentNode);
+            window.current_graph.switch_to(this.detail);
         }
-        close_button.classList.add("close_button");
-        close_button.innerHTML += `<i class="fa fa-close"></i>`
-
-        this.header.appendChild(close_button);
+        this.html_div.assoc_node = this;
     }
-    //will be added laters
-    create_editor() {
-        this.editor = document.createElement('textarea');
-        this.editor.classList.add("tex");
-        this.editor.style.display = "none";
-    }
-    create_math() {
-        this.display_math = document.createElement('div');
-        this.display_math.classList.add("tex_render");
-
-        let show_raw_math = (e) => {
-            this.display_math.ondblclick = null;
-            this.display_math.style.display = "none";
-
-            this.editor.onblur = () => {
-                this.raw_math = this.editor.value;
-                this.display_math.ondblclick = show_raw_math;
-                this.display_math.style.display = "block";
-                this.display_math.innerHTML = '';
-                this.display_math.appendChild(document.createTextNode(this.raw_math));
-                         
-                this.editor.value = "";
-                this.editor.style.display = "none";
-                this.editor.onblur = null;
-                this.display_math.style.width = this.editor.style.width;
-                this.display_math.style.height = this.editor.style.height;
-
-                MathJax.typeset();
-            };
-
-            this.editor.style.width = this.display_math.style.width;
-            this.editor.style.height = this.display_math.style.height;
-            this.editor.value = this.raw_math;
-            this.editor.style.display = "block";
-            this.editor.focus();
-        }
-        this.display_math.ondblclick = show_raw_math;
-    }
-    highlight(notdisturb) {
-        let assoc_node = this.header.parentNode;
-        assoc_node.style.zIndex = 20;
-        assoc_node.style.borderColor = "yellow";
+    highlight() {
+        this.html_div.style.zIndex = 20;
+        this.html_div.style.borderColor = "red";
         this.highlighted = true;
     }
     fade() {
         this.highlighted = false;
-        let assoc_node = this.header.parentNode;
+        let assoc_node = this.html_div;
         assoc_node.style.zIndex = 9;
         assoc_node.style.borderColor = "aqua";
     }
-}
-
-//TODO: fix this function properly! the latex component will not render when mouse over it,
-//might rewrite later
-function is_node_component(elem) {
-    return elem?.parentNode?.assoc_node;
-}
-
-let counter = 0, highlighting = null;
-
-function highlight_unique(e) {
-    let node = is_node_component(e.target);
-    highlighting?.fade();
-    if(!node || node.highlighted) return;
-    highlighting = node;
-    node.highlight();
-};
-
-function new_node() {
-    counter++;
-    new NodeUI(`${counter}`);
-}
-
-function new_edge(e) {
-    e.stopPropagation();
-    highlighting?.fade();
-    document.body.style.cursor = "pointer"
-    
-    document.onclick = (e) => {
-        e.stopPropagation();
-        start = is_node_component(e.target);
-        if(!start) {
-            document.body.style.cursor = "";
-            document.onmousedown = highlight_unique;
-            document.onclick = null;
-            document.onmousemove = null;
+    remove() {
+        //TODO: some node can not be deleted, implement this
+        if(this.graph.input === this || this.graph.output == this) {
+            alert('can not delete the input and output node');
             return;
         }
-        
-        let dot = document.getElementById("dot");
-        dot.style.top = e.clientY + "px";
-        dot.style.left = e.clientX + "px";
-        dot.style.display = "block";
-        
-        start.highlight();
-        highlighting = null;
-        let line = new LeaderLine(e.target.parentNode, dot, {dash: true, path: 'magnet'});
-
-        document.onmousemove = (e) => {
-            dot.style.left = e.clientX + "px";
-            dot.style.top = e.clientY + "px";
-            line.position();
-
-            highlight_unique(e);
-        };
-        document.onclick = (e) => {
-            if(e.target == dot) return;
-            let end = is_node_component(e.target);
-            if(end && end != start) {
-                line.setOptions({end: e.target.parentNode, dash: false, });
-                end.from.set(start, line);
-                start.to.set(end, line);
-            }
-            else line.remove();
-
-            end?.fade();
-            start.fade();
-
-            document.onmousemove = null;
-            document.onclick = null;
-            document.onmousedown = highlight_unique;
-            document.body.style.cursor = "";
-        };
+        this.detail?.remove_childs();
+        for(let[id, line] of this.from) {
+            id.to.delete(this);
+            line.remove();
+        }
+        for(let [id, line] of this.to) {
+            id.from.delete(this);
+            line.remove();
+        }
+        this.graph.html_div.removeChild(this.html_div);
+        this.graph.internal_nodes.delete(this.id);
     }
-    document.onmousemove = highlight_unique;
+    edit() {
+
+    }
+    get parent() {
+        return this.graph.summary;
+    }
 }
+
+function is_node_component(elem) {
+    while(elem && !elem.assoc_node) elem = elem.parentNode;
+    return elem?.assoc_node;
+}
+
+class GraphUI {
+    
+    // the nodes of this graph, containing the arguement
+    internal_nodes;
+    // external nodes of the graph, which the proof of this graph depend on
+    external_nodes;
+    //NodeUI, what this arguement has
+    input;
+    //NodeUI what must be done in this arguement
+    output;
+    //NodeUI, the arguement need to explain in this
+    summary;
+    // currently highlighted node
+    highlighting;
+    // web representation of this graph
+    html_div;
+    //String, math mode or draw mode, auto mode.
+    mode;
+
+    constructor(summary) {
+        this.summary = summary;
+        this.highlighting = null;
+        this.create_math_logic();
+        this.create_html();
+        this.mode = "math";
+    }
+    //TODO: add this
+    create_math_logic() {
+        this.internal_nodes = new Map();
+        this.external_nodes = new Map();
+        this.input = this.output = null;
+    }
+    create_html() {
+        this.html_div = document.createElement('div');
+        this.html_div.classList.add('graph');
+        let recursive = (node) => {
+            if(!node) return;
+            recursive(node.parent);
+
+            let traverse = document.createElement('button');
+            traverse.classList.add('parent');
+            traverse.onclick = () => this.switch_to(node.detail);
+            traverse.insertAdjacentHTML('beforeend', node.id);
+            this.html_div.appendChild(traverse);
+        };
+        recursive(this.summary);
+        this.html_div.insertAdjacentHTML('beforeend', `
+            <div class="toolbar">
+                <button onclick="GraphUI.new_node('#'+ (++window.counter))">create</button>
+                <button onclick="GraphUI.new_edge(event)">edge</button>
+                <button onclick="GraphUI.remove_node(event)">delete</button>
+                <button onclick="GraphUI.edit_node(event)">edit</button>
+            </div>
+        `);
+    }
+    //TODO: recursively remove all the child
+    remove_childs() {
+        for(let [id, node] of this.internal_nodes) {
+            node.remove();
+        }
+    }
+    //pop up the edit window for that specific node
+    switch_to(graph) {
+        window.current_graph = graph;
+        this.hide_edges();
+        graph.show_edges();
+        document.body.replaceChild(graph.html_div, this.html_div);
+    }
+    show_edges() {
+        for(let [_, node] of this.internal_nodes) {
+            for(let [_, edges]  of node.from) edges.show('none'); 
+        }
+    }
+    hide_edges() {
+        for(let [_, node] of this.internal_nodes) {
+            for(let [_, edges]  of node.from) edges.hide('none'); 
+        }
+    }
+    static highlight_unique(e) {
+        let node = is_node_component(e.target);
+        window.current_graph.highlighting?.fade();
+        if(!node || node.highlighted) return;
+        window.current_graph.highlighting = node;
+        node.highlight();
+    };
+    static new_node(id) {
+        //TODO: this should popup a window for how should user create a node
+        let new_node = new NodeUI(id, window.current_graph);
+        window.current_graph.internal_nodes.set(id, new_node);
+        window.current_graph.html_div.appendChild(new_node.html_div);
+    }
+    static new_edge(e) {
+        e.stopPropagation();
+        window.current_graph.highlighting?.fade();
+        let prev = document.onclick;
+        
+        document.onmousemove = GraphUI.highlight_unique;
+        document.onclick = (e) => {
+            e.stopPropagation();
+            let start = is_node_component(e.target);
+            if(!start) {
+                document.onclick = prev;
+                document.onmousemove = null;
+                return;
+            }
+            
+            let dot = document.getElementById("dot");
+            dot.style.top = e.clientY + "px";
+            dot.style.left = e.clientX + "px";
+            dot.style.display = "block";
+            
+            let line = new LeaderLine(start.html_div, dot, {dash: true, path: 'straight', size: 2});
+            
+            document.onmousemove = (e) => {
+                dot.style.left = e.clientX + "px";
+                dot.style.top = e.clientY + "px";
+                line.position();
+                
+                GraphUI.highlight_unique(e);
+            };
+            document.onclick = (e) => {
+                let end = is_node_component(e.target);
+                if(end && end != start && !start.to.has(end)) {
+                    line.setOptions({end: end.html_div, dash: false});
+                    end.from.set(start, line);
+                    start.to.set(end, line);
+                }
+                else line.remove();
+    
+                end?.fade();
+                start.fade();
+                
+                document.onmousemove = null;
+                document.onclick = prev;
+            };
+        }
+    }
+    
+    static remove_node(e) {
+        e.stopPropagation();
+        document.onmousemove = GraphUI.highlight_unique;
+        let prev = document.onclick;
+        document.onclick = (e) => {
+            is_node_component(e.target)?.remove();
+            document.onmousemove = null;
+            document.onclick = prev;
+        }
+    }
+    
+    static edit_node(e) {
+        e.stopPropagation();
+        document.onmousemove = GraphUI.highlight_unique;
+        let prev = document.onclick;
+        document.onclick = (e) => {
+            is_node_component(e.target)?.edit();
+            document.onmousemove = prev;
+            document.onclick = GraphUI.highlight_unique;
+        }
+    }
+}
+
+//setup function for this page
+(function setup() {
+    window.counter = 0;
+    window.current_graph = new GraphUI(null);
+    document.body.appendChild(window.current_graph.html_div);
+    document.onmousedown = GraphUI.highlight_unique;
+})()
