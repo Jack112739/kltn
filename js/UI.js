@@ -111,6 +111,22 @@ function is_node_component(elem) {
     return elem?.assoc_node;
 }
 
+function user_mode(click, move) {
+    return e => {
+        e?.stopPropagation();
+        let p_click = document.onclick, p_move = document.onmousemove;
+        document.onmousemove = (e) => {
+            GraphUI.highlight_unique(e);
+            if(move) move(e);
+        }
+        document.onclick = (e) => {
+            document.onclick = p_click;
+            document.onmousemove = p_move;
+            if(click) click(is_node_component(e.target), e);
+        }
+    }
+}
+
 class GraphUI {
     
     // the nodes of this graph, containing the arguement
@@ -161,8 +177,8 @@ class GraphUI {
             <div class="toolbar">
                 <button onclick="GraphUI.new_node('#'+ (++window.counter))">create</button>
                 <button onclick="GraphUI.new_edge(event)">edge</button>
-                <button onclick="GraphUI.remove_node(event)">delete</button>
-                <button onclick="GraphUI.edit_node(event)">edit</button>
+                <button onclick="user_mode(elem => elem.remove())(event)">delete</button>
+                <button onclick="user_mode(elem => elem.edit())(event)">edit</button>
             </div>
         `);
     }
@@ -203,72 +219,27 @@ class GraphUI {
         window.current_graph.html_div.appendChild(new_node.html_div);
     }
     static new_edge(e) {
-        e.stopPropagation();
-        window.current_graph.highlighting?.fade();
-        let prev = document.onclick;
-        
-        document.onmousemove = GraphUI.highlight_unique;
-        document.onclick = (e) => {
-            e.stopPropagation();
-            let start = is_node_component(e.target);
-            if(!start) {
-                document.onclick = prev;
-                document.onmousemove = null;
-                return;
-            }
-            
+        user_mode((start,e) => {
+            if(!start) return;
             let dot = document.getElementById("dot");
-            dot.style.top = e.clientY + "px";
             dot.style.left = e.clientX + "px";
+            dot.style.top = e.clientY + "px";
             dot.style.display = "block";
-            
             let line = new LeaderLine(start.html_div, dot, {dash: true, path: 'straight', size: 2});
-            
-            document.onmousemove = (e) => {
-                dot.style.left = e.clientX + "px";
-                dot.style.top = e.clientY + "px";
-                line.position();
-                
-                GraphUI.highlight_unique(e);
-            };
-            document.onclick = (e) => {
-                let end = is_node_component(e.target);
+            user_mode(end => {
                 if(end && end != start && !start.to.has(end)) {
                     line.setOptions({end: end.html_div, dash: false});
                     end.from.set(start, line);
                     start.to.set(end, line);
                 }
                 else line.remove();
-    
-                end?.fade();
-                start.fade();
-                
-                document.onmousemove = null;
-                document.onclick = prev;
-            };
-        }
-    }
-    
-    static remove_node(e) {
-        e.stopPropagation();
-        document.onmousemove = GraphUI.highlight_unique;
-        let prev = document.onclick;
-        document.onclick = (e) => {
-            is_node_component(e.target)?.remove();
-            document.onmousemove = null;
-            document.onclick = prev;
-        }
-    }
-    
-    static edit_node(e) {
-        e.stopPropagation();
-        document.onmousemove = GraphUI.highlight_unique;
-        let prev = document.onclick;
-        document.onclick = (e) => {
-            is_node_component(e.target)?.edit();
-            document.onmousemove = prev;
-            document.onclick = GraphUI.highlight_unique;
-        }
+                dot.style.display = "none";
+            }, e => {
+                dot.style.left = e.clientX + "px";
+                dot.style.top = e.clientY + "px";
+                line.position();
+            })(null);
+        }, null)(e);
     }
 }
 
