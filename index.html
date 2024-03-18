@@ -8,13 +8,15 @@
           },
           svg: {
             fontCache: 'global'
-          }
+          },
+          ignoreHtmlClass: 'ignore-math'
         };
     </script>
     <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"> </script>
     <script src="dependency/leader-line.min.js"></script>
     <link rel="stylesheet" href="css/graph.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/editor.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
       /* display the style of the playground, might be changed later */
       html, body {
@@ -26,5 +28,34 @@
 <body>
   <div id="dot"></div>
   <script src="js/UI.js"></script>
+
+  <div class="editor">
+    <div class="settings">
+      <div class="row">
+        <label class="name" class="left"> Name: </label> 
+        <input type="text" class="left" id="name" spellcheck="false">
+        <button id="del"><i class="fa-solid fa-trash"></i></button>
+        <button id="save"><i class="fa-regular fa-floppy-disk"></i></button>
+        <button id="close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="row" >
+        <button id="bold"><i class="fa-solid fa-bold"></i></button>
+        <button id="italic"><i class="fa-solid fa-italic"></i></button>
+        <button id="underline"><i class="fa-solid fa-underline"></i></button>
+        <button id="list"><i class="fa-solid fa-list"></i></button>
+        <label>color:</label><input type="color" value="#faebd7" id="text-color">
+        <label>width:</label><input type="text" id="width">
+        <label>height:</label><input type="text" id="height">
+      </div>
+    </div>
+    
+    <label>Raw text</label>
+    <textarea class="text-view raw-text" spellcheck="false"></textarea>
+    <div class="row preview">
+      <label> Preview:</label>
+      <button id="recompile"><i class="fa-solid fa-arrows-rotate"></i></button>
+    </div>
+    <div class="text-view latex"></div>
+  </div>
 </body>
 </html>

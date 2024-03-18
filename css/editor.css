@@ -1,8 +1,132 @@
 .editor {
-    z-index: 40;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 80;
+    width:  60vw;
+    height: 80vh;
+    border: solid 5px red;
+    background-color: black;
+    color: antiquewhite;
+    display: flex;
+    flex-direction: column;
+}
+textarea.raw-text {
+    resize: none;
+    overflow-y: auto;
+    height: 30%;
+}
+.text-view {
+    margin: 5px 10px;
+    background-color: rgb(32,32,32);
+    box-sizing: border-box;
+    color: antiquewhite;
+    flex-grow: 1;
+    margin-bottom: 10px;
+}
+div.latex {
+    height: 40%;
+    border: 1px solid grey;
+    border-radius: 4px;
+}
+.ignore-math {
+    background-color: transparent;
 }
 
+
+.settings {
+    background-color: rgb(20,20,30);
+    border-bottom: 1px solid rgb(40, 40, 60);
+    margin-bottom: 5px;
+    padding: 2px;
+}
+.row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    margin: 5px;
+    justify-content: center;
+}
+.row button {
+    height: 25px;
+    width: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+}
+label.name {
+    font-size: 18px;
+}
+#name {
+    background-color: rgb(50,50,50);
+    color: rgb(245, 89, 245);
+    font-size: 16px;
+    flex-grow: 1;
+    margin-right: 15%;
+}
+#text-color {
+    width: 25px;
+    height: 25px;
+}
+#close {
+    background-color: red;
+    color: white;
+}
+#save {
+    background-color: blue;
+    color: white;
+}
+#del {
+    background-color: lightgray;
+    color: grey;
+}
+#height, #width {
+    width: 50px;
+    height: 25px;
+    border: 1px solid grey;
+    background-color: rgb(32,32,32);
+    color: antiquewhite;
+}
+#bold, #italic, #list, #underline {
+    background-color: lightgray;
+    color: black;
+}
+.row.preview {
+    margin: 0;
+    justify-content: flex-start;
+}
+#recompile {
+    background-color: forestgreen;
+    color: antiquewhite;
+}
+
+
+/* remove color wrapper */
+input[type="color"]::-moz-color-swatch {
+    border: none;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+    border: none;
+}
+
+
 /* when using in other devices, maybe not needed*/
-@media screen {
-    
+@media screen and (max-width:800px) {
+    .editor {
+        width: 90vw;
+        height: 90vh;
+    }
+    #name {
+        margin-right: 0%;
+    }
 }

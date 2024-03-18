@@ -9,19 +9,20 @@ Specification:
         v can create link between nodes
         v external node have different display
         v double click the node will switch to the content inside the node and re-render the screen
+        - have all of the options for the nodes resize, rename, edit,... appear when right clicked
+        - options are edit, rename, delete, resize (might be changed later)
         - make the page scrollable
         - shortcuts for edit, create node,...
-        - have different modes
         - hide and show edges
+        - undo-redo option
+        - have different modes (low priority)
     2: the latex editor
-        - options are edit, rename, delete, resize (might be changed later)
-        - a link between node represent the relation with the proof within only be created by \ref, \cite
-        - have all of the options for the nodes resize, rename, edit,...
-        - have a preview
+        - automate a link if typed \ref, \cite
+        v have a preview
         - have a latex suggestor
-        - support other writing, bold, italic, listing,...
-        - have a preview bellow
-        - rollback option
+        - support other writing, bold, italic, underline, change_color, listing,...
+        - movable
+        v responsive
     3: computer can understand the proof and judges wether it's true or not
         - user can explain their intention with the node further
         - every node is a "simple" mathematical arguement

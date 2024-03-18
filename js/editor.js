@@ -8,6 +8,4 @@ class Editor {
     target;
     // the editor window
     html_div;
-
-    
 }

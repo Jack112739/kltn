@@ -18,7 +18,7 @@
 .node_header {
     height: 15px;
     text-align: center;
-    color: rgb(220, 220, 170);
+    color: rgb(220, 170, 220);
 }
 #dot {
     position: absolute;
