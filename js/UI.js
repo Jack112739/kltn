@@ -38,7 +38,7 @@ class NodeUI {
         this.graph = graph;
         
         this.html_div = document.createElement('div');
-        this.html_div.classList.add("node");
+        this.html_div.className = "node";
         this.html_div.insertAdjacentHTML('beforeend', `
             <div class="node_header">${id}</div>
             <div class="tex_render"></div>
@@ -61,11 +61,11 @@ class NodeUI {
             }
         }
         this.html_div.ondblclick = (e) => {
-            if(this.detail == null) {
+            if(this.detail === null) {
                 //TODO: not allow if the math inside this is a simple substitution or using other lemma
                 this.detail = new GraphUI(this);
             }
-            window.current_graph.switch_to(this.detail);
+            GraphUI.current_graph.switch_to(this.detail);
         }
         this.html_div.assoc_node = this;
     }
@@ -98,11 +98,14 @@ class NodeUI {
         this.graph.html_div.removeChild(this.html_div);
         this.graph.internal_nodes.delete(this.id);
     }
-    edit() {
-
-    }
     get parent() {
-        return this.graph.summary;
+        return this.graph?.summary;
+    }
+    rename(name) {
+        this.graph?.internal_nodes.delete(this.id);
+        this.graph?.internal_nodes.set(name, this);
+        this.id = name;
+        this.html_div.querySelector('.node_header').firstChild.data = name;
     }
 }
 
@@ -129,9 +132,9 @@ function user_mode(click, move) {
 
 class GraphUI {
     
-    // the nodes of this graph, containing the arguement
+    //Map; the nodes of this graph, containing the arguement
     internal_nodes;
-    // external nodes of the graph, which the proof of this graph depend on
+    //Array; external nodes of the graph, which the proof of this graph depend on
     external_nodes;
     //NodeUI, what this arguement has
     input;
@@ -146,8 +149,11 @@ class GraphUI {
     //String, math mode or draw mode, auto mode.
     mode;
 
+    static current_graph;
+
     constructor(summary) {
         this.summary = summary;
+        if(this.summary.detail === null) this.summary.detail = this;
         this.highlighting = null;
         this.create_math_logic();
         this.create_html();
@@ -156,7 +162,7 @@ class GraphUI {
     //TODO: add this
     create_math_logic() {
         this.internal_nodes = new Map();
-        this.external_nodes = new Map();
+        this.external_nodes = new Array();
         this.input = this.output = null;
     }
     create_html() {
@@ -177,8 +183,8 @@ class GraphUI {
             <div class="toolbar">
                 <button onclick="GraphUI.new_node('#'+ (++window.counter))">create</button>
                 <button onclick="GraphUI.new_edge(event)">edge</button>
-                <button onclick="user_mode(elem => elem.remove())(event)">delete</button>
-                <button onclick="user_mode(elem => elem.edit())(event)">edit</button>
+                <button onclick="user_mode(elem => elem.remove())()">delete</button>
+                <button onclick="user_mode(elem => Editor.load(elem))()">edit</button>
             </div>
         `);
     }
@@ -190,7 +196,7 @@ class GraphUI {
     }
     //pop up the edit window for that specific node
     switch_to(graph) {
-        window.current_graph = graph;
+        GraphUI.current_graph = graph;
         this.hide_edges();
         graph.show_edges();
         document.body.replaceChild(graph.html_div, this.html_div);
@@ -207,16 +213,16 @@ class GraphUI {
     }
     static highlight_unique(e) {
         let node = is_node_component(e.target);
-        window.current_graph.highlighting?.fade();
+        GraphUI.current_graph.highlighting?.fade();
         if(!node || node.highlighted) return;
-        window.current_graph.highlighting = node;
+        GraphUI.current_graph.highlighting = node;
         node.highlight();
     };
     static new_node(id) {
         //TODO: this should popup a window for how should user create a node
-        let new_node = new NodeUI(id, window.current_graph);
-        window.current_graph.internal_nodes.set(id, new_node);
-        window.current_graph.html_div.appendChild(new_node.html_div);
+        let new_node = new NodeUI(id, GraphUI.current_graph);
+        GraphUI.current_graph.internal_nodes.set(id, new_node);
+        GraphUI.current_graph.html_div.appendChild(new_node.html_div);
     }
     static new_edge(e) {
         user_mode((start,e) => {
@@ -246,7 +252,7 @@ class GraphUI {
 //setup function for this page
 (function setup() {
     window.counter = 0;
-    window.current_graph = new GraphUI(null);
-    document.body.appendChild(window.current_graph.html_div);
+    GraphUI.current_graph = new GraphUI(new NodeUI('#root', null));
+    document.body.appendChild(GraphUI.current_graph.html_div);
     document.onmousedown = GraphUI.highlight_unique;
 })()

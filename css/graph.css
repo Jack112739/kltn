@@ -5,11 +5,12 @@
     min-height: 30px;
     min-width: 45px;
     padding: 5px;
+    overflow-y: auto;
 }
 .node {
     position: absolute;
     z-index: 9;
-    border: 3px solid aqua;
+    border: 2px solid aqua;
     background-color: rgb(32, 32, 32);
     color: antiquewhite;
     user-select: none;
@@ -18,7 +19,7 @@
 .node_header {
     height: 15px;
     text-align: center;
-    color: rgb(220, 170, 220);
+    color: rgb(245, 89, 245);
 }
 #dot {
     position: absolute;
@@ -31,7 +32,7 @@
     border-color: rgb(204, 52, 52);
 }
 .node.referenced {
-    border-style: dashed;
+    border-style: dotted;
 }
 .leader-line {
     z-index: 30;
@@ -48,7 +49,7 @@ button.parent:hover {
     cursor: pointer;
 }
 button.parent {
-    color: antiquewhite;
+    color: rgb(245, 89, 245);
     background-color: transparent;
     border: none;
     padding: 1px 2px;

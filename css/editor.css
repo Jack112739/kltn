@@ -1,12 +1,12 @@
-.editor {
+#editor {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 80;
-    width:  60vw;
+    width:  700px;
     height: 80vh;
-    border: solid 5px red;
+    border: solid 5px rgb(204, 52, 52);;
     background-color: black;
     color: antiquewhite;
     display: flex;
@@ -15,30 +15,27 @@
 textarea.raw-text {
     resize: none;
     overflow-y: auto;
-    height: 30%;
+    flex-grow: 3;
 }
 .text-view {
-    margin: 5px 10px;
+    margin: 0px 10px;
     background-color: rgb(32,32,32);
     box-sizing: border-box;
     color: antiquewhite;
-    flex-grow: 1;
-    margin-bottom: 10px;
+    font-size: 13px;
 }
 div.latex {
-    height: 40%;
+    flex-grow: 5;
     border: 1px solid grey;
     border-radius: 4px;
+    margin-bottom: 10px;
 }
 .ignore-math {
     background-color: transparent;
 }
-
-
 .settings {
     background-color: rgb(20,20,30);
     border-bottom: 1px solid rgb(40, 40, 60);
-    margin-bottom: 5px;
     padding: 2px;
 }
 .row {
@@ -47,7 +44,7 @@ div.latex {
     align-items: center;
     gap: 6px;
     margin: 5px;
-    justify-content: center;
+    justify-content: flex-start;
 }
 .row button {
     height: 25px;
@@ -58,60 +55,51 @@ div.latex {
     cursor: pointer;
     font-size: 16px;
 }
-label.name {
+#editor label.name {
     font-size: 18px;
 }
-#name {
-    background-color: rgb(50,50,50);
+#editor input.name {
+    background-color: rgb(32,32,32);
     color: rgb(245, 89, 245);
     font-size: 16px;
     flex-grow: 1;
     margin-right: 15%;
+    border: 1px solid grey;
 }
-#text-color {
+#editor .text-color {
     width: 25px;
     height: 25px;
 }
-#close {
+button.close {
     background-color: red;
     color: white;
 }
-#save {
+button.save {
     background-color: blue;
     color: white;
 }
-#del {
+button.del {
     background-color: lightgray;
     color: grey;
 }
-#height, #width {
-    width: 50px;
-    height: 25px;
-    border: 1px solid grey;
-    background-color: rgb(32,32,32);
-    color: antiquewhite;
-}
-#bold, #italic, #list, #underline {
+button.text {
     background-color: lightgray;
     color: black;
 }
-.row.preview {
-    margin: 0;
-    justify-content: flex-start;
-}
-#recompile {
+button.recompile {
     background-color: forestgreen;
     color: antiquewhite;
 }
 
 
-/* remove color wrapper */
+/* remove color wrapper and input scroller */
 input[type="color"]::-moz-color-swatch {
     border: none;
 }
 
 input[type="color"]::-webkit-color-swatch-wrapper {
     padding: 0;
+    border: 0;
     border-radius: 0;
 }
 
@@ -119,14 +107,13 @@ input[type="color"]::-webkit-color-swatch {
     border: none;
 }
 
-
 /* when using in other devices, maybe not needed*/
 @media screen and (max-width:800px) {
-    .editor {
+    #editor {
         width: 90vw;
         height: 90vh;
     }
-    #name {
-        margin-right: 0%;
+    #editor input.name {
+        margin-right: 0;
     }
 }
