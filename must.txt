@@ -1,0 +1,14 @@
+tìm một công cụ có ý tưởng tương tự để chứng minh được ý tưởng của mình là hợp lý
+ví dụ có công cụ dịch có thể dịch ngược pdf về latex
+
+có tài liệu tham khảo, (link bài báo) cung cấp bối cảnh cho vấn đề mình giải quyết, có nhu
+cầu hiển thị trực quan các chứng minh toán học đã đưuọc nói đến, các công cụ có chức năng 
+tương tự: hiển thị trực quan và đưa về dạng gốc để lưu trữ
+
+làm rõ cách mình làm, tầm thường trực quan quá không tốt
+
+thuyết minh kỹ hơn về lập trình của mình
+
+
+tìm thêm các minh chứng ngoài web editor
+khảo sát ngôn ngữ để hiển thị trực quan chứng minh toán (định dạng tiêu chí khác)

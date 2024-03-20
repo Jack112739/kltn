@@ -10,16 +10,16 @@
 .node {
     position: absolute;
     z-index: 9;
-    border: 2px solid aqua;
-    background-color: rgb(32, 32, 32);
-    color: antiquewhite;
+    border: 2px solid #96CDFB;
+    background-color: #1E1E2E;
+    color: #D9E0EE;
     user-select: none;
     cursor: grab;
 }
 .node_header {
     height: 15px;
     text-align: center;
-    color: rgb(245, 89, 245);
+    color: #89DCEB;
 }
 #dot {
     position: absolute;
@@ -29,7 +29,7 @@
 }
 
 .node.highlighted {
-    border-color: rgb(204, 52, 52);
+    border-color: rgb(78, 95, 255);
 }
 .node.referenced {
     border-style: dotted;
@@ -39,7 +39,7 @@
 }
 /* this might be changed later */
 .graph {
-    background-color: rgb(32, 32, 32);
+    background-color: #1E1E2E;
     height: 95vh;
     width: 95vw;
 }
@@ -49,7 +49,7 @@ button.parent:hover {
     cursor: pointer;
 }
 button.parent {
-    color: rgb(245, 89, 245);
+    color: #89DCEB;
     background-color: transparent;
     border: none;
     padding: 1px 2px;

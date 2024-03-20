@@ -6,8 +6,8 @@
     z-index: 80;
     width:  700px;
     height: 80vh;
-    border: solid 5px rgb(204, 52, 52);;
-    background-color: black;
+    border: solid 5px rgb(78, 95, 255);
+    background-color: rgb(12, 16, 29);
     color: antiquewhite;
     display: flex;
     flex-direction: column;
@@ -15,20 +15,21 @@
 textarea.raw-text {
     resize: none;
     overflow-y: auto;
-    flex-grow: 3;
+    flex: 3;
 }
 .text-view {
     margin: 0px 10px;
-    background-color: rgb(32,32,32);
+    background-color: #1E1E2E;
     box-sizing: border-box;
-    color: antiquewhite;
-    font-size: 13px;
+    color: #D9E0EE;
+    font-size: 14px;
+    border-radius: 4px;
 }
 div.latex {
-    flex-grow: 5;
+    flex: 5;
     border: 1px solid grey;
-    border-radius: 4px;
     margin-bottom: 10px;
+    overflow-y: auto;
 }
 .ignore-math {
     background-color: transparent;
@@ -36,14 +37,13 @@ div.latex {
 .settings {
     background-color: rgb(20,20,30);
     border-bottom: 1px solid rgb(40, 40, 60);
-    padding: 2px;
 }
 .row {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 6px;
-    margin: 5px;
+    gap: 7px;
+    margin: 7px;
     justify-content: flex-start;
 }
 .row button {
@@ -59,8 +59,8 @@ div.latex {
     font-size: 18px;
 }
 #editor input.name {
-    background-color: rgb(32,32,32);
-    color: rgb(245, 89, 245);
+    background-color: #1E1E2E;
+    color: #89DCEB;
     font-size: 16px;
     flex-grow: 1;
     margin-right: 15%;
@@ -69,6 +69,10 @@ div.latex {
 #editor .text-color {
     width: 25px;
     height: 25px;
+}
+#editor .mode {
+    background-color: #1E1E2E;
+    color: white;
 }
 button.close {
     background-color: red;

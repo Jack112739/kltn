@@ -71,14 +71,14 @@ class NodeUI {
     }
     highlight() {
         this.html_div.style.zIndex = 20;
-        this.html_div.style.borderColor = "red";
+        this.html_div.classList.add('highlighted');
         this.highlighted = true;
     }
     fade() {
         this.highlighted = false;
         let assoc_node = this.html_div;
         assoc_node.style.zIndex = 9;
-        assoc_node.style.borderColor = "aqua";
+        assoc_node.classList.remove('highlighted');
     }
     remove() {
         //TODO: some node can not be deleted, implement this
@@ -174,6 +174,7 @@ class GraphUI {
 
             let traverse = document.createElement('button');
             traverse.classList.add('parent');
+            traverse.to = node;
             traverse.onclick = () => this.switch_to(node.detail);
             traverse.insertAdjacentHTML('beforeend', node.id);
             this.html_div.appendChild(traverse);
@@ -183,8 +184,8 @@ class GraphUI {
             <div class="toolbar">
                 <button onclick="GraphUI.new_node('#'+ (++window.counter))">create</button>
                 <button onclick="GraphUI.new_edge(event)">edge</button>
-                <button onclick="user_mode(elem => elem.remove())()">delete</button>
-                <button onclick="user_mode(elem => Editor.load(elem))()">edit</button>
+                <button onclick="user_mode(elem => elem?.remove())(event)">delete</button>
+                <button onclick="user_mode(elem => Editor.load(elem))(event)">edit</button>
             </div>
         `);
     }
@@ -197,6 +198,9 @@ class GraphUI {
     //pop up the edit window for that specific node
     switch_to(graph) {
         GraphUI.current_graph = graph;
+        for(let button of graph.html_div.querySelectorAll('button.parent')) {
+            button.innerHTML = button.to.id;
+        }
         this.hide_edges();
         graph.show_edges();
         document.body.replaceChild(graph.html_div, this.html_div);
