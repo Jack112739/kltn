@@ -6,6 +6,9 @@
     min-width: 45px;
     padding: 5px;
     overflow-y: auto;
+    resize: both;
+    font-family: monospace;
+    font-size: 14px;
 }
 .node {
     position: absolute;
@@ -14,12 +17,11 @@
     background-color: #1E1E2E;
     color: #D9E0EE;
     user-select: none;
-    cursor: grab;
 }
-.node_header {
+.header {
     height: 15px;
     text-align: center;
-    color: #89DCEB;
+    color: #4edaf3;
 }
 #dot {
     position: absolute;

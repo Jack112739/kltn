@@ -8,7 +8,7 @@
     height: 80vh;
     border: solid 5px rgb(78, 95, 255);
     background-color: rgb(12, 16, 29);
-    color: antiquewhite;
+    color: #D9E0EE;
     display: flex;
     flex-direction: column;
 }
@@ -22,17 +22,15 @@ textarea.raw-text {
     background-color: #1E1E2E;
     box-sizing: border-box;
     color: #D9E0EE;
-    font-size: 14px;
     border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
 }
 div.latex {
     flex: 5;
     border: 1px solid grey;
     margin-bottom: 10px;
     overflow-y: auto;
-}
-.ignore-math {
-    background-color: transparent;
 }
 .settings {
     background-color: rgb(20,20,30);
@@ -60,7 +58,7 @@ div.latex {
 }
 #editor input.name {
     background-color: #1E1E2E;
-    color: #89DCEB;
+    color: #4edaf3;
     font-size: 16px;
     flex-grow: 1;
     margin-right: 15%;
@@ -72,7 +70,7 @@ div.latex {
 }
 #editor .mode {
     background-color: #1E1E2E;
-    color: white;
+    color: #D9E0EE;
 }
 button.close {
     background-color: red;
@@ -92,7 +90,7 @@ button.text {
 }
 button.recompile {
     background-color: forestgreen;
-    color: antiquewhite;
+    color: white;
 }
 
 

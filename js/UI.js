@@ -40,14 +40,21 @@ class NodeUI {
         this.html_div = document.createElement('div');
         this.html_div.className = "node";
         this.html_div.insertAdjacentHTML('beforeend', `
-            <div class="node_header">${id}</div>
+            <div class="header">${id}</div>
             <div class="tex_render"></div>
         `);
 
         this.html_div.onmousedown = (e) => {
+            //check for resize event
+            if(this.html_div.offsetLeft + this.html_div.offsetWidth - 10 <= e.clientX
+                && this.html_div.offsetTop + this.html_div.offsetHeight - 10 <= e.clientY ) 
+            {
+                return;
+            }
             e.preventDefault();
             let relative_x = this.html_div.offsetLeft - e.clientX;
             let relative_y = this.html_div.offsetTop - e.clientY;
+            document.body.style.cursor = "grab";
 
             document.onmousemove = (e) => {
                 this.html_div.style.left = e.clientX + relative_x + "px";
@@ -56,6 +63,7 @@ class NodeUI {
                 for(let [_, out_edges] of this.to) out_edges.position();
             }
             document.onmouseup = (e) => {
+                document.body.style.cursor = "";
                 document.onmousemove = null;
                 document.onmouseup = null;
             }
@@ -105,7 +113,7 @@ class NodeUI {
         this.graph?.internal_nodes.delete(this.id);
         this.graph?.internal_nodes.set(name, this);
         this.id = name;
-        this.html_div.querySelector('.node_header').firstChild.data = name;
+        this.html_div.querySelector('.header').firstChild.data = name;
     }
 }
 
@@ -174,9 +182,8 @@ class GraphUI {
 
             let traverse = document.createElement('button');
             traverse.classList.add('parent');
-            traverse.to = node;
             traverse.onclick = () => this.switch_to(node.detail);
-            traverse.insertAdjacentHTML('beforeend', node.id);
+            traverse.appendChild(node.html_div.querySelector('.header').firstChild.cloneNode());
             this.html_div.appendChild(traverse);
         };
         recursive(this.summary);
@@ -185,7 +192,7 @@ class GraphUI {
                 <button onclick="GraphUI.new_node('#'+ (++window.counter))">create</button>
                 <button onclick="GraphUI.new_edge(event)">edge</button>
                 <button onclick="user_mode(elem => elem?.remove())(event)">delete</button>
-                <button onclick="user_mode(elem => Editor.load(elem))(event)">edit</button>
+                <button onclick="user_mode(elem => editor.load(elem))(event)">edit</button>
             </div>
         `);
     }
@@ -198,9 +205,6 @@ class GraphUI {
     //pop up the edit window for that specific node
     switch_to(graph) {
         GraphUI.current_graph = graph;
-        for(let button of graph.html_div.querySelectorAll('button.parent')) {
-            button.innerHTML = button.to.id;
-        }
         this.hide_edges();
         graph.show_edges();
         document.body.replaceChild(graph.html_div, this.html_div);
@@ -253,10 +257,10 @@ class GraphUI {
     }
 }
 
-//setup function for this page
-(function setup() {
+//setup function
+document.addEventListener('DOMContentLoaded', () => {
     window.counter = 0;
     GraphUI.current_graph = new GraphUI(new NodeUI('#root', null));
     document.body.appendChild(GraphUI.current_graph.html_div);
     document.onmousedown = GraphUI.highlight_unique;
-})()
+});

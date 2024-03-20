@@ -14,10 +14,12 @@
         background-color: #1E1E2E;
       }
     </style>
+  <script src="js/UI.js"></script>
+  <script src="js/editor.js"></script>
 </head>
 <body>
   <div id="dot"></div>
-  <div id="editor" style="display: none;" >
+  <div id="editor" style="display: none;">
     <div class="settings">
       <div class="row">
         <label class="name"> Name: </label> 
@@ -27,11 +29,12 @@
         <button class="close"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="row" >
-        <button class="text"><i class="fa-solid fa-bold"></i></button>
-        <button class="italic"><i class="fa-solid fa-italic"></i></button>
-        <button class="underline"><i class="fa-solid fa-underline"></i></button>
-        <button class="list"><i class="fa-solid fa-list"></i></button>
-        <label>color:</label><input type="color" class="text-color">
+        <button class="text bold"><i class="fa-solid fa-bold"></i></button>
+        <button class="text italic"><i class="fa-solid fa-italic"></i></button>
+        <button class="text underline"><i class="fa-solid fa-underline"></i></button>
+        <button class="text align"><i class="fa-solid fa-align-left"></i></button>
+        <button class="text olist"><i class="fa-solid fa-list-ol"></i></button>
+        <label>color:</label><input type="color" class="text-color" value="#D9E0EE">
         <label>mode:</label>
         <select class="mode">
           <option>raw</option>
@@ -46,7 +49,5 @@
     <div class="row"> <label> Preview:</label> </div>
     <div class="text-view latex"></div>
   </div>
-  <script src="js/UI.js"></script>
-  <script src="js/editor.js"></script>
 </body>  
 </html>
