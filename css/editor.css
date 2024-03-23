@@ -16,6 +16,9 @@ textarea.raw-text {
     resize: none;
     overflow-y: auto;
     flex: 3;
+    font-size: 14px;
+    display: none;
+    margin-top: 10px;
 }
 .text-view {
     margin: 0px 10px;
@@ -23,14 +26,14 @@ textarea.raw-text {
     box-sizing: border-box;
     color: #D9E0EE;
     border-radius: 4px;
-    font-family: monospace;
-    font-size: 14px;
 }
 div.latex {
     flex: 5;
     border: 1px solid grey;
     margin-bottom: 10px;
     overflow-y: auto;
+    font-size: 16px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 .settings {
     background-color: rgb(20,20,30);
@@ -64,14 +67,6 @@ div.latex {
     margin-right: 15%;
     border: 1px solid grey;
 }
-#editor .text-color {
-    width: 25px;
-    height: 25px;
-}
-#editor .mode {
-    background-color: #1E1E2E;
-    color: #D9E0EE;
-}
 button.close {
     background-color: red;
     color: white;
@@ -88,27 +83,20 @@ button.text {
     background-color: lightgray;
     color: black;
 }
-button.recompile {
-    background-color: forestgreen;
-    color: white;
+#editor .load {
+    display: none;
+}
+.ignore-math {
+    color: #92fff6;
 }
 
-
-/* remove color wrapper and input scroller */
-input[type="color"]::-moz-color-swatch {
+.editing {
+    display: inline;
+    background-color: inherit;
+    color: aquamarine;
     border: none;
+    resize: none;
 }
-
-input[type="color"]::-webkit-color-swatch-wrapper {
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-}
-
-input[type="color"]::-webkit-color-swatch {
-    border: none;
-}
-
 /* when using in other devices, maybe not needed*/
 @media screen and (max-width:800px) {
     #editor {

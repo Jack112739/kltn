@@ -19,9 +19,10 @@ Specification:
     2: the latex editor
         - automate a link if typed \ref, \cite
         v have a preview
-        - have a latex suggestor
-        - support other writing, bold, italic, underline, change_color, listing,...
-        - movable
+        v autocomplete
+        v support other formatting.
+        - visual editing mode 
+        v movable
         v responsive
     3: computer can understand the proof and judges wether it's true or not
         - user can explain their intention with the node further

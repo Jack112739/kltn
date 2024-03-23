@@ -7,8 +7,7 @@
     padding: 5px;
     overflow-y: auto;
     resize: both;
-    font-family: monospace;
-    font-size: 14px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 .node {
     position: absolute;
@@ -51,7 +50,7 @@ button.parent:hover {
     cursor: pointer;
 }
 button.parent {
-    color: #89DCEB;
+    color: #4edaf3;
     background-color: transparent;
     border: none;
     padding: 1px 2px;
