@@ -183,16 +183,15 @@ class GraphUI {
             let traverse = document.createElement('button');
             traverse.classList.add('parent');
             traverse.onclick = () => this.switch_to(node.detail);
-            traverse.appendChild(node.html_div.querySelector('.header').firstChild.cloneNode());
+            traverse.assoc_node = node;
+            traverse.appendChild(document.createTextNode(node.id));
             this.html_div.appendChild(traverse);
         };
         recursive(this.summary);
         this.html_div.insertAdjacentHTML('beforeend', `
             <div class="toolbar">
-                <button onclick="GraphUI.new_node('#'+ (++window.counter))">create</button>
                 <button onclick="GraphUI.new_edge(event)">edge</button>
                 <button onclick="user_mode(elem => elem?.remove())(event)">delete</button>
-                <button onclick="user_mode(elem => editor.load(elem))(event)">edit</button>
             </div>
         `);
     }
@@ -204,6 +203,9 @@ class GraphUI {
     }
     //pop up the edit window for that specific node
     switch_to(graph) {
+        for(let button of graph.html_div.querySelectorAll('.parent')) {
+            if(button.assoc_node) button.firstChild.data = button.assoc_node.id;
+        }
         GraphUI.current_graph = graph;
         this.hide_edges();
         graph.show_edges();
@@ -226,12 +228,6 @@ class GraphUI {
         GraphUI.current_graph.highlighting = node;
         node.highlight();
     };
-    static new_node(id) {
-        //TODO: this should popup a window for how should user create a node
-        let new_node = new NodeUI(id, GraphUI.current_graph);
-        GraphUI.current_graph.internal_nodes.set(id, new_node);
-        GraphUI.current_graph.html_div.appendChild(new_node.html_div);
-    }
     static new_edge(e) {
         user_mode((start,e) => {
             if(!start) return;
@@ -255,6 +251,23 @@ class GraphUI {
             })(null);
         }, null)(e);
     }
+    static monitor_node_at_cursor(e) {
+        if(!e.ctrlKey) return;
+
+        document.removeEventListener('click', GraphUI.monitor_node_at_cursor);
+        let node = is_node_component(e.target);
+        if(!node) {
+            window.counter++;
+            node = new NodeUI('#' + window.counter, GraphUI.current_graph);
+            GraphUI.current_graph.internal_nodes.set(node.name, node);
+            GraphUI.current_graph.html_div.appendChild(node.html_div);
+            let left= e.clientX - node.html_div.offsetWidth / 2;
+            let top = e.clientY - node.html_div.offsetHeight / 2;
+            node.html_div.style.top = top + "px";
+            node.html_div.style.left = left + "px";
+        }
+        editor.load(node);
+    }
 }
 
 //setup function
@@ -263,4 +276,5 @@ document.addEventListener('DOMContentLoaded', () => {
     GraphUI.current_graph = new GraphUI(new NodeUI('#root', null));
     document.body.appendChild(GraphUI.current_graph.html_div);
     document.onmousedown = GraphUI.highlight_unique;
+    document.addEventListener('click', GraphUI.monitor_node_at_cursor);
 });

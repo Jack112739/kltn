@@ -17,7 +17,7 @@ textarea.raw-text {
     overflow-y: auto;
     flex: 3;
     font-size: 14px;
-    display: none;
+    display: flex;
     margin-top: 10px;
 }
 .text-view {

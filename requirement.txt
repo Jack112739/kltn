@@ -10,7 +10,6 @@ Specification:
         v external node have different display
         v double click the node will switch to the content inside the node and re-render the screen
         - have all of the options for the nodes resize, rename, edit,... appear when right clicked
-        - options are edit, rename, delete, resize (might be changed later)
         - can be save to a file (high priority)
         - shortcuts for edit, create node,...
         - hide and show edges
@@ -21,6 +20,7 @@ Specification:
         v have a preview
         v autocomplete
         v support other formatting.
+        - suggesting latex keywords
         - visual editing mode 
         v movable
         v responsive

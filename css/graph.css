@@ -36,7 +36,7 @@
     border-style: dotted;
 }
 .leader-line {
-    z-index: 30;
+    z-index: 15;
 }
 /* this might be changed later */
 .graph {

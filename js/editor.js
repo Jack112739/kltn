@@ -38,6 +38,7 @@ class Editor {
         this.latex.innerHTML = "";
         this.div.style.display = "none";
         this.node.fade();
+        document.addEventListener('click', GraphUI.monitor_node_at_cursor);
     }
     save() {
         this.saved = true;
@@ -48,21 +49,19 @@ class Editor {
         this.node.html_div.querySelector('.tex_render').innerHTML = this.latex.innerHTML;
     }
     render(then) {
-        const allow =  ['<b>',   '<i>',   '<li>',   '<ol>',   '<ul>',
-                        '</b>', '</i>', '</li>', '</ol>', '</ul>'];
-        let html_string = new String(), raw = this.raw.value;
+        let html_string = '', raw = this.raw.value;
         let stack = new Array();
         for(let i = 0; i < raw.length; i++) {
             switch(raw[i]) {
             case '<':
-                let advance = 0;
-                for(let j = 0; j < 5; j++) {
-                    if(raw.startsWith(allow_open[j])) {
-                        advance = allow_open[i].length - 1;
+                let advance = '&lt';
+                for(let j = 0; j < allow_open.length; j++) {
+                    if(raw.startsWith(allow_open[j], i)) {
+                        advance = allow_open[j];
                         stack.push(j);
                     }
-                    else if(raw.startsWith(allow_close[j])) {
-                        advance = allow_open[i].length - 1;
+                    else if(raw.startsWith(allow_close[j], i)) {
+                        advance = allow_close[j];
                         let id = stack.pop();
                         if(id && id != j) {
                             window.alert(`expect close tag for ${allow_open[j]}, found ${allow_close[j]}`);
@@ -70,13 +69,13 @@ class Editor {
                         }
                     }
                 }
-                if(advance == 0) html_string += '&lt';
-                i += advance;
+                html_string += advance;
+                i += advance[0] == '&' ? 0 : advance.length-1;
                 break;
-            case '>':  html_string += '&gt'; break;
-            case '&':  html_string += '&amp'; break;
-            case '\'': html_string += '&apos'; break;
-            case '\"': html_string += '&quot'; break;
+            case '>':  html_string += '&gt;'; break;
+            case '&':  html_string += '&amp;'; break;
+            case '\'': html_string += '&apos;'; break;
+            case '\"': html_string += '&quot;'; break;
             default:   html_string += raw[i]; break;
             }
         }
@@ -93,83 +92,121 @@ class Editor {
         this.close();
         this.node.remove();
     }
-    mode(visual) {
+    visual_mode(visual) {
+        this.edit_on = null;
         if(visual) {    
             this.raw.style.display = "none";
             this.latex.contentEditable = true;
-            this.edit_on = null;
         }
         else {
-            this.edit_on = this.raw;
             this.raw.style.display = "flex";
             this.latex.contentEditable = false;
+            this.raw.addEventListener('keydown', auto_complete);
+            this.raw.onblur = format_or_blur;
+            this.raw.onclick = (e) => this.edit_on = this.raw;
         }
     }
-    // options for manipulating the text
     
 }
-function option(o, input) {
+// this function need to be called to prevent an input from being blur if we click the format button
+function format_or_blur(e) {
+    if(e.relatedTarget?.tagName == 'BUTTON' && editor.div.contains(e.relatedTarget)) {
+        e.preventDefault();
+        return;
+    }
+    editor.edit_on = null;
+}
+function option(o) {
+    let input = editor.edit_on;
     if(!input) return;
+
     let start = input.selectionStart, end = input.selectionEnd;
+    let selected = input.value.slice(start, end);
     switch(o) {
     case 'b':
     case 'i':
     case 'ol':
-    case 'ul':
-        input.setRangeText(`<${o}>${input.value.slice(start,end)}</${o}>`, start, end, 'select');
-        if(o.length === 2) {
-            let replace = '\n  <li> ';
-            start  += 4; end += 4;
-            for(const chars of input.value.slice(start, end)) {
+    case 'ul':{
+        let replace = `<${o}>`;
+        if(o.length !== 2) replace += selected;
+        else {
+            replace += '\n  <li> ';
+            
+            for(const chars of selected) {
                 if(chars === '\n') replace += ' </li>\n  <li> ';
                 else replace += chars;
             }
             replace += ' </li>\n';
-            input.setRangeText(replace, start, end);
         }
-        break;
-    case 'e':
-        input.setRangeText(` $$\\begin{}   \\end{}$$ `, start,end);
-        input.selectionStart += '$$\\begin{'.length;
-        break;
-    case 'a':
-        break;
+        replace += `</${o}>`;
+        document.execCommand('insertText', false, replace);
+        input.selectionStart = start + `<${o}>`.length + (o.length == 2 ? 1: 0);
+        input.selectionEnd = start + replace.length - `</${o}>`.length;
+        }break;
+    case 'e':{
+        let replace = `\n\\begin{}\n  ${selected}\n\\end{}\n`;
+        document.execCommand('insertText', false, replace);
+        input.selectionStart = start +  '\n$$\\begin{'.length;
+        input.selectionEnd = input.selectionStart;
+        }break;
+    case 'a':{
+        let search_for = relations.find(arr => arr.some(str => selected.includes(str)));
+        if(!search_for) break;
+        // = can also be used in those type of comparison
+        if(search_for[0] !== '\\implies') search_for.push('=');
+
+        let replace = '\n\\begin{align*}\n  &';
+        for(let i = 0; i < selected.length; i++) {
+            if(search_for.some(str => selected.startsWith(str, i))) {
+                replace += '\\\\\n  &';
+            }
+            replace += selected[i];
+        }
+        replace += '\\\\\n\\end{align*}\n';
+        input.selectionStart = start + '\n\\begin{align*}\n'.length;
+        input.selectionEnd = start + replace - '\n\\end{align*}\n'.length;
+        document.execCommand('insertText', false, replace);
+        }break;
     default:
         throw new Error('text edit option is not supported')
     }
 }
-function auto_complete(e, input) {
-    if(e.inputType != 'insertText') return;
+function auto_complete(e) {
+    let input = editor.edit_on;
+    if(!input) return;
 
     const open = ['$', '\\[', '\\(', '(', '[', '\\begin{', '{'];
     const close = ['$', '\\]', '\\)', ')', ']', '}\\end{}', '}'];
-    let pos = input.selectionStart;
+    let start = input.selectionStart, end = input.selectionEnd;
     let op = open, cl = close;
-    switch(e.data) {
+    switch(e.key) {
     case '>':
         op = allow_open;
         cl = allow_close;
-        tag = undefined;
         //fallthrough
     case '$':
     case '(':
     case '[':
     case '{':
-        let candidate = input.value.slice(pos - 20, pos);
+        let candidate = input.value.slice(start - 10, start) + e.key;
         for(let i = 0; i < op.length; i++) if(candidate.endsWith(op[i])) {
-            input.setRangeText(cl[i], pos, pos);
             e.preventDefault();
+            let replace = e.key + (cl[i].length == 1 ? input.value.slice(start, end): '') + cl[i];
+            document.execCommand('insertText', false, replace);
+            input.selectionStart = start + 1;
+            // if it was a close bracket then still select it, otherwise just append text
+            if(cl[i].length == 1) input.selectionEnd = start + replace.length - 1;
+            else input.selectionEnd = input.selectionStart;
             return;
         }
+        break;
+    case '\\':
+        input.addEventListener('keydown', (e) => console.log('not implemented')); 
         break;
     default:
         break;
     }
 }
-function action_suggest_menu(e, input) {
-
-}
-
 function drag_editor(e) {
     if(!e.target.parentNode.classList.contains('settings')) return;
     document.body.style.cursor = "grab";
@@ -185,11 +222,10 @@ function drag_editor(e) {
         document.onmousemove = null;
         document.onmouseup = null;
     }
-
 }
 
 
-var editor, suggest = null;
+var editor;
 
 document.addEventListener('DOMContentLoaded', () => {
     editor = new Editor();
@@ -201,16 +237,16 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.div.querySelector('.close').onclick = () => editor.close();
     editor.div.querySelector('.save').onclick = () => editor.save();
     editor.div.querySelector('.del').onclick = () => editor.del();
-    editor.div.querySelector('.bold').onclick = () => option('b', editor.edit_on);
-    editor.div.querySelector('.italic').onclick = () => option('i', editor.edit_on);
-    editor.div.querySelector('.align').onclick = () => option('a', editor.edit_on);  
-    editor.div.querySelector('.ol').onclick = () => option('ol', editor.edit_on);
-    editor.div.querySelector('.ul').onclick = () => option('ul', editor.edit_on);
-    editor.div.querySelector('.env').onclick = () => option('e', editor.edit_on);
-    editor.div.querySelector('.mode').onchange = (e) => editor.mode(e.target.checked);
+    editor.div.querySelector('.bold').onclick = () => option('b');
+    editor.div.querySelector('.italic').onclick = () => option('i');
+    editor.div.querySelector('.align').onclick = () => option('a');  
+    editor.div.querySelector('.ol').onclick = () => option('ol');
+    editor.div.querySelector('.ul').onclick = () => option('ul');
+    editor.div.querySelector('.env').onclick = () => option('e');
+    editor.div.querySelector('.mode').onchange = (e) => editor.visual_mode(e.target.checked);
 
     editor.div.querySelector('.settings').onmousedown = drag_editor;
-    editor.div.querySelector('.raw-text').oninput= (e) => auto_complete(e, editor.raw);
+    editor.visual_mode(true);
 });
 
 
@@ -218,3 +254,9 @@ document.addEventListener('DOMContentLoaded', () => {
 //tags that can be use to format the text
 const allow_open =  ['<b>',   '<i>',   '<li>',   '<ol>',   '<ul>']
 const allow_close = ['</b>', '</i>', '</li>', '</ol>', '</ul>'];
+const relations = [
+    ['\\implies', '\\iff'],     // logical chaining 
+    ['\\le', '<', '\\lessim'],  // less 
+    ['\\ge', '>', '\\gtrssim'], // greater 
+    ['\\equiv', '\\sim', '=']   // equal relation
+]
