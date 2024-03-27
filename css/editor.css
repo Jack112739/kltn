@@ -4,8 +4,8 @@
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 80;
-    width:  700px;
-    height: 80vh;
+    width:  600px;
+    height: 85vh;
     border: solid 5px rgb(78, 95, 255);
     background-color: rgb(12, 16, 29);
     color: #D9E0EE;
@@ -28,7 +28,7 @@ textarea.raw-text {
     border-radius: 4px;
 }
 div.latex {
-    flex: 5;
+    flex: 4;
     border: 1px solid grey;
     margin-bottom: 10px;
     overflow-y: auto;
@@ -66,6 +66,7 @@ div.latex {
     flex-grow: 1;
     margin-right: 15%;
     border: 1px solid grey;
+    min-width: 170px;
 }
 button.close {
     background-color: red;
@@ -86,19 +87,22 @@ button.text {
 #editor .load {
     display: none;
 }
-.ignore-math {
-    color: #92fff6;
-}
 
-.editing {
-    display: inline;
+.editor pre {
+    display: inline-block;
     background-color: inherit;
     color: aquamarine;
-    border: none;
-    resize: none;
+    font-weight: normal;
+    font-style: normal;
+}
+.err {
+    text-decoration: red wavy underline;
+}
+.keyword {
+    color: rgb(238, 62, 135);
 }
 /* when using in other devices, maybe not needed*/
-@media screen and (max-width:800px) {
+@media screen and (max-width:700px) {
     #editor {
         width: 90vw;
         height: 90vh;

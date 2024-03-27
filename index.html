@@ -7,7 +7,8 @@
         inlineMath: [ ['$','$'], ["\\(","\\)"] ],
         processEscapes: true,
         processEnvironments: false,
-        processRefs: false
+        processRefs: false,
+        preview: 'none',
       },
       asciimath2jax: {
         delimiters: []
@@ -29,6 +30,11 @@
   </style>
   <script src="js/UI.js"></script>
   <script src="js/editor.js"></script>
+  <script src="js/visual.js"></script>
+  <script src="js/menu.js"></script>
+  <script src="js/lang.js"></script>
+  <script src="js/fragment.js"></script>
+  <script src="js/math_logic.js"></script>
 </head>
 <body>
   <div id="dot"></div>
@@ -46,8 +52,8 @@
         <button class="text italic"><i class="fa-solid fa-italic"></i></button>
         <button class="text ul"><i class="fa-solid fa-list"></i></button>
         <button class="text ol"><i class="fa-solid fa-list-ol"></i></button>
+        <button class="text rm" title="remove format"><i class="fa-solid fa-text-slash"></i></button>
         <button class="text align" title="align equation"><i class="fa-solid fa-align-left"></i></button>
-        <button class="text env" title="wrap in environment"><i class="fa-solid fa-code"></i></button>
         <label>visual mode</label> <input type="checkbox" checked="checked" class="mode"> 
       </div>
     </div>
