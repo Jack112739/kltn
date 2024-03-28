@@ -266,6 +266,7 @@ class GraphUI {
             node.html_div.style.top = top + "px";
             node.html_div.style.left = left + "px";
         }
+        node.highlight();
         editor.load(node);
     }
 }

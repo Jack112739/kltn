@@ -90,12 +90,15 @@ button.text {
     color: #92fff6;
 }
 
-.editing {
+.editor pre {
     display: inline;
     background-color: inherit;
     color: aquamarine;
     border: none;
     resize: none;
+}
+.err {
+    text-decoration: red wavy underline;
 }
 /* when using in other devices, maybe not needed*/
 @media screen and (max-width:800px) {

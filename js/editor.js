@@ -16,8 +16,9 @@ class Editor {
     latex;
 
     saved;
-    //input element we are editing on
-    edit_on;
+    on_visual_mode;
+    focus_element
+
 
     load(node) {
         if(!node) return;
@@ -49,41 +50,7 @@ class Editor {
         this.node.html_div.querySelector('.tex_render').innerHTML = this.latex.innerHTML;
     }
     render(then) {
-        let html_string = '', raw = this.raw.value;
-        let stack = new Array();
-        for(let i = 0; i < raw.length; i++) {
-            switch(raw[i]) {
-            case '<':
-                let advance = '&lt';
-                for(let j = 0; j < allow_open.length; j++) {
-                    if(raw.startsWith(allow_open[j], i)) {
-                        advance = allow_open[j];
-                        stack.push(j);
-                    }
-                    else if(raw.startsWith(allow_close[j], i)) {
-                        advance = allow_close[j];
-                        let id = stack.pop();
-                        if(id && id != j) {
-                            window.alert(`expect close tag for ${allow_open[j]}, found ${allow_close[j]}`);
-                            throw new Error(`HTML parse error, wrong close tag`);
-                        }
-                    }
-                }
-                html_string += advance;
-                i += advance[0] == '&' ? 0 : advance.length-1;
-                break;
-            case '>':  html_string += '&gt;'; break;
-            case '&':  html_string += '&amp;'; break;
-            case '\'': html_string += '&apos;'; break;
-            case '\"': html_string += '&quot;'; break;
-            default:   html_string += raw[i]; break;
-            }
-        }
-        if(stack.length != 0) {
-            window.alert(`missing close tag for ${allow_open[stack.pop()]}`);
-            throw new Error(`HTML parse error, missing close tag`);
-        }
-        this.latex.innerHTML = html_string;
+        this.latex = this.convert_html(this.raw.data);
         MathJax.Hub.Queue(['Typeset', MathJax.Hub, this.latex, then]);
     }
     del() {
@@ -102,106 +69,120 @@ class Editor {
             this.raw.style.display = "flex";
             this.latex.contentEditable = false;
             this.raw.addEventListener('keydown', auto_complete);
-            this.raw.onblur = format_or_blur;
-            this.raw.onclick = (e) => this.edit_on = this.raw;
         }
     }
-    
-}
-// this function need to be called to prevent an input from being blur if we click the format button
-function format_or_blur(e) {
-    if(e.relatedTarget?.tagName == 'BUTTON' && editor.div.contains(e.relatedTarget)) {
-        e.preventDefault();
-        return;
-    }
-    editor.edit_on = null;
-}
-function option(o) {
-    let input = editor.edit_on;
-    if(!input) return;
-
-    let start = input.selectionStart, end = input.selectionEnd;
-    let selected = input.value.slice(start, end);
-    switch(o) {
-    case 'b':
-    case 'i':
-    case 'ol':
-    case 'ul':{
-        let replace = `<${o}>`;
-        if(o.length !== 2) replace += selected;
+    insert_and_set(str, start_offset, end_offset) {
+        document.execCommand('insertText', false, str);
+        if(!this.on_visual_mode) {
+            this.raw.selectionStart = start_offset;
+            this.raw.selectionEnd = end_offset;
+        }
         else {
-            replace += '\n  <li> ';
-            
-            for(const chars of selected) {
-                if(chars === '\n') replace += ' </li>\n  <li> ';
-                else replace += chars;
-            }
-            replace += ' </li>\n';
+            let range = document.createRange();
+            let sel = window.getSelection();
+            if(sel.anchorNode !== sel.focusNode) throw new Error('this should not happen');
+            range.setStart(sel.anchorNode, start_offset);
+            range.setEnd(sel.anchorNode, end_offset);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
         }
-        replace += `</${o}>`;
-        document.execCommand('insertText', false, replace);
-        input.selectionStart = start + `<${o}>`.length + (o.length == 2 ? 1: 0);
-        input.selectionEnd = start + replace.length - `</${o}>`.length;
-        }break;
-    case 'e':{
-        let replace = `\n\\begin{}\n  ${selected}\n\\end{}\n`;
-        document.execCommand('insertText', false, replace);
-        input.selectionStart = start +  '\n$$\\begin{'.length;
-        input.selectionEnd = input.selectionStart;
-        }break;
-    case 'a':{
-        let search_for = relations.find(arr => arr.some(str => selected.includes(str)));
-        if(!search_for) break;
-        // = can also be used in those type of comparison
-        if(search_for[0] !== '\\implies') search_for.push('=');
+    }
+    get_selection() {
+        if(!this.on_visual_mode) {
+            return {str: this.raw.value, start: this.raw.selectionStart, end: this.raw.selectionEnd};
+        }
+        else {
+            let sel = window.getSelection();
+            if(sel.anchorNode !== sel.focusNode) throw new Error('this should not happen');
+            return {str: sel.anchorNode, start: sel.anchorOffset, end: sel.focusOffset};
+        }
+    }
+    option(o) {
+        let {str, start, end} = editor.get_selection();
+        if(str === null) return;
+        let selected = str.slice(start, end);
+        let replace = '', start_offset = 0, end_offset = 0;
+        switch(o) {
+        case 'b':
+        case 'i':
+        case 'ol':
+        case 'ul':
+            replace = `<${o}>`;
+            if(o.length !== 2) replace += selected;
+            else {
+                replace += '\n  <li> ';
+                
+                for(const chars of selected) {
+                    if(chars === '\n') replace += ' </li>\n  <li> ';
+                    else replace += chars;
+                }
+                replace += ' </li>\n';
+            }
+            replace += `</${o}>`;
+            start_offset = `<${o}>`.length + (o.length == 2 ? 1: 0);
+            end_offset = `</${o}>`.length;
+            break;
+        case 'rm':
+            for(let j = 0; j < selected.length;) {
+                let tag = null;
+                if(tag = allow_tag.map(t => `<${t}>`).find(t => selected.startsWith(t, j))
+                        ?? allow_tag.map(t => `</${t}>`).find(t => selected.startsWith(t, j)))
+                {
+                    j += tag.length;
+                    replace += ' ';
+                } 
+                else replace += selected[j], j += 1;
+            }
+            break;
+        case 'a':
+            let search_for = relations.find(arr => arr.some(str => selected.includes(str)));
+            if(!search_for) { alert('no relation found'); return; }
+            // = can also be used in those type of comparison
+            if(search_for[0] !== '\\implies') search_for.push('=');
 
-        let replace = '\n\\begin{align*}\n  &';
-        for(let i = 0; i < selected.length; i++) {
-            if(search_for.some(str => selected.startsWith(str, i))) {
-                replace += '\\\\\n  &';
+            replace = '\n\\begin{align*}\n  &';
+            for(let i = 0; i < selected.length; i++) {
+                if(search_for.some(str => selected.startsWith(str, i))) {
+                    replace += '\\\\\n  &';
+                }
+                replace += selected[i];
             }
-            replace += selected[i];
+            replace += '\\\\\n\\end{align*}\n';
+            start_offset = '\n\\begin{align*}\n'.length;
+            end_offset = '\n\\end{align*}\n'.length;
+            break;
+        default:
+            throw new Error('text edit option is not supported')
         }
-        replace += '\\\\\n\\end{align*}\n';
-        input.selectionStart = start + '\n\\begin{align*}\n'.length;
-        input.selectionEnd = start + replace - '\n\\end{align*}\n'.length;
-        document.execCommand('insertText', false, replace);
-        }break;
-    default:
-        throw new Error('text edit option is not supported')
+        editor.insert_and_set(replace, start + start_offset, start + replace.length - end_offset);
     }
 }
 function auto_complete(e) {
-    let input = editor.edit_on;
-    if(!input) return;
+    let {str, start, end} = editor.get_selection();
+    if(!str) return;
 
-    const open = ['$', '\\[', '\\(', '(', '[', '\\begin{', '{'];
-    const close = ['$', '\\]', '\\)', ')', ']', '}\\end{}', '}'];
-    let start = input.selectionStart, end = input.selectionEnd;
-    let op = open, cl = close;
+    const lookup = Object.assign({}, {'(':')','[':']','{':'}','$':'$'}, tags, math_delimeter) 
+    let replace = '';
     switch(e.key) {
     case '>':
-        op = allow_open;
-        cl = allow_close;
-        //fallthrough
     case '$':
     case '(':
     case '[':
     case '{':
-        let candidate = input.value.slice(start - 10, start) + e.key;
-        for(let i = 0; i < op.length; i++) if(candidate.endsWith(op[i])) {
+        let candidate = str.slice(Math.max(0, start - 10), start) + e.key, open = null;
+        if(open = Object.keys(lookup).find(t => candidate.endsWith(t))) {
             e.preventDefault();
-            let replace = e.key + (cl[i].length == 1 ? input.value.slice(start, end): '') + cl[i];
-            document.execCommand('insertText', false, replace);
-            input.selectionStart = start + 1;
+            replace = e.key + (open.length == 1 ? str.slice(start, end): '') + lookup[open];
+            start += 1;
             // if it was a close bracket then still select it, otherwise just append text
-            if(cl[i].length == 1) input.selectionEnd = start + replace.length - 1;
-            else input.selectionEnd = input.selectionStart;
-            return;
+            if(cl[i].length == 1) end = start  + replace.length - 2;
+            else end = start;
+            return editor.insert_and_set(replace, start, end);
         }
         break;
     case '\\':
-        input.addEventListener('keydown', (e) => console.log('not implemented')); 
+        (editor.on_visual_mode ? editor.latex : editor.raw)
+        .addEventListener('keydown', (e) => console.log('not implemented')); 
         break;
     default:
         break;
@@ -237,12 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.div.querySelector('.close').onclick = () => editor.close();
     editor.div.querySelector('.save').onclick = () => editor.save();
     editor.div.querySelector('.del').onclick = () => editor.del();
-    editor.div.querySelector('.bold').onclick = () => option('b');
-    editor.div.querySelector('.italic').onclick = () => option('i');
-    editor.div.querySelector('.align').onclick = () => option('a');  
-    editor.div.querySelector('.ol').onclick = () => option('ol');
-    editor.div.querySelector('.ul').onclick = () => option('ul');
-    editor.div.querySelector('.env').onclick = () => option('e');
+    editor.div.querySelector('.bold').onclick = () => editor.option('b');
+    editor.div.querySelector('.italic').onclick = () => editor.option('i');
+    editor.div.querySelector('.align').onclick = () => editor.option('a');  
+    editor.div.querySelector('.ol').onclick = () => editor.option('ol');
+    editor.div.querySelector('.ul').onclick = () => editor.option('ul');
+    editor.div.querySelector('.rm').onclick = () => editor.option('rm');
     editor.div.querySelector('.mode').onchange = (e) => editor.visual_mode(e.target.checked);
 
     editor.div.querySelector('.settings').onmousedown = drag_editor;
@@ -252,8 +233,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 //tags that can be use to format the text
-const allow_open =  ['<b>',   '<i>',   '<li>',   '<ol>',   '<ul>']
-const allow_close = ['</b>', '</i>', '</li>', '</ol>', '</ul>'];
+const allow_tag = ['b', 'i', 'ol', 'ul', 'li'];
+const tags = allow_tag.reduce((name, acc) =>acc[`<${name}>`] = `</${name}>` ,{});
+const math_delimeter = {'$$':'$$', '$':'$', '\\[':'\\]', '\\(':'\\)'};
 const relations = [
     ['\\implies', '\\iff'],     // logical chaining 
     ['\\le', '<', '\\lessim'],  // less 
