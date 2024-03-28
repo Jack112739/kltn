@@ -4,30 +4,32 @@
 
 class Editor {
     
-    // division contain this editor
+    /**@type {HTMLDivElement} division contain this editor*/
     div;
-    // name input goes here
+    /**@type {string} name of the node */
     name;
-    // The node currently being edited 
+    /** @type {NodeUI} The node currently being edited */
     node;
-    //raw text input field
+    /**@type {HTMLTextAreaElement} raw text input field*/
     raw;
-    // render latex in this div
+    /** @type {HTMLDivElement} render latex in this div*/
     latex;
-
+    /**@type {boolean} */
     saved;
+    /** @type {boolean} */
     on_visual_mode;
+    /** @type {HTMLPreElement} */
     focus_element
 
-
+    /** @param {NodeUI} node  */
     load(node) {
         if(!node) return;
         GraphUI.current_graph.highlighting = null;
+        node.highlight();
         this.node = node;
         this.saved = true;
         this.name.value = node.html_div.querySelector('.header').firstChild.data;
         this.raw.value = node.raw_text;
-        //TODO: optimize this
         this.latex.innerHTML = node.html_div.querySelector('.tex_render').innerHTML;
         this.div.style.display = "";
     }
@@ -43,15 +45,15 @@ class Editor {
     }
     save() {
         this.saved = true;
-        this.render();
+        if(!this.on_visual_mode) this.render();
         this.node.raw_text = this.raw.value;
         this.node.rename(this.name.value);
-        //TODO optimize this
         this.node.html_div.querySelector('.tex_render').innerHTML = this.latex.innerHTML;
     }
+    /** @param {?function()} then */
     render(then) {
-        this.latex = this.convert_html(this.raw.data);
-        MathJax.Hub.Queue(['Typeset', MathJax.Hub, this.latex, then]);
+        this.latex.innerHTML = (new Fragment(this.raw.value, 'text')).output('html');
+        MathJax.Hub?.Queue(['Typeset', MathJax.Hub, this.latex, then]);
     }
     del() {
         if(!window.confirm('Do you want to delete this node ?')) return;
@@ -59,18 +61,22 @@ class Editor {
         this.close();
         this.node.remove();
     }
+    /**@param {boolean} visual  */
     visual_mode(visual) {
-        this.edit_on = null;
-        if(visual) {    
+        if(visual) {
             this.raw.style.display = "none";
+            this.on_visual_mode = true;
             this.latex.contentEditable = true;
+            this.render();
         }
         else {
-            this.raw.style.display = "flex";
+            this.raw.style.display = "";
+            this.on_visual_mode = false;
             this.latex.contentEditable = false;
             this.raw.addEventListener('keydown', auto_complete);
         }
     }
+    /**@param {string} str @param {number} end_offset @param {number} start_offset    */
     insert_and_set(str, start_offset, end_offset) {
         document.execCommand('insertText', false, str);
         if(!this.on_visual_mode) {
@@ -94,9 +100,10 @@ class Editor {
         else {
             let sel = window.getSelection();
             if(sel.anchorNode !== sel.focusNode) throw new Error('this should not happen');
-            return {str: sel.anchorNode, start: sel.anchorOffset, end: sel.focusOffset};
+            return {str: sel.anchorNode.data, start: sel.anchorOffset, end: sel.focusOffset};
         }
     }
+    /**@param {'b' | 'i' | 'ol' | 'ul' | 'a' | 'rm'} o  */
     option(o) {
         let {str, start, end} = editor.get_selection();
         if(str === null) return;
@@ -107,7 +114,7 @@ class Editor {
         case 'i':
         case 'ol':
         case 'ul':
-            replace = `<${o}>`;
+            replace = (o.length == 2 ? '\n':'') + `<${o}>`;
             if(o.length !== 2) replace += selected;
             else {
                 replace += '\n  <li> ';
@@ -118,15 +125,15 @@ class Editor {
                 }
                 replace += ' </li>\n';
             }
-            replace += `</${o}>`;
-            start_offset = `<${o}>`.length + (o.length == 2 ? 1: 0);
-            end_offset = `</${o}>`.length;
+            replace += `</${o}>` + (o.length == 2 ? '\n': '');
+            start_offset = `<${o}>`.length + (o.length === 2 ? 2: 0);
+            end_offset = `</${o}>`.length + (o.length === 2 ? 1: 0);
             break;
         case 'rm':
             for(let j = 0; j < selected.length;) {
                 let tag = null;
-                if(tag = allow_tag.map(t => `<${t}>`).find(t => selected.startsWith(t, j))
-                        ?? allow_tag.map(t => `</${t}>`).find(t => selected.startsWith(t, j)))
+                if(tag =   Object.keys(tags).find(t => selected.startsWith(t, j))
+                        ?? Object.values(tags).find(t => selected.startsWith(t, j)))
                 {
                     j += tag.length;
                     replace += ' ';
@@ -157,11 +164,12 @@ class Editor {
         editor.insert_and_set(replace, start + start_offset, start + replace.length - end_offset);
     }
 }
+/**@param {KeyboardEvent} e  */
 function auto_complete(e) {
     let {str, start, end} = editor.get_selection();
-    if(!str) return;
+    if(str === null) return;
 
-    const lookup = Object.assign({}, {'(':')','[':']','{':'}','$':'$'}, tags, math_delimeter) 
+    const lookup = Object.assign({'$': '$'}, math_delimeter, {'(':')','[':']','{':'}'}, tags);
     let replace = '';
     switch(e.key) {
     case '>':
@@ -175,19 +183,20 @@ function auto_complete(e) {
             replace = e.key + (open.length == 1 ? str.slice(start, end): '') + lookup[open];
             start += 1;
             // if it was a close bracket then still select it, otherwise just append text
-            if(cl[i].length == 1) end = start  + replace.length - 2;
+            if(lookup[open].length == 1) end = start  + replace.length - 2;
             else end = start;
             return editor.insert_and_set(replace, start, end);
         }
         break;
     case '\\':
-        (editor.on_visual_mode ? editor.latex : editor.raw)
-        .addEventListener('keydown', (e) => console.log('not implemented')); 
+        // (editor.on_visual_mode ? editor.latex : editor.raw)
+        //     .addEventListener('keydown', (e) => console.log('not implemented')); 
         break;
     default:
         break;
     }
 }
+/**@param {MouseEvent} e  */
 function drag_editor(e) {
     if(!e.target.parentNode.classList.contains('settings')) return;
     document.body.style.cursor = "grab";
@@ -205,7 +214,7 @@ function drag_editor(e) {
     }
 }
 
-
+/**@type {Editor} */
 var editor;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -234,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 //tags that can be use to format the text
 const allow_tag = ['b', 'i', 'ol', 'ul', 'li'];
-const tags = allow_tag.reduce((name, acc) =>acc[`<${name}>`] = `</${name}>` ,{});
+const tags = allow_tag.reduce((acc, name) =>(acc[`<${name}>`] = `</${name}>`,acc) ,{});
 const math_delimeter = {'$$':'$$', '$':'$', '\\[':'\\]', '\\(':'\\)'};
 const relations = [
     ['\\implies', '\\iff'],     // logical chaining 
