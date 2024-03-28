@@ -21,7 +21,7 @@ Specification:
         v autocomplete
         v support other formatting.
         - suggesting latex keywords
-        - visual editing mode 
+        v visual editing mode 
         v movable
         v responsive
     3: computer can understand the proof and judges wether it's true or not
@@ -47,3 +47,6 @@ linting for typing latex
 
 make the compiler understand wether the proof is correct or not (at certain degree)
 make this a compeptitive website
+
+test case
+adsd $asdsad$ dsad $$adasd$$ <b>asdas <i>adasd</i></b> <ul> <li>asdas $adsa$</li> <li> das $ads$ <i>adasda</i></li> </ul>

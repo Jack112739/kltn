@@ -87,9 +87,12 @@ button.text {
 #editor .load {
     display: none;
 }
-
-.editor pre {
-    display: inline-block;
+.no-select {
+    user-select: none;
+}
+#editor pre {
+    display: inline;
+    white-space: pre-wrap;
     background-color: inherit;
     color: aquamarine;
     font-weight: normal;

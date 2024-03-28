@@ -20,6 +20,17 @@ class Editor {
     on_visual_mode;
     /** @type {HTMLPreElement} */
     focus_element
+    /** when should push into this stack
+     * user type more than 10 key stroke in a single pre
+     * changing from pre to html and vice versa
+     * this only work in visual mode
+     * @typedef {object} History
+     * @property {Array<Range>} stack
+     * @property {number} curent_depth
+     * @property {number} stroke
+     *  @type {History} 
+    */
+    history
 
     /** @param {NodeUI} node  */
     load(node) {
@@ -46,14 +57,22 @@ class Editor {
     save() {
         this.saved = true;
         if(!this.on_visual_mode) this.render();
+        else this.inverse_render();
         this.node.raw_text = this.raw.value;
         this.node.rename(this.name.value);
         this.node.html_div.querySelector('.tex_render').innerHTML = this.latex.innerHTML;
     }
     /** @param {?function()} then */
     render(then) {
-        this.latex.innerHTML = (new Fragment(this.raw.value, 'text')).output('html');
+        this.latex.innerHTML = (new Fragment(this.raw.value, 'text')).output('html').str;
         MathJax.Hub?.Queue(['Typeset', MathJax.Hub, this.latex, then]);
+    }
+    inverse_render() {
+        let range = document.createRange();
+        range.setStart(this.latex, 0);
+        range.setEnd(this.latex, this.latex.childNodes.length);
+        let frag = new Fragment(range, 'html');
+        this.raw.value = frag.output('text').str;
     }
     del() {
         if(!window.confirm('Do you want to delete this node ?')) return;
@@ -67,13 +86,17 @@ class Editor {
             this.raw.style.display = "none";
             this.on_visual_mode = true;
             this.latex.contentEditable = true;
-            this.render();
+            this.render(() => {
+                for(const jax of this.latex.querySelectorAll('script')) Visual.init(jax);
+            });
+            this.latex.addEventListener('mouseup', Visual.validate_selection);
+            this.latex.addEventListener('keydown', Visual.input_handler)
         }
         else {
             this.raw.style.display = "";
             this.on_visual_mode = false;
             this.latex.contentEditable = false;
-            this.raw.addEventListener('keydown', auto_complete);
+            this.inverse_render();
         }
     }
     /**@param {string} str @param {number} end_offset @param {number} start_offset    */
@@ -236,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.div.querySelector('.mode').onchange = (e) => editor.visual_mode(e.target.checked);
 
     editor.div.querySelector('.settings').onmousedown = drag_editor;
+    editor.raw.addEventListener('keydown', auto_complete);
     editor.visual_mode(true);
 });
 

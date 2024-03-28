@@ -10,45 +10,52 @@ class Fragment {
     /**@type {Token} */
     parts;
     // range of the selected fragment, if any
-    /** @type {?Range} */
-    range; 
     offset;
 
     /**@param {Range} range  @param {'html' | 'text'} type */
     constructor(range, type) {
         this.parts = [];
+        this.offset = {start: 0, end: 0};
         if(type === 'html') {
             let common = range.commonAncestorContainer;
             if(common.nodeName === '#text' || common.nodeName === 'PRE') {
-                this.range = range;
+                range.setStart(range.startContainer, 0);
+                range.setEnd(range.endContainer, range.endContainer.data.length);
                 this.init_range(common, 0, range);
                 return;
             }
             let find = (parent, offset) => {
-                if(common === parent) return parent.childNodes[offset];
+                if(common === parent) return parent.childNodes[offset] || null;
                 while(parent.parentNode !== common) parent = parent.parentNode;
                 return parent
             }
             let start = find(range.startContainer, range.startOffset);
             let end = find(range.endContainer, range.endOffset);
-            let i = Array.from(common.childNodes).indexOf(start);
-            this.range = document.createRange();
-            this.range.setStart(common, i);
-            while(start !== end) {
-                this.init_range(start, i, range);
-                start = start.nextSibling;
-                i++;
-            }
-            this.range.setEnd(common, i + 1);
-            if(range.endContainer === common) {
-                this.offset.end = this.parts.length;
-                this.parts.push({str: '', type: 'text', err: 0});
-                this.range.setEnd(common, i);
-            }
-            else this.init_range(end, i, range);
+            if(!start) return;
+            this.dfs_init(start, end, range);
         }
         else {
             this.init_text(range, 0, '');
+            this.offset = {start: 0, end: this.parts.length};
+        }
+    }
+    dfs_init(start, end, range) {
+        let range_ = range.cloneRange(), common = range.commonAncestorContainer;
+        let i = Array.from(common.childNodes).indexOf(start);
+        range.setStart(common, i);
+        while(start !== end) {
+            this.init_range(start, i, range_);
+            start = start.nextSibling;
+            i++;
+        }
+        if(range.endContainer === common) {
+            this.offset.end = this.parts.length;
+            this.parts.push({str: '', type: 'text', err: 0});
+            range.setEnd(common, i);
+        }
+        else {
+            this.init_range(end, i, range_); 
+            range.setEnd(common, i + 1);
         }
     }
     init_text(str, j, tag) {
@@ -56,7 +63,7 @@ class Fragment {
         let start = this.parts.length - 1;
         while(true) {
             let t = null;
-            if(j == str.length) {
+            if(j >= str.length) {
                 if(start >= 0) {
                     this.parts[start].err = 1;
                 }
@@ -91,9 +98,9 @@ class Fragment {
     init_range(node, counter, range) {
         let set = (parent, offset) => {
             if(range.startContainer === parent && offset === range.startOffset)
-                this.offset.start = this.start.length;
+                this.offset.start = this.parts.length;
             if(range.endContainer === parent && offset === range.endOffset)
-                this.offset.end = this.end.length;
+                this.offset.end = this.parts.length;
         };
         if(node.nodeName === '#text' || node.math_info || node.nodeName === 'PRE') {
             if(node.math_info) {
@@ -129,7 +136,7 @@ class Fragment {
     }
     /**@param {'text' | 'html'} type  @returns {string}*/
     output(type) {
-        return this.parts.map(token => {
+        let tokens = this.parts.map(token => {
             let str = token.str;
             switch(token.type) {
             case 'open':
@@ -141,14 +148,21 @@ class Fragment {
             case 'math/tex; mode=display':
                 if(type === 'text') return str;
                 else if(token.err === 0) return `<pre class="err">${map_to_html(str)}</pre>`;
-                else return `<script type="${token.type}">
-                            ${str.slice(token.err, -token.err)}</script>`
+                else return `<script type="${token.type}">${str.slice(token.err, -token.err)}</script>`
             default:    //text case
                 if (type === 'text') return str;
                 else if(token.err) return `<pre>${map_to_html(str)}</pre>`
                 else return map_to_html(str);
             }
-        }).join('');
+        });
+        let ret = {str:'', start: 0, end: 0}, curent = 0;
+        for(let i = 0; i < tokens.length; i++) {
+            ret.str += tokens[i];
+            if(i === this.offset.start) ret.start = curent + (this.offset.partial_start ?? 0);
+            if(i === this.offset.end) ret.end = curent + (this.offset.partial_end ?? 0);
+            curent += tokens[i].length;
+        }
+        return ret;
     }
 }
 function map_to_html(str) {
