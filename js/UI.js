@@ -46,11 +46,8 @@ class NodeUI {
 
         this.html_div.onmousedown = (e) => {
             //check for resize event
-            if(this.html_div.offsetLeft + this.html_div.offsetWidth - 10 <= e.clientX
-                && this.html_div.offsetTop + this.html_div.offsetHeight - 10 <= e.clientY ) 
-            {
-                return;
-            }
+            let rect = this.html_div.getBoundingClientRect();
+            if(rect.bottom < e.clientY + 8 && rect.left < e.clientX + 8) return;
             e.preventDefault();
             let relative_x = this.html_div.offsetLeft - e.clientX;
             let relative_y = this.html_div.offsetTop - e.clientY;
@@ -232,8 +229,9 @@ class GraphUI {
         user_mode((start,e) => {
             if(!start) return;
             let dot = document.getElementById("dot");
-            dot.style.left = e.clientX + "px";
-            dot.style.top = e.clientY + "px";
+            let viewpoint  = document.documentElement.getBoundingClientRect()
+            dot.style.left = `${e.clientX - viewpoint.left}px`;
+            dot.style.top = `${e.clientY - viewpoint.top }px`;
             dot.style.display = "block";
             let line = new LeaderLine(start.html_div, dot, {dash: true, path: 'straight', size: 2});
             user_mode(end => {
@@ -245,8 +243,8 @@ class GraphUI {
                 else line.remove();
                 dot.style.display = "none";
             }, e => {
-                dot.style.left = e.clientX + "px";
-                dot.style.top = e.clientY + "px";
+                dot.style.left = `${e.clientX - viewpoint.left}px`;
+                dot.style.top = `${e.clientY - viewpoint.top }px`;
                 line.position();
             })(null);
         }, null)(e);
@@ -261,10 +259,9 @@ class GraphUI {
             node = new NodeUI('#' + window.counter, GraphUI.current_graph);
             GraphUI.current_graph.internal_nodes.set(node.name, node);
             GraphUI.current_graph.html_div.appendChild(node.html_div);
-            let left= e.clientX - node.html_div.offsetWidth / 2;
-            let top = e.clientY - node.html_div.offsetHeight / 2;
-            node.html_div.style.top = top + "px";
-            node.html_div.style.left = left + "px";
+            let viewpoint = document.documentElement.getBoundingClientRect();
+            node.html_div.style.top = `${e.clientY - viewpoint.top}px`;
+            node.html_div.style.left = `${e.clientX - viewpoint.left}px`
         }
         node.highlight();
         editor.load(node);

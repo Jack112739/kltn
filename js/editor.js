@@ -6,7 +6,7 @@ class Editor {
     
     /**@type {HTMLDivElement} division contain this editor*/
     div;
-    /**@type {string} name of the node */
+    /**@type {HTMLInputElement} name of the node */
     name;
     /** @type {NodeUI} The node currently being edited */
     node;
@@ -24,11 +24,6 @@ class Editor {
      * user type more than 10 key stroke in a single pre
      * changing from pre to html and vice versa
      * this only work in visual mode
-     * @typedef {object} History
-     * @property {Array<Range>} stack
-     * @property {number} curent_depth
-     * @property {number} stroke
-     *  @type {History} 
     */
     history
 
@@ -91,6 +86,7 @@ class Editor {
             });
             this.latex.addEventListener('mouseup', Visual.validate_selection);
             this.latex.addEventListener('keydown', Visual.input_handler)
+            this.latex.addEventListener('input', () => console.log('invoked'));
         }
         else {
             this.raw.style.display = "";

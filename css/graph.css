@@ -1,4 +1,5 @@
 .tex_render {
+    white-space: wrap;
     box-sizing: border-box;
     width: 100%;
     height: 100%;

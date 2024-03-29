@@ -85,7 +85,7 @@ class Fragment {
                 while(!str.startsWith(math_delimeter[t], j) && j < str.length) j++;
                 j += math_delimeter[t].length;
                 this.parts.push({str: str.slice(start, j), type: math_type, err: t.length});
-                if(t > str.length) this.parts.at(-1).err = 0;
+                if(j > str.length) this.parts.at(-1).err = 0;
             }
             else {
                 if(this.parts.at(-1)?.type === 'text') this.parts.at(-1).str += str[j];
