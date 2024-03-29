@@ -42,7 +42,7 @@ class Visual {
         if(end = Visual.is_math_elem(end)) 
             range.setEndAfter(end);
         let need_render = !is_text(range);
-        if(!need_render && range.startContainer.parentNode.nodeName === 'PRE') {
+        if(range.startContainer.parentNode.nodeName === 'PRE') {
             change = range.startContainer.parentNode;
         }
         if(!editor.focus_element) return need_render ? range: (editor.focus_element = change, null);
@@ -87,6 +87,7 @@ class Visual {
         case 'ArrowDown':
         case 'ArrowLeft':
         case 'ArrowRight':
+            //tree walker in comming!!!
             setTimeout(Visual.validate_selection, 0);
             return;
         case ' ':

@@ -20,6 +20,7 @@ Specification:
         v have a preview
         v autocomplete
         v support other formatting.
+        - undo - redo
         - suggesting latex keywords
         v visual editing mode 
         v movable
@@ -47,6 +48,3 @@ linting for typing latex
 
 make the compiler understand wether the proof is correct or not (at certain degree)
 make this a compeptitive website
-
-test case
-adsd $asdsad$ dsad $$adasd$$ <b>asdas <i>adasd</i></b> <ul> <li>asdas $adsa$</li> <li> das $ads$ <i>adasda</i></li> </ul>

@@ -72,6 +72,20 @@ class NodeUI {
             }
             GraphUI.current_graph.switch_to(this.detail);
         }
+        this.html_div.oncontextmenu = (e) => {
+            e.preventDefault();
+            Menu.ref_node = this;
+            let menu = Menu.rightclicked.items.childNodes;
+            if(this.html_div.querySelector('.tex_render').style.display === "none") {
+                menu[MIN].style.display = "none";
+                menu[MAX].style.display = "";
+            }
+            else {
+                menu[MAX].style.display = "none";
+                menu[MIN].style.display = "";
+            }
+            Menu.rightclicked.popup(e);
+        }
         this.html_div.assoc_node = this;
     }
     highlight() {
@@ -117,22 +131,6 @@ class NodeUI {
 function is_node_component(elem) {
     while(elem && !elem.assoc_node) elem = elem.parentNode;
     return elem?.assoc_node;
-}
-
-function user_mode(click, move) {
-    return e => {
-        e?.stopPropagation();
-        let p_click = document.onclick, p_move = document.onmousemove;
-        document.onmousemove = (e) => {
-            GraphUI.highlight_unique(e);
-            if(move) move(e);
-        }
-        document.onclick = (e) => {
-            document.onclick = p_click;
-            document.onmousemove = p_move;
-            if(click) click(is_node_component(e.target), e);
-        }
-    }
 }
 
 class GraphUI {
@@ -187,8 +185,6 @@ class GraphUI {
         recursive(this.summary);
         this.html_div.insertAdjacentHTML('beforeend', `
             <div class="toolbar">
-                <button onclick="GraphUI.new_edge(event)">edge</button>
-                <button onclick="user_mode(elem => elem?.remove())(event)">delete</button>
             </div>
         `);
     }
@@ -225,29 +221,33 @@ class GraphUI {
         GraphUI.current_graph.highlighting = node;
         node.highlight();
     };
-    static new_edge(e) {
-        user_mode((start,e) => {
-            if(!start) return;
-            let dot = document.getElementById("dot");
-            let viewpoint  = document.documentElement.getBoundingClientRect()
+    static new_edge(start, e) {
+        e.stopPropagation();
+        start.highlight();
+        let dot = document.getElementById("dot"), move = null, click = null;
+        let viewpoint  = document.documentElement.getBoundingClientRect();
+        dot.style.left = `${e.clientX - viewpoint.left}px`;
+        dot.style.top = `${e.clientY - viewpoint.top }px`;
+        dot.style.display = "block";
+        let line = new LeaderLine(start.html_div, dot, {dash: true, path: 'straight', size: 2});
+        document.addEventListener('mousemove', move =  e => {
+            GraphUI.highlight_unique(e);
             dot.style.left = `${e.clientX - viewpoint.left}px`;
             dot.style.top = `${e.clientY - viewpoint.top }px`;
-            dot.style.display = "block";
-            let line = new LeaderLine(start.html_div, dot, {dash: true, path: 'straight', size: 2});
-            user_mode(end => {
-                if(end && end != start && !start.to.has(end)) {
-                    line.setOptions({end: end.html_div, dash: false});
-                    end.from.set(start, line);
-                    start.to.set(end, line);
-                }
-                else line.remove();
-                dot.style.display = "none";
-            }, e => {
-                dot.style.left = `${e.clientX - viewpoint.left}px`;
-                dot.style.top = `${e.clientY - viewpoint.top }px`;
-                line.position();
-            })(null);
-        }, null)(e);
+            line.position();
+        });
+        document.addEventListener('click', click = e => {
+            let end = is_node_component(e);
+            if(end && end != start && !start.to.has(end)) {
+                line.setOptions({end: end.html_div, dash: false});
+                end.from.set(start, line);
+                start.to.set(end, line);
+            }
+            else line.remove();
+            dot.style.display = "none";
+            document.removeEventListener('click', click);
+            document.removeEventListener('mousemove', move)
+        });
     }
     static monitor_node_at_cursor(e) {
         if(!e.ctrlKey) return;
@@ -263,7 +263,6 @@ class GraphUI {
             node.html_div.style.top = `${e.clientY - viewpoint.top}px`;
             node.html_div.style.left = `${e.clientX - viewpoint.left}px`
         }
-        node.highlight();
         editor.load(node);
     }
 }

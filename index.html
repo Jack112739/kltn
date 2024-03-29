@@ -4,7 +4,8 @@
   <script type="text/javascript">
     window.MathJax = {
       tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+        displayMath: [['$$', '$$']],
+        inlineMath: [['$','$']],
         processEscapes: true,
         processEnvironments: false,
         processRefs: false
@@ -17,6 +18,7 @@
   </script>
   <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
   <script src="dependency/leader-line.min.js"></script>
+  <link rel="stylesheet" href="css/menu.css">
   <link rel="stylesheet" href="css/graph.css">
   <link rel="stylesheet" href="css/editor.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -31,8 +33,19 @@
   <script src="js/editor.js"></script>
   <script src="js/fragment.js"></script>
   <script src="js/visual.js"></script>
+  <script src="js/menu.js"></script>
 </head>
 <body>
+  <ul id="rightclick" class="menu" tabindex="0" style="display: none;">
+    <li class="edit"> <i class="fa-solid fa-gear"></i> Edit </li>
+    <li class="min"> <i class="fa-solid fa-window-minimize"></i> Minimize </li>
+    <li class="max"> <i class="fa-solid fa-window-maximize"></i> Maximize </li>
+    <li class="detail"> <i class="fa-solid fa-magnifying-glass"></i> Show details </li>
+    <li class="ref"> <i class="fa-solid fa-link"></i> Reference to </li>
+    <li class="rename"> <i class="fa-solid fa-tag"></i> Rename</li>
+    <li class="remove"> <i class="fa-solid fa-trash"></i> Remove </li>
+  </ul>
+
   <div id="dot"></div>
   <div id="editor" style="display: none;">
     <div class="settings">

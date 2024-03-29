@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
 //tags that can be use to format the text
 const allow_tag = ['b', 'i', 'ol', 'ul', 'li'];
 const tags = allow_tag.reduce((acc, name) =>(acc[`<${name}>`] = `</${name}>`,acc) ,{});
-const math_delimeter = {'$$':'$$', '$':'$', '\\[':'\\]', '\\(':'\\)'};
+const math_delimeter = {'$$':'$$', '$':'$'};
 const relations = [
     ['\\implies', '\\iff'],     // logical chaining 
     ['\\le', '<', '\\lessim'],  // less 
