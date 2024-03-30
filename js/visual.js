@@ -68,7 +68,7 @@ class Visual {
     /**@param {KeyboardEvent} e */
     static input_handler(e) {
         let r = window.getSelection().getRangeAt(0);
-        let parent = r.startContainer.parentNode;
+        let parent = r.commonAncestorContainer.parentNode;
         switch(e.key) {
         case '$':
             Visual.wrap_selection(r);
@@ -80,10 +80,6 @@ class Visual {
             //tree walker in comming!!!
             setTimeout(Visual.validate_selection, 0);
             return;
-        case 'Delete':
-        case 'Backspace':
-            // prevent weird behavior
-            break;
         case ' ':
             if(parent.nodeName === 'PRE'&& r.endOffset === parent.firstChild.data.length) {
                 parent.insertAdjacentHTML('afterend' , '&nbsp; ');
@@ -105,7 +101,7 @@ class Visual {
         if(node.nodeName === '#text') return true;
         if(range.startOffset + 2 <= range.endOffset) return false;
         if(!child || (child = node.childNodes[range.startOffset]).nodeName === '#text') {
-            if(!child) node.appendChild(document.createTextNode('')), child = node.firstChild;
+            if(!child) node.appendChild(document.createTextNode('\u00a0')), child = node.firstChild;
             range.setStart(child, 0);
             if(range.startOffset !== range.endOffset) range.setEnd(child, child.data.length);
             else range.collapse(true);
@@ -123,5 +119,11 @@ class Visual {
         r.setStart(new_select, 1);
         r.setEnd(new_select, selected_str.length-1);
         Visual.normalize_selection()
+    }
+    /**@param {InputEvent} e  */
+    static handle_input(e) {
+        // undo - redo
+        // prevent deletion process 
+        // line break handling
     }
 }

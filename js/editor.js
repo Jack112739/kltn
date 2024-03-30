@@ -85,8 +85,9 @@ class Editor {
                 for(const jax of this.latex.querySelectorAll('script')) Visual.init(jax);
             });
             this.latex.addEventListener('mouseup', Visual.validate_selection);
-            this.latex.addEventListener('keydown', Visual.input_handler)
-            this.latex.addEventListener('input', () => console.log('invoked'));
+            this.latex.addEventListener('keydown', Visual.input_handler);
+            this.latex.addEventListener('keydown', (e) => Menu.suggest.handle_key_event(e));
+            this.latex.addEventListener('beforeinput', Visual.handle_input);
         }
         else {
             this.raw.style.display = "";
@@ -117,9 +118,9 @@ class Editor {
             return {str: this.raw.value, start: this.raw.selectionStart, end: this.raw.selectionEnd};
         }
         else {
-            let sel = window.getSelection();
-            if(sel.anchorNode !== sel.focusNode) throw new Error('this should not happen');
-            return {str: sel.anchorNode.data, start: sel.anchorOffset, end: sel.focusOffset};
+            let sel = window.getSelection().getRangeAt(0);
+            if(sel.startContainer !== sel.endContainer) throw new Error('this should not happen');
+            return {str: sel.startContainer.data, start: sel.startOffset, end: sel.endOffset};
         }
     }
     /**@param {'b' | 'i' | 'ol' | 'ul' | 'a' | 'rm'} o  */
@@ -209,6 +210,12 @@ function auto_complete(e) {
         }
         break;
     case '\\':
+        if(Menu.suggest.items.style.display !== "none") return;
+        let range = window.getSelection().getRangeAt(0).cloneRange();
+        range.collapse(true);
+        let pos = range.getBoundingClientRect();
+        let e1 = {clientX: pos.left, clientY: pos.top};
+        Menu.suggest.popup(e1);
         break;
     default:
         break;
@@ -256,6 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.div.querySelector('.settings').onmousedown = drag_editor;
     editor.raw.addEventListener('keydown', auto_complete);
     editor.visual_mode(true);
+    document.addEventListener('mousemove', (e) => console.log(e.clientX, e.clientY));
 });
 
 

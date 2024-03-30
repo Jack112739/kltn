@@ -3,17 +3,16 @@ class Menu {
     /**@type {HTMLUListElement} the Node representation */
     items;
     /**@type {HTMLLIElement} the node user is hovering */
-    highlighted;
+    highlighted = null;
     /**@type {Array<String>?} lazy added items in this list*/
     library;
-    /**@type {String} the search string if this menu is the suggest menu */
-    search;
+    /**the search object, if this menu is the suggest menu */
+    search = {str: null, span: []}
     /** @type {?(HTMLLIElement) => any} keyboard call back*/
     invoke;
 
     /**@param {HTMLUListElement | Array<String>} items , @param {?(HTMLLIElement) => any} invoke */
     constructor(items, invoke) {
-        this.invoke = invoke ?? ((li) => li.onclick());
         if(items instanceof HTMLUListElement) {
             this.items = items;
             for(const node of items.childNodes) if(node.nodeName !== 'LI') items.removeChild(node);
@@ -21,30 +20,29 @@ class Menu {
         }
         else {
             this.items = document.createElement('ul');
-            this.refresh("");
+            this.items.className = "menu"
+            this.library = items;
+            this.load("");
         }
-        this.items.tabIndex = 0;
+        if(invoke) this.items.addEventListener('click', (e) => this.hide(invoke(this.highlighted)));
+        this.invoke = invoke ?? ((li) => li.onclick());
         this.items.addEventListener('mouseover', (e) => {
-            this.items.focus();
             let target = e.target;
             if(target === this.items) return;
-            // this loop like 2 times or so, but yeah
             while(target.nodeName !== 'LI') target = target.parentNode;
             this.set_highlight(target);  
         })
-        this.items.addEventListener('keydown', (e) => this.handle_key_event(e))
         this.items.addEventListener('scroll', (e) => this.load());
     }
 
     hide() {
+        this.search = {str: '', span: ''};
         this.items.style.display = "none";
     }
 
     /**@param {PointerEvent} e  */
     popup(e) {
-        if(!this.items.parentNode) document.body.appendChild(this.items);
         this.items.style.display = "";
-        this.items.focus();
         document.addEventListener('click', (e) => this.hide(), {once: true, capture: true});
         let viewpoint = document.documentElement.getBoundingClientRect();
         this.items.style.left = `${e.clientX - viewpoint.left}px`;
@@ -72,38 +70,61 @@ class Menu {
             this.items.scrollTop = this.highlighted.offsetTop - diff;
         }
     }
-    refresh(text) {
-        this.highlighted = null;
-        this.items.innerHTML = '';
-        this.search = text;
-        let span = {};
-        for(let i = 0; i < 25; i++) this.items.insertAdjacentHTML(`<li>${list[i]}</li>`);
-    }
     /**@param {KeyboardEvent} e */
     handle_key_event(e) {
-        e.preventDefault();
+        if(this.items.style.display === "none") return;
         switch(e.key) {
         case 'ArrowUp':
+            e.preventDefault();
             if(this.highlighted.previousSibling?.style.display === "none") 
                 this.set_highlight(this.highlighted.previousSibling)
             if(this.highlighted.previousSibling) this.set_highlight(this.highlighted.previousSibling);
             return;
         case 'ArrowDown':
+            e.preventDefault();
             if(this.highlighted.nextSibling?.style.display === "none")
                 this.set_highlight(this.highlighted.nextSibling);
             if(this.highlighted.value === this.items.childNodes.length - 1) this.load();
             if(this.highlighted.nextSibling) this.set_highlight(this.highlighted.nextSibling);
             return;
         case 'Enter': case 'Tab':
-            this.hide();
+            e.preventDefault();
             this.invoke(this.highlighted);
+            this.hide();
+            return;
+        case 'Backspace':
+            if(this.search.str.length === 1) return this.hide();
+            return this.load(this.search.str.slice(0, -1));
+        case 'Escape':
+            return this.hide();
+        default:
+            if(e.key.length !== 1) return;
+            return Menu.suggest.load(Menu.suggest.search.str += e.key);
         }
     }
-    load() {
+    load(text) {
         if(!this.library) return;
-        let count = this.childNodes.length;
-        for(let i = 0; i < 25; i++) this.items.insertAdjacentHTML(`<li>${items[i + count]}</li>`);
+        if(text !== undefined && text !== null) {
+            this.items.innerHTML = '';
+            this.search.str = text;
+            let start_offset = binary_search(0, this.library.length, this.library, text);
+            let end_offset = binary_search(0, this.library.length, this.library, text + "~~~~~");
+            this.search.span = this.library.slice(start_offset, end_offset);
+            if(this.search.span.length === 0) return this.hide();
+        }
+        let count = this.items.childNodes.length;
+        let thresh_hold = 0;
+        if(this.items.lastChild) thresh_hold = this.items.lastChild.offsetTop - this.items.offsetHeight;
+        if(this.items.scrollTop < thresh_hold) return;
+        for(let i = 0; i < 25; i++) {
+            let insert = this.search.span[i + count];
+            if(insert) this.items.insertAdjacentHTML('beforeend', 
+                `<li><b>${this.search.str}</b>${insert.slice(this.search.str.length)}</li>`);
+        }
+        if(text !== null && text !== undefined) this.set_highlight(this.items.firstChild);
     }
+    
+    static suggest = null;
     static rightclicked = null;
     static ref_node = null;
 }
@@ -136,5 +157,27 @@ document.addEventListener('DOMContentLoaded', () => {
     menu[REMOVE].onclick = (e) => {
         if(window.confirm(`Do you want to delete ${Menu.ref_node.id}?`)) Menu.ref_node.remove();
     }
+    Menu.suggest = new Menu(mjx_support, (li) => {
+        let insert = li.textContent, adjust = 0;
+        if(insert.startsWith('\\begin{')) {
+            let env = insert.slice('\\begin{'.length, -1);
+            insert = `\\begin{${env}}  \\end{${env}}`;
+            adjust = env.length + "\\ end{}".length;
+        }
+        document.execCommand('insertText', false, insert.slice(Menu.suggest.search.str.length));
+        let range = window.getSelection().getRangeAt(0);
+        range.setStart(range.startContainer, range.startOffset - adjust);
+        range.collapse(true);
+    });
+    Menu.suggest.hide();
+    document.body.appendChild(Menu.suggest.items);
+
 })
 const EDIT = 0, MIN = 1, MAX = 2, DETAIL = 3, REF = 4, RENAME = 5, REMOVE = 6;
+
+function binary_search(start, end, arr, search) {
+    if(start >= end) return search == arr[end-1] ? end - 1 : end;
+    let mid = Math.floor((start + end) / 2);
+    if(search >= arr[mid]) return binary_search(mid + 1, end, arr, search);
+    else return binary_search(start, mid, arr, search);
+}
