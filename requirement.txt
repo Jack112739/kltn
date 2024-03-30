@@ -9,9 +9,9 @@ Specification:
         v can create link between nodes
         v external node have different display
         v double click the node will switch to the content inside the node and re-render the screen
-        - have all of the options for the nodes resize, rename, edit,... appear when right clicked
+        v have all of the options for the nodes resize, rename, edit,... appear when right clicked
         - can be save to a file (high priority)
-        - shortcuts for edit, create node,...
+        v shortcuts for edit, create node,...
         - hide and show edges
         - undo-redo option
         - have different modes (low priority)

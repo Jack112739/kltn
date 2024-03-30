@@ -124,6 +124,7 @@ class Editor {
     }
     /**@param {'b' | 'i' | 'ol' | 'ul' | 'a' | 'rm'} o  */
     option(o) {
+        if(editor.on_visual_mode) Visual.wrap_selection();
         let {str, start, end} = editor.get_selection();
         if(str === null) return;
         let selected = str.slice(start, end);

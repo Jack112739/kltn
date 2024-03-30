@@ -29,13 +29,6 @@ class Menu {
         })
         this.items.addEventListener('keydown', (e) => this.handle_key_event(e))
         this.items.addEventListener('scroll', (e) => this.load());
-        this.items.addEventListener('click', (e) => {
-            this.highlighted?.onclick(e)
-            this.hide();
-        });
-        document.addEventListener('mousedown', (e) => {
-            if(!this.items.contains(e.target)) this.hide();
-        });
     }
 
     hide() {
@@ -45,6 +38,9 @@ class Menu {
     /**@param {PointerEvent} e  */
     popup(e) {
         if(!this.items.parentNode) document.body.appendChild(this.items);
+        this.items.style.display = "";
+        this.items.focus();
+        document.addEventListener('click', (e) => this.hide(), {once: true, capture: true});
         let viewpoint = document.documentElement.getBoundingClientRect();
         this.items.style.left = `${e.clientX - viewpoint.left}px`;
         this.items.style.top = `${e.clientY - viewpoint.top }px`;
@@ -55,7 +51,6 @@ class Menu {
         if(item_layout.bottom > viewpoint.height) {
             this.items.style.top = viewpoint.y + e.clientY - this.items.offsetHeight;
         }
-        this.items.style.display = "";
     }
     /**@param {HTMLLIElement} elem  */
     set_highlight(elem) {
@@ -108,21 +103,21 @@ document.addEventListener('DOMContentLoaded', () => {
     menu[EDIT].onclick = (e) => editor.load(Menu.ref_node);
     menu[MAX].onclick = (e) => Menu.ref_node.html_div.querySelector('.tex_render').style.display = "";
     menu[MIN].onclick = (e) => Menu.ref_node.html_div.querySelector('.tex_render').style.display = "none";
-    menu[DETAIL].onclick = (e) => Menu.ref_node.html_div.ondblclick(e);
-    menu[REF].onclick = (e) => GraphUI.new_edge(Menu.ref_node, e), Menu.rightclicked.hide();
+    menu[DETAIL].onclick = (e) => Menu.ref_node.html_div.ondblclick();
+    menu[REF].onclick = (e) => GraphUI.new_edge(Menu.ref_node, e);
     menu[RENAME].onclick = (e) => {
         Menu.rightclicked.hide();
         let input = document.createElement('input');
         let viewpoint  = document.documentElement.getBoundingClientRect();
+        input.className = "rename";
+        input.value = Menu.ref_node.id;
         input.style.left = `${e.clientX - viewpoint.left}px`;
         input.style.top = `${e.clientY - viewpoint.top }px`;
         document.body.appendChild(input);
+        input.focus();
         input.addEventListener('focusout', () => document.body.removeChild(input));
         input.addEventListener('keydown', (e) => {
-            if(e.key === 'Enter') {
-                Menu.ref_node.rename(input.value);
-                if(input.parentNode) document.body.removeChild(input);
-            }
+            if(e.key === 'Enter') Menu.ref_node.rename(input.value), input.style.display = "none";
         });
     };
     menu[REMOVE].onclick = (e) => {

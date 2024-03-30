@@ -16,7 +16,7 @@ class Visual {
         else return elem;
     }
     static validate_selection() {
-        let range = Visual.standardize_selection();
+        let range = Visual.normalize_selection();
         if(!range) return;
 
         let frag = new Fragment(range, 'html');
@@ -31,7 +31,7 @@ class Visual {
         range.setEnd(editor.focus_element.firstChild, info.end);
         return frag;
     }
-    static standardize_selection() {
+    static normalize_selection() {
         if(window.getSelection().rangeCount === 0) return null;
         let range = window.getSelection().getRangeAt(0), change = null;
         let start = range.startContainer, end = range.endContainer;
@@ -41,7 +41,7 @@ class Visual {
         }
         if(end = Visual.is_math_elem(end)) 
             range.setEndAfter(end);
-        let need_render = !is_text(range);
+        let need_render = !Visual.is_text(range);
         if(range.startContainer.parentNode.nodeName === 'PRE') {
             change = range.startContainer.parentNode;
         }
@@ -68,20 +68,10 @@ class Visual {
     /**@param {KeyboardEvent} e */
     static input_handler(e) {
         let r = window.getSelection().getRangeAt(0);
-        if(!r.collapsed) return auto_complete(e);
         let parent = r.startContainer.parentNode;
         switch(e.key) {
         case '$':
-            if(parent.nodeName !== 'PRE') {
-                e.preventDefault();
-                let new_node = document.createElement('pre');
-                new_node.append(document.createTextNode('$$'));
-                r.insertNode(new_node);
-                r.setStart(new_node.firstChild, 1);
-                r.setEnd(new_node.firstChild, 1);
-                editor.focus_element = new_node;
-                return;
-            }
+            Visual.wrap_selection(r);
             break;
         case 'ArrowUp': //will customize later
         case 'ArrowDown':
@@ -90,33 +80,48 @@ class Visual {
             //tree walker in comming!!!
             setTimeout(Visual.validate_selection, 0);
             return;
+        case 'Delete':
+        case 'Backspace':
+            // prevent weird behavior
+            break;
         case ' ':
             if(parent.nodeName === 'PRE'&& r.endOffset === parent.firstChild.data.length) {
                 parent.insertAdjacentHTML('afterend' , '&nbsp; ');
                 r.setStart(parent.nextSibling, 1);
                 r.collapse(true);
-                Visual.standardize_selection();
+                Visual.normalize_selection();
                 e.preventDefault();
-                return;
             }
+            return;
         default:
             if(e.ctrlKey) setTimeout(Visual.validate_selection, 0);
         }
         auto_complete(e);
         console.log(editor.focus_element);
     }
-}
-function is_text(range) {
-    if(range.startContainer !== range.endContainer) return false;
-    let node = range.startContainer, child = node.firstChild;
-    if(node.nodeName === '#text') return true;
-    if(range.startOffset + 2 <= range.endOffset) return false;
-    if(!child || (child = node.childNodes[range.startOffset]).nodeName === '#text') {
-        if(!child) node.appendChild(document.createTextNode('')), child = node.firstChild;
-        range.setStart(child, 0);
-        if(range.startOffset !== range.endOffset) range.setEnd(child, child.data.length);
-        else range.collapse(true);
-        return true;
+    static is_text(range) {
+        if(range.startContainer !== range.endContainer) return false;
+        let node = range.startContainer, child = node.firstChild;
+        if(node.nodeName === '#text') return true;
+        if(range.startOffset + 2 <= range.endOffset) return false;
+        if(!child || (child = node.childNodes[range.startOffset]).nodeName === '#text') {
+            if(!child) node.appendChild(document.createTextNode('')), child = node.firstChild;
+            range.setStart(child, 0);
+            if(range.startOffset !== range.endOffset) range.setEnd(child, child.data.length);
+            else range.collapse(true);
+            return true;
+        }
+        return false;
     }
-    return false;
+    static wrap_selection() {
+        let r = window.getSelection().getRangeAt(0);
+        if(r.startContainer.parentNode.nodeName === 'PRE') return;
+        let selected_str = '\u00a0' + r.startContainer.data.slice(r.startOffset, r.endOffset) + '\u00a0';
+        let new_select = document.createElement('pre').appendChild(document.createTextNode(selected_str));
+        r.deleteContents();
+        r.insertNode(new_select.parentNode);
+        r.setStart(new_select, 1);
+        r.setEnd(new_select, selected_str.length-1);
+        Visual.normalize_selection()
+    }
 }

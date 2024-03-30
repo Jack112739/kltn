@@ -224,7 +224,7 @@ class GraphUI {
     static new_edge(start, e) {
         e.stopPropagation();
         start.highlight();
-        let dot = document.getElementById("dot"), move = null, click = null;
+        let dot = document.getElementById("dot"), move;
         let viewpoint  = document.documentElement.getBoundingClientRect();
         dot.style.left = `${e.clientX - viewpoint.left}px`;
         dot.style.top = `${e.clientY - viewpoint.top }px`;
@@ -236,8 +236,8 @@ class GraphUI {
             dot.style.top = `${e.clientY - viewpoint.top }px`;
             line.position();
         });
-        document.addEventListener('click', click = e => {
-            let end = is_node_component(e);
+        document.addEventListener('click', e => {
+            let end = is_node_component(e.target);
             if(end && end != start && !start.to.has(end)) {
                 line.setOptions({end: end.html_div, dash: false});
                 end.from.set(start, line);
@@ -245,9 +245,8 @@ class GraphUI {
             }
             else line.remove();
             dot.style.display = "none";
-            document.removeEventListener('click', click);
-            document.removeEventListener('mousemove', move)
-        });
+            document.removeEventListener('mousemove', move);
+        }, {once: true});
     }
     static monitor_node_at_cursor(e) {
         if(!e.ctrlKey) return;

@@ -30,3 +30,10 @@
 .menu > li.highlight {
     background-color: #2727d1;
 }
+input.rename {
+    position: absolute;
+    background-color: #262644;
+    color: #4edaf3;
+    border: 2px solid;
+    border-radius: 2px;
+}
