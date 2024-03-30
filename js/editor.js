@@ -209,8 +209,6 @@ function auto_complete(e) {
         }
         break;
     case '\\':
-        // (editor.on_visual_mode ? editor.latex : editor.raw)
-        //     .addEventListener('keydown', (e) => console.log('not implemented')); 
         break;
     default:
         break;

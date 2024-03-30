@@ -222,6 +222,7 @@ class GraphUI {
         node.highlight();
     };
     static new_edge(start, e) {
+        if(!e) return;
         e.stopPropagation();
         start.highlight();
         let dot = document.getElementById("dot"), move;
@@ -273,4 +274,5 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(GraphUI.current_graph.html_div);
     document.onmousedown = GraphUI.highlight_unique;
     document.addEventListener('click', GraphUI.monitor_node_at_cursor);
+    fetch('http://localhost:8000/dependency/mathjax_support.txt').then( response => response.text()).then(data => console.log(data));
 });

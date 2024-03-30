@@ -4,11 +4,16 @@ class Menu {
     items;
     /**@type {HTMLLIElement} the node user is hovering */
     highlighted;
-    /**@type {Array<String>} lazy added items in this list*/
-    library; 
+    /**@type {Array<String>?} lazy added items in this list*/
+    library;
+    /**@type {String} the search string if this menu is the suggest menu */
+    search;
+    /** @type {?(HTMLLIElement) => any} keyboard call back*/
+    invoke;
 
-    /**@param {HTMLUListElement | Array<String>} items */
-    constructor(items) {
+    /**@param {HTMLUListElement | Array<String>} items , @param {?(HTMLLIElement) => any} invoke */
+    constructor(items, invoke) {
+        this.invoke = invoke ?? ((li) => li.onclick());
         if(items instanceof HTMLUListElement) {
             this.items = items;
             for(const node of items.childNodes) if(node.nodeName !== 'LI') items.removeChild(node);
@@ -16,7 +21,7 @@ class Menu {
         }
         else {
             this.items = document.createElement('ul');
-            this.refresh(items);
+            this.refresh("");
         }
         this.items.tabIndex = 0;
         this.items.addEventListener('mouseover', (e) => {
@@ -67,25 +72,31 @@ class Menu {
             this.items.scrollTop = this.highlighted.offsetTop - diff;
         }
     }
-    refresh(list) {
+    refresh(text) {
         this.highlighted = null;
-        this.library = list;
         this.items.innerHTML = '';
+        this.search = text;
+        let span = {};
         for(let i = 0; i < 25; i++) this.items.insertAdjacentHTML(`<li>${list[i]}</li>`);
     }
     /**@param {KeyboardEvent} e */
     handle_key_event(e) {
         e.preventDefault();
         switch(e.key) {
-        case 'Enter':
-            this.hide()
-            return  this.highlighted.onclick();
         case 'ArrowUp':
+            if(this.highlighted.previousSibling?.style.display === "none") 
+                this.set_highlight(this.highlighted.previousSibling)
             if(this.highlighted.previousSibling) this.set_highlight(this.highlighted.previousSibling);
             return;
         case 'ArrowDown':
+            if(this.highlighted.nextSibling?.style.display === "none")
+                this.set_highlight(this.highlighted.nextSibling);
             if(this.highlighted.value === this.items.childNodes.length - 1) this.load();
             if(this.highlighted.nextSibling) this.set_highlight(this.highlighted.nextSibling);
+            return;
+        case 'Enter': case 'Tab':
+            this.hide();
+            this.invoke(this.highlighted);
         }
     }
     load() {
@@ -106,13 +117,15 @@ document.addEventListener('DOMContentLoaded', () => {
     menu[DETAIL].onclick = (e) => Menu.ref_node.html_div.ondblclick();
     menu[REF].onclick = (e) => GraphUI.new_edge(Menu.ref_node, e);
     menu[RENAME].onclick = (e) => {
-        Menu.rightclicked.hide();
         let input = document.createElement('input');
         let viewpoint  = document.documentElement.getBoundingClientRect();
+        Menu.rightclicked.items.style.display = "";
+        let position = Menu.rightclicked.highlighted.getBoundingClientRect();
+        Menu.rightclicked.hide();
         input.className = "rename";
         input.value = Menu.ref_node.id;
-        input.style.left = `${e.clientX - viewpoint.left}px`;
-        input.style.top = `${e.clientY - viewpoint.top }px`;
+        input.style.left = `${position.left - viewpoint.left}px`;
+        input.style.top = `${position.top - viewpoint.top }px`;
         document.body.appendChild(input);
         input.focus();
         input.addEventListener('focusout', () => document.body.removeChild(input));
