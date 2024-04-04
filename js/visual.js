@@ -1,38 +1,39 @@
 class Visual {
-    /**@param {HTMLDivElement} jax  */
+    /**@param {HTMLScriptElement} jax  */
     static init(jax) {
+        if(jax.className === 'checked') return;
+        jax.className = 'checked';
         let elem = jax.previousSibling;
-        elem.math_info = {type: jax.type, str: jax.firstChild.data};
-        elem.parentNode.removeChild(jax);
-        elem.parentNode.removeChild(elem.previousSibling);
-        elem.addEventListener('selectstart', () => Visual.validate_selection());
+        elem.appendChild(jax);
     }
     /**@param {Node} elem  */
     static is_math_elem(elem) {
-        while(elem !== editor.latex && !elem.math_info) {
+        while(elem !== editor.latex && elem.nodeName !== 'MJX-CONTAINER') {
             elem = elem.parentNode;
         }
         if(elem === editor.latex) return null;
         else return elem;
     }
-    static validate_selection() {
+    static validate_selection(cursor = -1) {
         let range = Visual.normalize_selection();
         if(!range) return;
 
         let frag = new Fragment(range, 'html');
-        let info = frag.output('text');
-        if(frag.parts.length === 2 && info.str[0] === '$' && frag.parts[1].str == '') 
-            info.start = info.end;
+        let offset = frag.text_offset();
+        if(Visual.is_math_only(frag)) {
+            if(cursor < 0) { offset.end += cursor+1; offset.start = offset.end; }
+            else { offset.start += cursor; offset.end = offset.start; }
+        }
         range.deleteContents();
         editor.focus_element = document.createElement('pre');
-        editor.focus_element.append(document.createTextNode(info.str));
+        editor.focus_element.append(document.createTextNode(frag.output('text')));
         range.insertNode(editor.focus_element);
-        range.setStart(editor.focus_element.firstChild, info.start);
-        range.setEnd(editor.focus_element.firstChild, info.end);
+        range.setStart(editor.focus_element.firstChild, offset.start);
+        range.setEnd(editor.focus_element.firstChild, offset.end);
         return frag;
     }
     static normalize_selection() {
-        if(window.getSelection().rangeCount === 0) return null;
+        if(window.getSelection().rangeCount === 0 || !editor.on_visual_mode) return null;
         let range = window.getSelection().getRangeAt(0), change = null;
         let start = range.startContainer, end = range.endContainer;
         if(start = Visual.is_math_elem(start)) {
@@ -58,17 +59,13 @@ class Visual {
             return range;
     }
     static rerender(elem) {
-        let frag = new Fragment(elem.firstChild.data);
-        elem.insertAdjacentHTML('afterend', frag.output('html').str);
+        let nodes = (new Fragment(elem.firstChild.data)).output('html');
+        for(const node of nodes) elem.parentNode.insertBefore(node, elem);
         elem.parentNode.removeChild(elem);
-        MathJax.Hub.Queue(['Typeset', MathJax.Hub, editor.latex, () => {
-                for(const jax of editor.latex.querySelectorAll('script')) Visual.init(jax);
-        }])
     }
     /**@param {KeyboardEvent} e */
     static input_handler(e) {
         let r = window.getSelection().getRangeAt(0);
-        let parent = r.commonAncestorContainer.parentNode;
         switch(e.key) {
         case '$':
             Visual.wrap_selection(r);
@@ -120,10 +117,32 @@ class Visual {
         r.setEnd(new_select, selected_str.length-1);
         Visual.normalize_selection()
     }
+    static is_math_only(frag) {
+        if(frag.parts.length > 2) return false;
+        if(frag.parts.length === 2 && frag.parts[1].str !== '') return false; 
+        if(frag.parts[0].type === 'math') return true;
+        return false;
+    }
+    static walk(dir, selection_range) {
+        const dir_map = ['firstChild', 'lastChild'];
+        switch(dir) {
+        case 'ArrowLeft':    
+        case 'Arrow Right':
+            // move the cursor to the previous/next text content
+            
+        }
+    }
     /**@param {InputEvent} e  */
     static handle_input(e) {
-        // undo - redo
-        // prevent deletion process 
-        // line break handling
+        console.log(e.inputType);
+        switch(e.inputType) {
+        case 'insertText':
+        case 'insertFromPaste':
+        case 'insertParagraph':
+        case 'deleteContentBackward':
+        case 'deleteContentForward':
+        case 'historyUndo':
+        case 'historyRedo':
+        }
     }
 }

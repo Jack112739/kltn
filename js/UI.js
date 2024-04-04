@@ -84,7 +84,7 @@ class NodeUI {
                 menu[MAX].style.display = "none";
                 menu[MIN].style.display = "";
             }
-            Menu.rightclicked.popup(e);
+            Menu.rightclicked.popup(e.clientX, e.clientY);
         }
         this.html_div.assoc_node = this;
     }

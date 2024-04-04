@@ -41,18 +41,18 @@ class Menu {
     }
 
     /**@param {PointerEvent} e  */
-    popup(e) {
+    popup(clientX, clientY) {
         this.items.style.display = "";
         document.addEventListener('click', (e) => this.hide(), {once: true, capture: true});
         let viewpoint = document.documentElement.getBoundingClientRect();
-        this.items.style.left = `${e.clientX - viewpoint.left}px`;
-        this.items.style.top = `${e.clientY - viewpoint.top }px`;
+        this.items.style.left = `${clientX - viewpoint.left}px`;
+        this.items.style.top = `${clientY - viewpoint.top }px`;
         let item_layout = this.items.getBoundingClientRect();
         if(item_layout.right > viewpoint.width) {
-            this.items.style.top = viewpoint.x + e.clientX - this.items.offsetWidth;
+            this.items.style.top = viewpoint.x +clientX - this.items.offsetWidth;
         }
         if(item_layout.bottom > viewpoint.height) {
-            this.items.style.top = viewpoint.y + e.clientY - this.items.offsetHeight;
+            this.items.style.top = viewpoint.y + clientY - this.items.offsetHeight;
         }
     }
     /**@param {HTMLLIElement} elem  */
@@ -158,16 +158,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if(window.confirm(`Do you want to delete ${Menu.ref_node.id}?`)) Menu.ref_node.remove();
     }
     Menu.suggest = new Menu(mjx_support, (li) => {
-        let insert = li.textContent, adjust = 0;
+        let insert = li.textContent, adjust = insert.length;
         if(insert.startsWith('\\begin{')) {
             let env = insert.slice('\\begin{'.length, -1);
             insert = `\\begin{${env}}  \\end{${env}}`;
-            adjust = env.length + "\\ end{}".length;
+            adjust = env.length + "\\begin{}".length;
         }
-        document.execCommand('insertText', false, insert.slice(Menu.suggest.search.str.length));
-        let range = window.getSelection().getRangeAt(0);
-        range.setStart(range.startContainer, range.startOffset - adjust);
-        range.collapse(true);
+        insert = insert.slice(Menu.suggest.search.str.length);
+        adjust -= Menu.suggest.search.str.length;
+        editor.insert_and_set(insert, adjust, insert.length - adjust);
     });
     Menu.suggest.hide();
     document.body.appendChild(Menu.suggest.items);
@@ -176,8 +175,8 @@ document.addEventListener('DOMContentLoaded', () => {
 const EDIT = 0, MIN = 1, MAX = 2, DETAIL = 3, REF = 4, RENAME = 5, REMOVE = 6;
 
 function binary_search(start, end, arr, search) {
-    if(start >= end) return search == arr[end-1] ? end - 1 : end;
+    if(start == end) return start;
     let mid = Math.floor((start + end) / 2);
-    if(search >= arr[mid]) return binary_search(mid + 1, end, arr, search);
+    if(search > arr[mid]) return binary_search(mid+1, end, arr, search);
     else return binary_search(start, mid, arr, search);
 }

@@ -46,6 +46,7 @@ class Editor {
         this.name.value = "";
         this.latex.innerHTML = "";
         this.div.style.display = "none";
+        this.focus_element = null;
         this.node.fade();
         document.addEventListener('click', GraphUI.monitor_node_at_cursor);
     }
@@ -57,17 +58,18 @@ class Editor {
         this.node.rename(this.name.value);
         this.node.html_div.querySelector('.tex_render').innerHTML = this.latex.innerHTML;
     }
-    /** @param {?function()} then */
-    render(then) {
-        this.latex.innerHTML = (new Fragment(this.raw.value, 'text')).output('html').str;
-        MathJax.Hub?.Queue(['Typeset', MathJax.Hub, this.latex, then]);
+    render() {
+        this.latex.innerHTML = '';
+        let nodes = (new Fragment(this.raw.value, 'text')).output('html');
+        for(const node of nodes) this.latex.appendChild(node);
     }
     inverse_render() {
+        if(this.focus_element) Visual.rerender(this.focus_element);
+        this.focus_element = null;
         let range = document.createRange();
         range.setStart(this.latex, 0);
         range.setEnd(this.latex, this.latex.childNodes.length);
-        let frag = new Fragment(range, 'html');
-        this.raw.value = frag.output('text').str;
+        this.raw.value = (new Fragment(range, 'html')).output('text');
     }
     del() {
         if(!window.confirm('Do you want to delete this node ?')) return;
@@ -81,13 +83,7 @@ class Editor {
             this.raw.style.display = "none";
             this.on_visual_mode = true;
             this.latex.contentEditable = true;
-            this.render(() => {
-                for(const jax of this.latex.querySelectorAll('script')) Visual.init(jax);
-            });
-            this.latex.addEventListener('mouseup', Visual.validate_selection);
-            this.latex.addEventListener('keydown', Visual.input_handler);
-            this.latex.addEventListener('keydown', (e) => Menu.suggest.handle_key_event(e));
-            this.latex.addEventListener('beforeinput', Visual.handle_input);
+            this.render();
         }
         else {
             this.raw.style.display = "";
@@ -98,17 +94,17 @@ class Editor {
     }
     /**@param {string} str @param {number} end_offset @param {number} start_offset    */
     insert_and_set(str, start_offset, end_offset) {
+        let range = window.getSelection().getRangeAt(0);
+        let old_offset = this.on_visual_mode ? range.startOffset : this.raw.selectionStart;
         document.execCommand('insertText', false, str);
         if(!this.on_visual_mode) {
-            this.raw.selectionStart = start_offset;
-            this.raw.selectionEnd = end_offset;
+            this.raw.selectionStart = old_offset + start_offset;
+            this.raw.selectionEnd = old_offset + str.length - end_offset;
         }
         else {
-            let range = document.createRange();
-            let sel = window.getSelection();
-            if(sel.anchorNode !== sel.focusNode) throw new Error('this should not happen');
-            range.setStart(sel.anchorNode, start_offset);
-            range.setEnd(sel.anchorNode, end_offset);
+            if(range.startContainer !== range.endContainer) throw new Error("this should not happen");
+            range.setStart(range.startContainer, old_offset + start_offset);
+            range.setEnd(range.endContainer, old_offset + str.length - end_offset);
             window.getSelection().removeAllRanges();
             window.getSelection().addRange(range);
         }
@@ -182,7 +178,29 @@ class Editor {
         default:
             throw new Error('text edit option is not supported')
         }
-        editor.insert_and_set(replace, start + start_offset, start + replace.length - end_offset);
+        editor.insert_and_set(replace, start_offset, end_offset);
+    }
+    /**@returns {DOMRect} */
+    get_caret_position() {
+        if(!this.on_visual_mode) {
+            let new_div = document.createElement('div');
+            new_div.appendChild(document.createTextNode(this.raw.value))
+            for(const [prop, val] of this.raw.computedStyleMap()) {
+                new_div.style[prop] = val.toString();
+            }
+            new_div.style.width = this.raw.offsetWidth + "px";
+            new_div.style.height = this.raw.offsetHeight + "px";
+            document.body.appendChild(new_div);
+            let range = document.createRange();
+            range.setStart(new_div.firstChild, this.raw.selectionStart);
+            range.setEnd(new_div.firstChild, this.raw.selectionEnd);
+            let [input, div, caret] = [this.raw, new_div, range].map(e => e.getBoundingClientRect());
+            caret.x += input.x - div.x;
+            caret.y += input.y - div.y - this.raw.scrollTop;
+            document.body.removeChild(new_div);
+            return caret;
+        }
+        return window.getSelection().getRangeAt(0).getBoundingClientRect();
     }
 }
 /**@param {KeyboardEvent} e  */
@@ -202,20 +220,15 @@ function auto_complete(e) {
         if(open = Object.keys(lookup).find(t => candidate.endsWith(t))) {
             e.preventDefault();
             replace = e.key + (open.length == 1 ? str.slice(start, end): '') + lookup[open];
-            start += 1;
             // if it was a close bracket then still select it, otherwise just append text
-            if(lookup[open].length == 1) end = start  + replace.length - 2;
-            else end = start;
-            return editor.insert_and_set(replace, start, end);
+            if(lookup[open].length == 1) end = 1;
+            else end = replace.length - 1;
+            return editor.insert_and_set(replace, 1, end);
         }
         break;
     case '\\':
-        if(Menu.suggest.items.style.display !== "none") return;
-        let range = window.getSelection().getRangeAt(0).cloneRange();
-        range.collapse(true);
-        let pos = range.getBoundingClientRect();
-        let e1 = {clientX: pos.left, clientY: pos.top};
-        Menu.suggest.popup(e1);
+        let pos = editor.get_caret_position();
+        Menu.suggest.popup(pos.x, pos.y);
         break;
     default:
         break;
@@ -260,10 +273,15 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.div.querySelector('.rm').onclick = () => editor.option('rm');
     editor.div.querySelector('.mode').onchange = (e) => editor.visual_mode(e.target.checked);
 
-    editor.div.querySelector('.settings').onmousedown = drag_editor;
+    editor.latex.addEventListener('mouseup', Visual.validate_selection);
+    editor.latex.addEventListener('keydown', Visual.input_handler);
+    editor.latex.addEventListener('keydown', (e) => Menu.suggest.handle_key_event(e));
+    editor.latex.addEventListener('beforeinput', Visual.handle_input);
     editor.raw.addEventListener('keydown', auto_complete);
+    editor.raw.addEventListener('keydown', (e) => Menu.suggest.handle_key_event(e));
+
+    editor.div.querySelector('.settings').onmousedown = drag_editor;
     editor.visual_mode(true);
-    document.addEventListener('mousemove', (e) => console.log(e.clientX, e.clientY));
 });
 
 

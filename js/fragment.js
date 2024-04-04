@@ -80,11 +80,11 @@ class Fragment {
                 else this.parts.at(-1).err = 1;
             }
             else if(t = test(Object.keys(math_delimeter))) {
-                let start = j, math_type = t == '$$' || t == '\\[' ? 'math/tex; mode=display': 'math/tex';
+                let start = j;
                 j += t.length;
                 while(!str.startsWith(math_delimeter[t], j) && j < str.length) j++;
                 j += math_delimeter[t].length;
-                this.parts.push({str: str.slice(start, j), type: math_type, err: t.length});
+                this.parts.push({str: str.slice(start, j), type: 'math', err: t.length});
                 if(j > str.length) this.parts.at(-1).err = 0;
             }
             else {
@@ -102,13 +102,12 @@ class Fragment {
             if(range.endContainer === parent && offset === range.endOffset)
                 this.offset.end = this.parts.length;
         };
-        if(node.nodeName === '#text' || node.math_info || node.nodeName === 'PRE') {
-            if(node.math_info) {
+        if(node.nodeName === '#text' || node.nodeName === 'MJX-CONTAINER' || node.nodeName === 'PRE') {
+            if(node.nodeName === 'MJX-CONTAINER') {
                 set(parent, counter);
-                let delim = node.math_info.type === 'math/tex' ? '$' : '$$';
-                this.parts.push({str: delim + node.math_info.str + delim, 
-                    type: node.math_info.type, err: delim.length});
-                }
+                let math_type = node.attributes.display ? 1 : 0;
+                this.parts.push({str: node.lastChild.textContent, type: 'math', err: math_type});
+            }
             else {
                 let err = 0;
                 if(node.nodeName === 'PRE') node = node.firstChild, err = 1;
@@ -134,33 +133,43 @@ class Fragment {
         set(node, node.childNodes.length);
         this.parts.push({str: node.nodeName.toLowerCase(), type: 'close', err: 0});
     }
-    /**@param {'text' | 'html'} type  @returns {string}*/
+    /**@param {'text' | 'html'} type  @returns {string | Array<Node>}*/
     output(type) {
-        let tokens = this.parts.map(token => {
-            let str = token.str;
-            switch(token.type) {
-            case 'open':
-            case 'close':
-                str = token.type === 'open' ? `<${str}>` : `</${str}>`;
-                if(type === 'text' || !token.err) return str;
-                else return `<pre class="err">${map_to_html(str)}</pre>`;
-            case 'math/tex':
-            case 'math/tex; mode=display':
-                if(type === 'text') return str;
-                else if(token.err === 0) return `<pre class="err">${map_to_html(str)}</pre>`;
-                else return `<script type="${token.type}">${str.slice(token.err, -token.err)}</script>`
-            default:    //text case
-                if (type === 'text') return str;
-                else if(token.err) return `<pre>${map_to_html(str)}</pre>`
-                else return map_to_html(str);
+        if(type === 'text') return this.parts.map(token => 
+            token.type === 'open' ? `<${token.str}>` :token.type === 'close' ? `</${token.str}>` :token.str
+        ).join('');
+        let div = document.createElement('div'), cur = div;
+        for(let i = 0; i < this.parts.length; i++) {
+            let token = this.parts[i];
+            if((token.err !== 0) ^ (token.type === 'math')) {
+                cur.insertAdjacentHTML('beforeend', `<pre class="err">${map_to_html(token.str)}</pre>`);
             }
-        });
-        let ret = {str:'', start: 0, end: 0}, curent = 0;
-        for(let i = 0; i < tokens.length; i++) {
-            ret.str += tokens[i];
-            if(i === this.offset.start) ret.start = curent + (this.offset.partial_start ?? 0);
-            if(i === this.offset.end) ret.end = curent + (this.offset.partial_end ?? 0);
-            curent += tokens[i].length;
+            else if(token.type === 'text') {
+                cur.appendChild(document.createTextNode(token.str));
+            }
+            else if(token.type === 'open') {
+                cur.appendChild(document.createElement(token.str));
+                cur = cur.lastChild;
+            }
+            else if(token.type === 'close') {
+                cur = cur.parentNode;
+            } 
+            else if(token.type === 'math') {
+                let math = token.err;
+                cur.appendChild(MathJax.tex2chtml(token.str.slice(math, -math), {display: math === 2}));
+                cur.lastChild.insertAdjacentHTML('beforeend', `<script type="math">${token.str}</script>`);
+            }
+        }
+        MathJax.startup?.document?.clear();
+        MathJax.startup?.document?.updateDocument();
+        return Array.from(div.childNodes);
+    }
+    text_offset() {
+        let sum = 0, ret = {start: 0, end: 0};
+        for(let i = 0; i < this.parts.length; i++) {
+            if(i === this.offset.start) ret.start = sum + (this.offset.partial_start ?? 0);
+            if(i === this.offset.end) ret.end = sum + (this.offset.partial_end ?? 0);
+            sum += this.parts[i].str.length;
         }
         return ret;
     }

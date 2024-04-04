@@ -103,6 +103,9 @@ button.text {
 .err {
     text-decoration: red wavy underline;
 }
+mjx-container {
+    font-size: 18px;
+}
 /* when using in other devices, maybe not needed*/
 @media screen and (max-width:700px) {
     #editor {
