@@ -5,10 +5,13 @@
     MathJax = {
       tex: {
         packages: ['base'],
-        processEscapes: true
+        processEscapes: true,
+        packages: {'[+]': ['ams', 'mathtools', 'cases', 'physics']}
       },
       options: {enableMenu: false},
-      loader: { load: ['input/tex', 'output/chtml'] }
+      loader: { 
+        load: ['input/tex', 'output/chtml', '[tex]/ams', '[tex]/mathtools','[tex]/cases','[tex]/physics'] 
+      }
     }
   </script>
   <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
