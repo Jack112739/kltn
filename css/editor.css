@@ -99,8 +99,9 @@ button.text {
     color: aquamarine;
     font-weight: normal;
     font-style: normal;
+    text-decoration: underline;
 }
-.err {
+#editor pre.err {
     text-decoration: red wavy underline;
 }
 mjx-container {

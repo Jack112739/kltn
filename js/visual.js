@@ -8,13 +8,15 @@ class Visual {
     }
     /**@param {Node} elem  */
     static is_math_elem(elem) {
+        if(!elem) return null;
         while(elem !== editor.latex && elem.nodeName !== 'MJX-CONTAINER') {
             elem = elem.parentNode;
         }
         if(elem === editor.latex) return null;
         else return elem;
     }
-    static validate_selection(cursor = -1) {
+    static validate_selection(cursor) {
+        if(typeof cursor !== 'number') { cursor = -1; }
         let range = Visual.normalize_selection();
         if(!range) return;
 
@@ -30,7 +32,6 @@ class Visual {
         range.insertNode(editor.focus_element);
         range.setStart(editor.focus_element.firstChild, offset.start);
         range.setEnd(editor.focus_element.firstChild, offset.end);
-        return frag;
     }
     static normalize_selection() {
         if(window.getSelection().rangeCount === 0 || !editor.on_visual_mode) return null;
@@ -64,30 +65,26 @@ class Visual {
         elem.parentNode.removeChild(elem);
     }
     /**@param {KeyboardEvent} e */
-    static input_handler(e) {
+    static key_handler(e) {
         let r = window.getSelection().getRangeAt(0);
         switch(e.key) {
         case '$':
             Visual.wrap_selection(r);
             break;
-        case 'ArrowUp': //will customize later
-        case 'ArrowDown':
         case 'ArrowLeft':
         case 'ArrowRight':
-            //tree walker in comming!!!
-            setTimeout(Visual.validate_selection, 0);
-            return;
-        case ' ':
-            if(parent.nodeName === 'PRE'&& r.endOffset === parent.firstChild.data.length) {
-                parent.insertAdjacentHTML('afterend' , '&nbsp; ');
-                r.setStart(parent.nextSibling, 1);
-                r.collapse(true);
-                Visual.normalize_selection();
+        case 'ArrowUp':
+        case 'ArrowDown':
+            if((r.collapsed || e.shiftKey) && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
                 e.preventDefault();
+                Visual.walk(e.key, e.shiftKey, r)
+                if(!e.shiftKey) r.collapse(e.key === 'ArrowLeft');
+                Visual.validate_selection(cursor_position[e.key])
             }
-            return;
-        default:
-            if(e.ctrlKey) setTimeout(Visual.validate_selection, 0);
+            else setTimeout(() => Visual.validate_selection(cursor_position[e.key]), 0);
+            break;
+        case 'z': case 'y':
+            if(e.ctrlKey) Visual.history_command(e.key);
         }
         auto_complete(e);
         console.log(editor.focus_element);
@@ -98,7 +95,7 @@ class Visual {
         if(node.nodeName === '#text') return true;
         if(range.startOffset + 2 <= range.endOffset) return false;
         if(!child || (child = node.childNodes[range.startOffset]).nodeName === '#text') {
-            if(!child) node.appendChild(document.createTextNode('\u00a0')), child = node.firstChild;
+            if(!child) node.appendChild(document.createTextNode('\u200b')), child = node.firstChild;
             range.setStart(child, 0);
             if(range.startOffset !== range.endOffset) range.setEnd(child, child.data.length);
             else range.collapse(true);
@@ -109,12 +106,12 @@ class Visual {
     static wrap_selection() {
         let r = window.getSelection().getRangeAt(0);
         if(r.startContainer.parentNode.nodeName === 'PRE') return;
-        let selected_str = '\u00a0' + r.startContainer.data.slice(r.startOffset, r.endOffset) + '\u00a0';
+        let selected_str = r.startContainer.data.slice(r.startOffset, r.endOffset) + '\u200b';
         let new_select = document.createElement('pre').appendChild(document.createTextNode(selected_str));
         r.deleteContents();
         r.insertNode(new_select.parentNode);
-        r.setStart(new_select, 1);
-        r.setEnd(new_select, selected_str.length-1);
+        r.setStart(new_select, 0);
+        r.setEnd(new_select, selected_str.length);
         Visual.normalize_selection()
     }
     static is_math_only(frag) {
@@ -123,26 +120,133 @@ class Visual {
         if(frag.parts[0].type === 'math') return true;
         return false;
     }
-    static walk(dir, selection_range) {
-        const dir_map = ['firstChild', 'lastChild'];
-        switch(dir) {
-        case 'ArrowLeft':    
-        case 'Arrow Right':
-            // move the cursor to the previous/next text content
-            
+    /**@param {Boolean} deep @param {'ArrowLeft' | 'ArrowRight'} dir @param {Range} range    */
+    static walk(dir, deep, range) {
+        let [setrange, dir_left, child, sibling] = 
+            (dir === 'ArrowLeft') ? ['setStart', true, 'lastChild', 'previousSibling']
+                                  :['setEnd', false, 'firstChild', 'nextSibling'];
+        let parent = range.commonAncestorContainer;
+        if(parent.nodeName === '#text') {
+            if(dir === 'ArrowLeft' && range.startOffset !== 0) 
+                return range.setStart(parent, range.startOffset - 1);
+            else if(dir === 'ArrowRight' && range.endOffset !== parent.data.length) 
+                return range.setEnd(parent, range.endOffset + 1);
+        }
+        if(parent.parentNode.nodeName === 'PRE') parent = parent.parentNode;
+        if(deep) {
+            let is_text = parent.nodeName === '#text' || parent.nodeName === 'PRE';
+            if(parent[sibling]) range[setrange](parent[sibling], get_offset(parent[sibling], !dir_left));
+            else if(parent.parentNode === editor.latex) return;
+            else if(dir === 'ArrowRight') range.setEndAfter(parent.parentNode);
+            else range.setStartBefore(is_text ? parent.parentNode : parent);
+        }
+        else {
+            while(parent[sibling] === null && parent !== editor.latex) parent = parent.parentNode;
+            if(parent === editor.latex) return; // do nothing
+            let target = parent[sibling];
+            while(target.nodeName !== '#text' && target.nodeName !== 'MJX-CONTAINER') target=target[child];
+            range[setrange](target, get_offset(target, !dir_left));
         }
     }
     /**@param {InputEvent} e  */
     static handle_input(e) {
-        console.log(e.inputType);
-        switch(e.inputType) {
-        case 'insertText':
-        case 'insertFromPaste':
-        case 'insertParagraph':
-        case 'deleteContentBackward':
-        case 'deleteContentForward':
-        case 'historyUndo':
-        case 'historyRedo':
+        e.preventDefault();
+        Visual.validate_selection();
+        let range = window.getSelection().getRangeAt(0);
+        const buffered = ['insertText', 'insertParagraph', 'deleteContentBackward', 'deleteContentForward'];
+        if(e.inputType.startsWith('insert')) {
+            let data = e.data ?? e.dataTransfer?.getData('text') ?? '';
+            if(e.inputType === 'insertParagraph') data = '\n';
+            data = data.replace(' ', '\u00a0');
+            Visual.change(range, data);
         }
+        else if(e.inputType.startsWith('delete')) {
+            if(range.collapsed) {
+                Visual.walk(e.inputType.endsWith('Forward') ? 'ArrowRight': 'ArrowLeft', true, range);
+                Visual.validate_selection();
+                if(range.collapsed) return;
+                if(e.inputType.endsWith('Forward')) range.setEnd(range.startContainer, range.startOffset + 1);
+                else range.setStart(range.endContainer, range.endOffset - 1);
+            }
+            Visual.change(range, '');
+        }
+        else return;
+        if(!buffered.some(type => e.inputType.startsWith(type))) Visual.history_command('s');
+    }
+    /** @param {String} data @param {Range} range   */
+    static change(range, data) {
+        let history = editor.history;
+        let change_index = data.length + range.startOffset - range.endOffset;
+        if(history.stack.length === 0) Visual.history_command('s');
+        if(history.buffer === 0) {
+            history.pos ++;
+            while(history.stack.length > history.pos) history.stack.pop();
+        }
+        history.buffer += change_index;
+        if(history.buffer > 10 && history.buffer !== change_index) Visual.history_command('s');
+        range.deleteContents();
+        if(range.startContainer.nodeName === '#text' && data.length > 0) {
+            let str = range.startContainer.data, offset = range.startOffset;
+            range.startContainer.data = str.slice(0, offset) + data + str.slice(offset);
+            range.setStart(range.startContainer, offset + data.length);
+        }
+        else if(data.length > 0) {
+            let node = document.createTextNode(data);
+            range.insertNode(node);
+            range.setStart(node, node.data.length);
+        }
+        if(range.startContainer.parentNode.nodeName === 'PRE' && range.startContainer.data.length === 0) {
+            let old = range.startContainer.parentNode;
+            range.setStartAfter(old); 
+            old.parentNode.removeChild(old)
+            editor.focus_element = null;
+        }
+        range.collapse(true);
+    }
+    static history_command(type) {
+        let history = editor.history;
+        let sel = window.getSelection().getRangeAt(0);
+        if(type === 's' || history.buffer !== 0) {
+            history.pos = history.stack.length;
+            history.stack.push(Visual.clone_img({
+                div: editor.latex, 
+                focus: editor.focus_element,
+                start: sel.startContainer, startOffset: sel.startOffset,
+                end: sel.endContainer, endOffset: sel.endOffset
+            }));
+        }
+        history.buffer = 0;
+        if(type === 's') return;
+        if(history.pos === 0 && type === 'z') return;
+        else if(history.pos == history.stack.length - 1 && type === 'y') return;
+        history.pos += type == 'z' ? -1 : 1;
+        let clone = Visual.clone_img(history.stack[history.pos]);
+        editor.latex.innerHTML = '';
+        while(clone.div.firstChild) editor.latex.appendChild(clone.div.firstChild);
+        sel.setStart(clone.start, clone.startOffset);
+        sel.setEnd(clone.end, clone.endOffset);
+        editor.focus_element = clone.focus;
+    }
+    static clone_img(image) {
+        let clone = image.div.cloneNode(true);
+        let get_respected = (elem) => {
+            if(!elem) return null;
+            if(elem === image.div) return clone;
+            let parent = get_respected(elem.parentNode);
+            let index = Array.from(elem.parentNode.childNodes).indexOf(elem);
+            return parent.childNodes[index];
+        }
+        return {
+            div: clone,
+            focus: get_respected(image.focus),
+            start: get_respected(image.start), startOffset: image.startOffset,
+            end: get_respected(image.end), endOffset: image.endOffset
+        };
     }
 }
+/** @param {Node} node  */
+function get_offset(node, left) {
+    if(left) return 0;
+    return node.nodeName === '#text' ? node.data.length : node.childNodes.length;
+}
+const cursor_position = {'ArrowUp' : -1, 'ArrowDown': 0, 'ArrowLeft': -2, 'ArrowRight': 1};

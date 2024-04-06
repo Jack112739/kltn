@@ -102,9 +102,9 @@ class Fragment {
             if(range.endContainer === parent && offset === range.endOffset)
                 this.offset.end = this.parts.length;
         };
+        set(node.parentNode, counter);
         if(node.nodeName === '#text' || node.nodeName === 'MJX-CONTAINER' || node.nodeName === 'PRE') {
             if(node.nodeName === 'MJX-CONTAINER') {
-                set(parent, counter);
                 let math_type = node.attributes.display ? 1 : 0;
                 this.parts.push({str: node.lastChild.textContent, type: 'math', err: math_type});
             }
@@ -123,7 +123,6 @@ class Fragment {
             }
             return;
         }
-        set(node.parent, counter);
         this.parts.push({str: node.nodeName.toLowerCase(), type: 'open', err: 0});
         let it = node.firstChild;
         for(let i = 0; i < node.childNodes.length; i++) {
@@ -135,17 +134,15 @@ class Fragment {
     }
     /**@param {'text' | 'html'} type  @returns {string | Array<Node>}*/
     output(type) {
-        if(type === 'text') return this.parts.map(token => 
-            token.type === 'open' ? `<${token.str}>` :token.type === 'close' ? `</${token.str}>` :token.str
-        ).join('');
+        if(type === 'text') return this.parts.map(token => toString(token)).join('');
         let div = document.createElement('div'), cur = div;
         for(let i = 0; i < this.parts.length; i++) {
             let token = this.parts[i];
             if((token.err !== 0) ^ (token.type === 'math')) {
-                cur.insertAdjacentHTML('beforeend', `<pre class="err">${map_to_html(token.str)}</pre>`);
+                cur.insertAdjacentHTML('beforeend', `<pre class="err">${map_to_html(toString(token))}</pre>`);
             }
             else if(token.type === 'text') {
-                cur.appendChild(document.createTextNode(token.str));
+                cur.insertAdjacentHTML('beforeend', map_to_html(token.str));
             }
             else if(token.type === 'open') {
                 cur.appendChild(document.createElement(token.str));
@@ -170,12 +167,16 @@ class Fragment {
             if(i === this.offset.start) ret.start = sum + (this.offset.partial_start ?? 0);
             if(i === this.offset.end) ret.end = sum + (this.offset.partial_end ?? 0);
             sum += this.parts[i].str.length;
+            sum += this.parts[i].type === 'open' ? 2: this.parts[i].type === 'close' ? 3: 0;
         }
         return ret;
     }
 }
+function toString(token) {
+    return token.type === 'open' ? `<${token.str}>`: token.type === 'close' ? `</${token.str}>` : token.str;
+}
 function map_to_html(str) {
-    const html_special = {'<': '&lt;', '>':'&gt;', '&':'&amp;', '\'':'&apos;', '\"': '&quot;'};
+    const html_special = {'<':'&lt;', '>':'&gt;', '&':'&amp;', '\'':'&apos;', '\"':'&quot;'};
     let ret = '';
     for(const c of str) {
         ret += html_special[c] ?? c;

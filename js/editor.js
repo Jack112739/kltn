@@ -24,6 +24,7 @@ class Editor {
      * user type more than 10 key stroke in a single pre
      * changing from pre to html and vice versa
      * this only work in visual mode
+     * {stack: Array<div, range>, pos: int, buffer: int}
     */
     history
 
@@ -32,6 +33,7 @@ class Editor {
         if(!node) return;
         GraphUI.current_graph.highlighting = null;
         node.highlight();
+        if(this.visual_mode) this.history = {stack: new Array(), pos: 0, buffer: 0};
         this.node = node;
         this.saved = true;
         this.name.value = node.html_div.querySelector('.header').firstChild.data;
@@ -80,6 +82,7 @@ class Editor {
     /**@param {boolean} visual  */
     visual_mode(visual) {
         if(visual) {
+            this.history = {stack: new Array(), pos: 0, buffer: 0};
             this.raw.style.display = "none";
             this.on_visual_mode = true;
             this.latex.contentEditable = true;
@@ -114,6 +117,7 @@ class Editor {
             return {str: this.raw.value, start: this.raw.selectionStart, end: this.raw.selectionEnd};
         }
         else {
+            Visual.validate_selection();
             let sel = window.getSelection().getRangeAt(0);
             if(sel.startContainer !== sel.endContainer) throw new Error('this should not happen');
             return {str: sel.startContainer.data, start: sel.startOffset, end: sel.endOffset};
@@ -205,17 +209,17 @@ class Editor {
 }
 /**@param {KeyboardEvent} e  */
 function auto_complete(e) {
-    let {str, start, end} = editor.get_selection();
-    if(str === null) return;
-
-    const lookup = Object.assign({'$': '$'}, math_delimeter, {'(':')','[':']','{':'}'}, tags);
-    let replace = '';
     switch(e.key) {
     case '>':
     case '$':
     case '(':
     case '[':
     case '{':
+        let {str, start, end} = editor.get_selection();
+        if(str === null) return;
+    
+        const lookup = Object.assign({'$': '$'}, math_delimeter, {'(':')','[':']','{':'}'}, tags);
+        let replace = '';
         let candidate = str.slice(Math.max(0, start - 10), start) + e.key, open = null;
         if(open = Object.keys(lookup).find(t => candidate.endsWith(t))) {
             e.preventDefault();
@@ -274,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.div.querySelector('.mode').onchange = (e) => editor.visual_mode(e.target.checked);
 
     editor.latex.addEventListener('mouseup', Visual.validate_selection);
-    editor.latex.addEventListener('keydown', Visual.input_handler);
+    editor.latex.addEventListener('keydown', Visual.key_handler);
     editor.latex.addEventListener('keydown', (e) => Menu.suggest.handle_key_event(e));
     editor.latex.addEventListener('beforeinput', Visual.handle_input);
     editor.raw.addEventListener('keydown', auto_complete);

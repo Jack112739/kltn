@@ -20,8 +20,8 @@ Specification:
         v have a preview
         v autocomplete
         v support other formatting.
-        - fix contentEditable weird behavior
-        - undo - redo
+        v fix contentEditable weird behavior
+        v undo - redo
         v suggesting latex keywords
         v visual editing mode 
         v movable
