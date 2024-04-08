@@ -95,7 +95,7 @@ class Visual {
         let node = range.startContainer, child = node.firstChild;
         if(node.nodeName === '#text') return true;
         if(range.startOffset + 2 <= range.endOffset) return false;
-        if(!child || (child = node.childNodes[range.startOffset]).nodeName === '#text') {
+        if(!child || (child = node.childNodes[range.startOffset])?.nodeName === '#text') {
             if(!child) node.appendChild(document.createTextNode('\u200b')), child = node.firstChild;
             range.setStart(child, 0);
             if(range.startOffset !== range.endOffset) range.setEnd(child, child.data.length);
