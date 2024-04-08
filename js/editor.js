@@ -30,6 +30,9 @@ class Editor {
 
     /** @param {NodeUI} node  */
     load(node) {
+        if(node.math_logic === 'input' || node.math_logic === 'output' || node.math_logic === 'referenced') {
+            return alert(`can not edit node of type ${this.math_logic}`);
+        }
         if(!node) return;
         GraphUI.current_graph.highlighting = null;
         node.highlight();
@@ -58,7 +61,17 @@ class Editor {
         else this.inverse_render();
         this.node.raw_text = this.raw.value;
         this.node.rename(this.name.value);
-        this.node.html_div.querySelector('.tex_render').innerHTML = this.latex.innerHTML;
+        for(const ref of this.latex.querySelectorAll('mjx-container.ref')) {
+            let from = GraphUI.current_graph.resolve(ref.firstChild.data);
+            if(!from || from === this.node) {
+                ref.insertAdjacentHTML('afterend', `<pre class="err">${ref.lastChild.textContent}</pre>`);
+                ref.parentNode.removeChild(ref);
+            }
+            else {
+                this.node.reference(from);
+            }
+        }
+        this.node.renderer.innerHTML = this.latex.innerHTML;
     }
     render() {
         this.latex.innerHTML = '';
@@ -99,17 +112,15 @@ class Editor {
     insert_and_set(str, start_offset, end_offset) {
         let range = window.getSelection().getRangeAt(0);
         let old_offset = this.on_visual_mode ? range.startOffset : this.raw.selectionStart;
-        document.execCommand('insertText', false, str);
         if(!this.on_visual_mode) {
+            document.execCommand('insertText', false, str);
             this.raw.selectionStart = old_offset + start_offset;
             this.raw.selectionEnd = old_offset + str.length - end_offset;
         }
         else {
-            if(range.startContainer !== range.endContainer) throw new Error("this should not happen");
+            editor.latex.dispatchEvent(new InputEvent('beforeinput', {inputType: 'insertText', data: str}));
             range.setStart(range.startContainer, old_offset + start_offset);
             range.setEnd(range.endContainer, old_offset + str.length - end_offset);
-            window.getSelection().removeAllRanges();
-            window.getSelection().addRange(range);
         }
     }
     get_selection() {
@@ -206,6 +217,14 @@ class Editor {
         }
         return window.getSelection().getRangeAt(0).getBoundingClientRect();
     }
+    popup_menu(lib) {
+        let pos = this.get_caret_position();
+        let assoc = this.on_visual_mode ? this.latex : this.raw;
+        assoc.addEventListener('keydown', Menu.menu_complete);
+        Menu.suggest.associate = assoc;
+        Menu.suggest.change_lib(lib)
+        Menu.suggest.popup(pos.x, pos.y);
+    }
 }
 /**@param {KeyboardEvent} e  */
 function auto_complete(e) {
@@ -219,20 +238,29 @@ function auto_complete(e) {
         if(str === null) return;
     
         const lookup = Object.assign({'$': '$'}, math_delimeter, {'(':')','[':']','{':'}'}, tags);
-        let replace = '';
+        let replace = '', end_offset = 0;
         let candidate = str.slice(Math.max(0, start - 10), start) + e.key, open = null;
         if(open = Object.keys(lookup).find(t => candidate.endsWith(t))) {
             e.preventDefault();
             replace = e.key + (open.length == 1 ? str.slice(start, end): '') + lookup[open];
             // if it was a close bracket then still select it, otherwise just append text
-            if(lookup[open].length == 1) end = 1;
-            else end = replace.length - 1;
-            return editor.insert_and_set(replace, 1, end);
+            if(lookup[open].length == 1) end_offset = 1;
+            else end_offset = replace.length - 1;
+            if(open === '\\ref{') {
+                if(editor.on_visual_mode) {
+                    let range = window.getSelection().getRangeAt(0);
+                    range.setStart(range.startContainer, range.startOffset - '\\ref'.length);
+                    Visual.wrap_selection();
+                    range.setStart(range.startContainer, range.startOffset + '\\ref'.length);
+                }
+                if(start === end) editor.popup_menu(GraphUI.current_graph.get_name().sort());
+            }
+            return editor.insert_and_set(replace, 1, end_offset);
         }
         break;
     case '\\':
-        let pos = editor.get_caret_position();
-        Menu.suggest.popup(pos.x, pos.y);
+        editor.popup_menu(mjx_support);
+        Menu.suggest.handle_key_event(new KeyboardEvent('keydown', {key: '\\'}));
         break;
     default:
         break;
@@ -279,10 +307,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     editor.latex.addEventListener('mouseup', Visual.validate_selection);
     editor.latex.addEventListener('keydown', Visual.key_handler);
-    editor.latex.addEventListener('keydown', (e) => Menu.suggest.handle_key_event(e));
     editor.latex.addEventListener('beforeinput', Visual.handle_input);
     editor.raw.addEventListener('keydown', auto_complete);
-    editor.raw.addEventListener('keydown', (e) => Menu.suggest.handle_key_event(e));
 
     editor.div.querySelector('.settings').onmousedown = drag_editor;
     editor.visual_mode(true);
@@ -293,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
 //tags that can be use to format the text
 const allow_tag = ['b', 'i', 'ol', 'ul', 'li'];
 const tags = allow_tag.reduce((acc, name) =>(acc[`<${name}>`] = `</${name}>`,acc) ,{});
-const math_delimeter = {'$$':'$$', '$':'$'};
+const math_delimeter = {'$$':'$$', '\\[':'\\]', '$':'$', '\\ref{': '}'};
 const relations = [
     ['\\implies', '\\iff'],     // logical chaining 
     ['\\le', '<', '\\lessim'],  // less 

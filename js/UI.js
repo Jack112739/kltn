@@ -5,27 +5,28 @@
  */
 class NodeUI {
 
-    //String, name of the node
+    /**@type{string} name of the node */
     id;
 
-    //String, The raw latex string
+    // @type{String}, The raw latex string
     raw_text;
     //TODO represent the logic behind the latex string, currently undefined
-    math_logic;
+    /**@type {'input' | 'output' | 'referenced'} */
+    math_logic = '';
 
-    // Map<NodeUI, LeaderLine> the in-edges and out-edges of this node
+    // @type{Map<NodeUI, LeaderLine>} the in-edges and out-edges of this node
     from; to;
 
-    //bool, true if the node is highlight
+    // @type{bool}, true if the node is highlight
     highlighted;
 
-    //GraphUI the detail of the proof presented in this node if needed
+    /** @type{GraphUI} the detail of the proof presented in this node if needed */
     detail;
 
-    //GraphUI, the graph contain this node
+    /** @type{GraphUI}, the graph contain this node */ 
     graph;
 
-    //the HTML element respected to this node
+    // @type{HTMLDivElement} the HTML element respected to this node
     html_div;
 
     constructor(id, graph) {
@@ -43,6 +44,9 @@ class NodeUI {
             <div class="header">${id}</div>
             <div class="tex_render"></div>
         `);
+    
+        graph?.internal_nodes.set(this.id, this);
+        graph?.html_div.appendChild(this.html_div);
 
         this.html_div.onmousedown = (e) => {
             //check for resize event
@@ -66,6 +70,9 @@ class NodeUI {
             }
         }
         this.html_div.ondblclick = (e) => {
+            if(this.math_logic === 'input' || this.math_logic === 'output') {
+                return alert(`${this.math_logic} node don't have further explaination`);
+            }
             if(this.detail === null) {
                 //TODO: not allow if the math inside this is a simple substitution or using other lemma
                 this.detail = new GraphUI(this);
@@ -76,7 +83,7 @@ class NodeUI {
             e.preventDefault();
             Menu.ref_node = this;
             let menu = Menu.rightclicked.items.childNodes;
-            if(this.html_div.querySelector('.tex_render').style.display === "none") {
+            if(this.renderer.style.display === "none") {
                 menu[MIN].style.display = "none";
                 menu[MAX].style.display = "";
             }
@@ -100,10 +107,8 @@ class NodeUI {
         assoc_node.classList.remove('highlighted');
     }
     remove() {
-        //TODO: some node can not be deleted, implement this
-        if(this.graph.input === this || this.graph.output == this) {
-            alert('can not delete the input and output node');
-            return;
+        if(this.math_logic === 'input' || this.math_logic === 'output') {
+            return alert(`can not delete ${this.math_logic} node`);
         }
         this.detail?.remove_childs();
         for(let[id, line] of this.from) {
@@ -121,10 +126,54 @@ class NodeUI {
         return this.graph?.summary;
     }
     rename(name) {
+        if(name === this.id) return;
+        if(this.math_logic === 'referenced') {
+            return alert('can not rename referenced node');
+        }
+        if(this.graph.resolve(name)) {
+            return alert(`there already is another node with name ${name}`);
+        }
         this.graph?.internal_nodes.delete(this.id);
         this.graph?.internal_nodes.set(name, this);
         this.id = name;
         this.html_div.querySelector('.header').firstChild.data = name;
+    }
+    /** @param {NodeUI} to */
+    connect(to) {
+        if(this.graph !== GraphUI.current_graph) {
+            GraphUI.current_graph.html_div.appendChild(to.html_div);
+            GraphUI.current_graph.html_div.appendChild(this.html_div);
+        }
+        let line = new LeaderLine(this.html_div, to.html_div, {path: 'straight', size: 2});
+        this.to.set(to, line);
+        to.from.set(this, line);
+        if(this.graph !== GraphUI.current_graph) {
+            this.graph.html_div.appendChild(to.html_div);
+            this.graph.html_div.appendChild(this.html_div);
+            line.hide();
+        }
+    }
+    /**@param {NodeUI} from */
+    reference(from) {
+        let ref = null;
+        if(ref = this.graph.internal_nodes.get(from.id)) {
+            if(!ref.to.has(this)) ref.connect(this);
+            return;
+        }
+        this.parent.reference(from);
+        ref = new NodeUI(from.id, this.graph);
+        ref.math_logic = 'referenced';
+        ref.detail = from.detail;
+        ref.html_div.classList.add('referenced');
+        ref.renderer.style.display = "none";
+        ref.connect(this);
+    }
+    get renderer() {
+        return this.html_div.querySelector('.tex_render');
+    }
+    get root() {
+        if(!this.parent) return this;
+        return this.parent.root;
     }
 }
 
@@ -135,22 +184,19 @@ function is_node_component(elem) {
 
 class GraphUI {
     
-    //Map; the nodes of this graph, containing the arguement
+    /** @type{Map<String, NodeUI>} ; the nodes of this graph, containing the arguement */
     internal_nodes;
-    //Array; external nodes of the graph, which the proof of this graph depend on
-    external_nodes;
-    //NodeUI, what this arguement has
-    input;
-    //NodeUI what must be done in this arguement
-    output;
-    //NodeUI, the arguement need to explain in this
+
+    /** @type{NodeUI}, the arguement need to explain in this */
     summary;
-    // currently highlighted node
+    /** @type{bool}  currently highlighted node */
     highlighting;
-    // web representation of this graph
+    /** @type{HTMLDivElement} web representation of this graph */
     html_div;
-    //String, math mode or draw mode, auto mode.
+    /** @type{String}, math mode or draw mode, auto mode. */
     mode;
+    /**@type {HistoryQueue} */
+    history
 
     static current_graph;
 
@@ -165,8 +211,6 @@ class GraphUI {
     //TODO: add this
     create_math_logic() {
         this.internal_nodes = new Map();
-        this.external_nodes = new Array();
-        this.input = this.output = null;
     }
     create_html() {
         this.html_div = document.createElement('div');
@@ -239,12 +283,8 @@ class GraphUI {
         });
         document.addEventListener('click', e => {
             let end = is_node_component(e.target);
-            if(end && end != start && !start.to.has(end)) {
-                line.setOptions({end: end.html_div, dash: false});
-                end.from.set(start, line);
-                start.to.set(end, line);
-            }
-            else line.remove();
+            line.remove();
+            if(end && end != start && !start.to.has(end)) start.connect(end);
             dot.style.display = "none";
             document.removeEventListener('mousemove', move);
         }, {once: true});
@@ -257,13 +297,25 @@ class GraphUI {
         if(!node) {
             window.counter++;
             node = new NodeUI('#' + window.counter, GraphUI.current_graph);
-            GraphUI.current_graph.internal_nodes.set(node.name, node);
-            GraphUI.current_graph.html_div.appendChild(node.html_div);
             let viewpoint = document.documentElement.getBoundingClientRect();
             node.html_div.style.top = `${e.clientY - viewpoint.top}px`;
             node.html_div.style.left = `${e.clientX - viewpoint.left}px`
         }
         editor.load(node);
+    }
+    /**@returns {Array<String>} */
+    get_name() {
+        let names = this.summary?.graph ? this.summary.graph.get_name() : [];
+        for(const [key, val] of this.internal_nodes) names.push(key);
+        return names;
+    }
+    /**@param {String} name @returns {NodeUI}  */
+    resolve(name) {
+        let ret = this.internal_nodes.get(name);
+        return ret ?? this.parent?.resolve(name);
+    }
+    get parent() {
+        return this.summary?.graph;
     }
 }
 

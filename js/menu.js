@@ -10,6 +10,8 @@ class Menu {
     search = {str: null, span: []}
     /** @type {?(HTMLLIElement) => any} keyboard call back*/
     invoke;
+    /** @type {Node} */
+    associate = null;
 
     /**@param {HTMLUListElement | Array<String>} items , @param {?(HTMLLIElement) => any} invoke */
     constructor(items, invoke) {
@@ -36,6 +38,8 @@ class Menu {
     }
 
     hide() {
+        if(this.associate) this.associate.removeEventListener('keydown', Menu.menu_complete);
+        this.associate = null;
         this.search = {str: '', span: ''};
         this.items.style.display = "none";
     }
@@ -102,6 +106,11 @@ class Menu {
             return Menu.suggest.load(Menu.suggest.search.str += e.key);
         }
     }
+    change_lib(lib) {
+        this.library = lib;
+        this.search = {str: 0, span: []};
+        this.load("");
+    }
     load(text) {
         if(!this.library) return;
         if(text !== undefined && text !== null) {
@@ -122,7 +131,9 @@ class Menu {
                 `<li><b>${this.search.str}</b>${insert.slice(this.search.str.length)}</li>`);
         }
         if(text !== null && text !== undefined) this.set_highlight(this.items.firstChild);
+        if(this.items.childNodes.length === 0) this.hide();
     }
+    static menu_complete = (e) => Menu.suggest.handle_key_event(e);
     
     static suggest = null;
     static rightclicked = null;

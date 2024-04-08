@@ -37,6 +37,7 @@ class Visual {
         if(window.getSelection().rangeCount === 0 || !editor.on_visual_mode) return null;
         let range = window.getSelection().getRangeAt(0), change = null;
         let start = range.startContainer, end = range.endContainer;
+        if(!editor.latex.contains(start) || !editor.latex.contains(end)) return null;
         if(start = Visual.is_math_elem(start)) {
             if(start == start.parentNode.firstChild) range.setStart(start.parentNode, 0);
             else range.setStartAfter(start.previousSibling);
@@ -208,6 +209,7 @@ class Visual {
         let sel = window.getSelection().getRangeAt(0);
         if(type === 's' || history.buffer !== 0) {
             history.pos = history.stack.length;
+            if(history.stack.length === HISTORY_MAX) history.stack.shift();
             history.stack.push(Visual.clone_img({
                 div: editor.latex, 
                 focus: editor.focus_element,
@@ -250,3 +252,4 @@ function get_offset(node, left) {
     return node.nodeName === '#text' ? node.data.length : node.childNodes.length;
 }
 const cursor_position = {'ArrowUp' : -1, 'ArrowDown': 0, 'ArrowLeft': -2, 'ArrowRight': 1};
+const HISTORY_MAX = 1024;

@@ -153,7 +153,9 @@ class Fragment {
             } 
             else if(token.type === 'math') {
                 let math = token.err;
-                cur.appendChild(MathJax.tex2chtml(token.str.slice(math, -math), {display: math === 2}));
+                if(math === '\\ref{'.length) cur.insertAdjacentHTML('beforeend', 
+                    `<mjx-container class="ref">${token.str.slice(math, -1)}</mjx-container>`)
+                else cur.appendChild(MathJax.tex2chtml(token.str.slice(math, -math), {display: math === 2}));
                 cur.lastChild.insertAdjacentHTML('beforeend', `<script type="math">${token.str}</script>`);
             }
         }
