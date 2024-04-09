@@ -11,7 +11,7 @@ class NodeUI {
     // @type{String}, The raw latex string
     raw_text;
     //TODO represent the logic behind the latex string, currently undefined
-    /**@type {'input' | 'output' | 'referenced'} */
+    /**@type {'input' | 'output' | 'referenced'| 'lemma' | ''} */
     math_logic = '';
 
     // @type{Map<NodeUI, LeaderLine>} the in-edges and out-edges of this node
@@ -35,6 +35,7 @@ class NodeUI {
         this.from = new Map();
         this.to = new Map();
         this.highlighted = false;
+        //TODO: initialize the detail of this node
         this.detail = null;
         this.graph = graph;
         
@@ -64,14 +65,16 @@ class NodeUI {
                 for(let [_, out_edges] of this.to) out_edges.position();
             }
             document.onmouseup = (e) => {
+                let new_rect = this.html_div.getBoundingClientRect();
+                GraphHistory.register('move', {node: this, from: rect, to: new_rect});
                 document.body.style.cursor = "";
                 document.onmousemove = null;
                 document.onmouseup = null;
             }
         }
         this.html_div.ondblclick = (e) => {
-            if(this.math_logic === 'input' || this.math_logic === 'output') {
-                return alert(`${this.math_logic} node don't have further explaination`);
+            if(this.math_logic !== 'lemma' && this.math_logic !== '') {
+                return alert(`only sublemma node can have further explaination`);
             }
             if(this.detail === null) {
                 //TODO: not allow if the math inside this is a simple substitution or using other lemma
@@ -106,11 +109,11 @@ class NodeUI {
         assoc_node.style.zIndex = 9;
         assoc_node.classList.remove('highlighted');
     }
-    remove() {
+    remove(recursive) {
         if(this.math_logic === 'input' || this.math_logic === 'output') {
             return alert(`can not delete ${this.math_logic} node`);
         }
-        this.detail?.remove_childs();
+        if(recursive) this.detail?.remove_childs();
         for(let[id, line] of this.from) {
             id.to.delete(this);
             line.remove();
@@ -121,6 +124,7 @@ class NodeUI {
         }
         this.graph.html_div.removeChild(this.html_div);
         this.graph.internal_nodes.delete(this.id);
+        GraphHistory.register('remove', {node: this});
     }
     get parent() {
         return this.graph?.summary;
@@ -133,6 +137,7 @@ class NodeUI {
         if(this.graph.resolve(name)) {
             return alert(`there already is another node with name ${name}`);
         }
+        if(!recursive) GraphHistory.register('edit', {node: this, name: name, old_name: this.id});
         this.graph?.internal_nodes.delete(this.id);
         this.graph?.internal_nodes.set(name, this);
         this.id = name;
@@ -152,21 +157,26 @@ class NodeUI {
             this.graph.html_div.appendChild(this.html_div);
             line.hide();
         }
+        GraphHistory.register('connect', {from: this, to: to});
     }
-    /**@param {NodeUI} from */
-    reference(from) {
-        let ref = null;
-        if(ref = this.graph.internal_nodes.get(from.id)) {
-            if(!ref.to.has(this)) ref.connect(this);
-            return;
+    /**@param {String} link */
+    reference(link) {
+        let from = this.graph.resolve(link);
+        if(!from) return false;
+        let climb = this;
+        for(; !climb.graph.internal_nodes.has(from.id); climb = climb.parent) {
+            let ref = new NodeUI(from.id, climb.graph);
+            ref.math_logic = 'referenced';
+            ref.detail = from.detail;
+            ref.html_div.classList.add('referenced');
+            ref.renderer.style.display = "none";
+            ref.connect(climb);
         }
-        this.parent.reference(from);
-        ref = new NodeUI(from.id, this.graph);
-        ref.math_logic = 'referenced';
-        ref.detail = from.detail;
-        ref.html_div.classList.add('referenced');
-        ref.renderer.style.display = "none";
-        ref.connect(this);
+        let ref_node = climb.graph.internal_nodes.get(from.id);
+        let need = ref_node.to.has(climb);
+        if(need) ref_node.connect(climb);
+        GraphHistory.register('ref', {node: this, link: link, reach: climb, reconnect: need});
+        return true;
     }
     get renderer() {
         return this.html_div.querySelector('.tex_render');
@@ -195,8 +205,6 @@ class GraphUI {
     html_div;
     /** @type{String}, math mode or draw mode, auto mode. */
     mode;
-    /**@type {HistoryQueue} */
-    history
 
     static current_graph;
 
@@ -235,7 +243,7 @@ class GraphUI {
     //TODO: recursively remove all the child
     remove_childs() {
         for(let [id, node] of this.internal_nodes) {
-            node.remove();
+            node.remove(true);
         }
     }
     //pop up the edit window for that specific node
@@ -247,6 +255,7 @@ class GraphUI {
         this.hide_edges();
         graph.show_edges();
         document.body.replaceChild(graph.html_div, this.html_div);
+        GraphHistory.register('jump', {from: this, to: graph});
     }
     show_edges() {
         for(let [_, node] of this.internal_nodes) {
@@ -300,6 +309,7 @@ class GraphUI {
             let viewpoint = document.documentElement.getBoundingClientRect();
             node.html_div.style.top = `${e.clientY - viewpoint.top}px`;
             node.html_div.style.left = `${e.clientX - viewpoint.left}px`
+            GraphHistory.register('create', {node: node});
         }
         editor.load(node);
     }

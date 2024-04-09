@@ -60,17 +60,19 @@ class Editor {
         if(!this.on_visual_mode) this.render();
         else this.inverse_render();
         this.node.raw_text = this.raw.value;
-        this.node.rename(this.name.value);
         for(const ref of this.latex.querySelectorAll('mjx-container.ref')) {
-            let from = GraphUI.current_graph.resolve(ref.firstChild.data);
-            if(!from || from === this.node) {
+            let ref_name = ref.firstChild.data;
+            if(ref_name === this.name.value|| !this.node.reference(ref_name)) {
                 ref.insertAdjacentHTML('afterend', `<pre class="err">${ref.lastChild.textContent}</pre>`);
                 ref.parentNode.removeChild(ref);
             }
-            else {
-                this.node.reference(from);
-            }
         }
+        GraphHistory.register('edit', {
+            node: this.node, 
+            name: this.name.value, old_name: this.node.id,
+            data: this.node.rerender.innerHTML, old_data:this.latex.innerHTML
+        });
+        this.node.rename(this.name.value);
         this.node.renderer.innerHTML = this.latex.innerHTML;
     }
     render() {

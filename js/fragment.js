@@ -174,6 +174,9 @@ class Fragment {
         return ret;
     }
 }
+class FileParser {
+
+}
 function toString(token) {
     return token.type === 'open' ? `<${token.str}>`: token.type === 'close' ? `</${token.str}>` : token.str;
 }

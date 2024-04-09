@@ -252,4 +252,4 @@ function get_offset(node, left) {
     return node.nodeName === '#text' ? node.data.length : node.childNodes.length;
 }
 const cursor_position = {'ArrowUp' : -1, 'ArrowDown': 0, 'ArrowLeft': -2, 'ArrowRight': 1};
-const HISTORY_MAX = 1024;
+const HISTORY_MAX = 4096;
