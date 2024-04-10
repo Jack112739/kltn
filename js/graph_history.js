@@ -1,4 +1,4 @@
-const GRAPH_HISTORY_MAX = 1024;
+const GRAPH_HISTORY_MAX = 65536;
 
 const GraphHistory = {
     stack : [],
@@ -7,7 +7,12 @@ const GraphHistory = {
     register: function(command, data) {
         if(this.active) return;
         while(this.stack.length > this.position) this.stack.pop();
-        if(this.stack.length === GRAPH_HISTORY_MAX) this.stack.shift();
+        if(this.stack.length === GRAPH_HISTORY_MAX) {
+            for(let i = 0; i < GRAPH_HISTORY_MAX / 2; i++ ) {
+                this.stack[i] = this.stack[i + GRAPH_HISTORY_MAX/2];
+            }
+            for(let i = 0; i < GRAPH_HISTORY_MAX / 2; i++) this.stack.pop();
+        }
         data.type = command;
         this.stack.push(data);
         this.position = this.stack.length;
@@ -16,7 +21,7 @@ const GraphHistory = {
     undo: function() {
         this.active = true;
         if(this.position === 0) return;
-        let command = this.stack[this.position];
+        let command = this.stack[this.position - 1];
         switch(command.type) {
         case 'create':
             command.node.remove();
@@ -27,6 +32,8 @@ const GraphHistory = {
             let y_diff = command.from.y - command.to.y;
             div.style.top = div.offsetTop + y_diff + "px";
             div.style.left = div.offsetLeft + x_diff + "px";
+            div.style.width = command.from.width + "px";
+            div.style.height = command.from.height + "px";
             break;
         case 'remove':
             let graph = command.node.graph;
@@ -35,32 +42,22 @@ const GraphHistory = {
             for(const [id, _] of command.node.from) id.connect(command.node);
             graph.internal_nodes.set(command.node.id, command.node);
             break;
-        case 'connect':
-            command.from.to.delete(command.to);
-            command.to.from.delete(command.from);
-            break;
-        case 'edit':
-            command.node.rename(command.old_name);
-            command.node.renderer.innerHTML = command.old_data;
-            break;
         case 'jump':
             GraphUI.current_graph.switch_to(command.from);
             break;
-        case 'ref':
-            throw new Error('bug');
-            let node = command.node;
-            while(true) {
-                let ref_node = node.graph.internal_nodes.get(command.link);
-                if(node !== command.reach) ref_node.remove();
-                else {
-                    if(command.reconnect) {
-                        ref_node.to.delete(node);
-                        node.from.delete(ref_node);
-                    }
-                    break;
-                }
-            }
+        case 'connect':
+            GraphUI.delete_edge(command.from.to.get(to));
             break;
+        case 'rmedge':
+            command.from.connect(command.to);
+            break;
+        case 'edit':
+            command.node.rename(command.old_name);
+            if(command.old_data) command.node.renderer.innerHTML = command.old_data;
+            break;
+        case 'compose_end':
+            this.position--;
+            while(this.stack[this.position - 1].type !== 'compose_start') this.undo();
         }
         this.active = false;
         this.position--;
@@ -68,6 +65,7 @@ const GraphHistory = {
     redo: function() {
         this.active = true;
         if(this.position === this.active.length) return;
+        let command = this.stack[this.position];
         switch(command.type) {
         case 'create':
             let graph = command.node.graph;
@@ -80,39 +78,45 @@ const GraphHistory = {
             let y_diff = command.to.y - command.from.y;
             div.style.top = div.offsetTop + y_diff + "px";
             div.style.left = div.offsetLeft + x_diff + "px";
+            div.style.width = command.to.width + "px";
+            div.style.height = command.to.height + "px";
             break;
         case 'remove':
             command.node.remove();
             break;
-        case 'edit':
-            command.node.rename(command.name);
-            command.node.renderer.innerHTML = command.data;
-            //compose action
+        case 'jump':
+            GraphUI.current_graph.switch_to(command.to);
             break;
         case 'connect':
             command.from.connect(command.to);
             break;
-        case 'ref':
-            throw new Error('bug');
-        case 'jump':
-            GraphUI.current_graph.switch_to(command.to);
+        case 'rmedge':
+            GraphUI.delete_edge(command.from.to.get(to));
+        case 'edit':
+            command.node.rename(command.name);
+            if(command.data) command.node.renderer.innerHTML = command.data;
             break;
+        case 'compose_start':
+            this.position++;
+            while(this.stack[this.position].type !== 'compose_end') this.redo();
         }
         this.position++;
         this.active = false;
     }
 }
 document.addEventListener('keydown', (e) => {
-    if(e.ctrlKey && e.key === 'z') { e.preventDefault(); GraphHistory.undo(); }
-    if(e.ctrlKey && e.key === 'y') { e.preventDefault(); GraphHistory.redo(); }
+    if(editor.div.style.display !== "none" || !e.ctrlKey) return;
+    if(e.key === 'z') { e.preventDefault(); GraphHistory.undo(); }
+    if(e.key === 'y') { e.preventDefault(); GraphHistory.redo(); }
 })
 /** Edit types
  * create {node}
  * move {node: NodeUI, from: DOMRect, to: DOMRect}
  * remove {node: NodeUI}
- * edit {node: NodeUI, name: str, old_name: str, data: str, old_data: str, compose: int} compose action
  * connect {from: NodeUI, to: NodeUI}
- * ref {node: NodeUI, link: str, reach: NodeUI, reconnect: bool, compose: int} composed action
  * jump {from: GraphUI, to: GraphUI} 
+ * edit {node: NodeUI, name: str, old_name: str, data: str, old_data: str, compose: int}
+ * compose_start {count:int, data...}
+ * compose_end {reason: str, data...}
  */
 //TODO: rewrite resize function for Node, complete compose action

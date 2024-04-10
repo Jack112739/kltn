@@ -60,6 +60,11 @@ class Editor {
         if(!this.on_visual_mode) this.render();
         else this.inverse_render();
         this.node.raw_text = this.raw.value;
+        GraphHistory.register('compose_start', {reason: 'edit', node: this.node});
+        for(const ref of this.node.renderer.querySelector('mjx-container.ref')) {
+            let ref_node = this.node.graph.internal_nodes.get(ref.firstChild.data);
+            GraphUI.delete_edge(ref_node.to.get(this.node));
+        }
         for(const ref of this.latex.querySelectorAll('mjx-container.ref')) {
             let ref_name = ref.firstChild.data;
             if(ref_name === this.name.value|| !this.node.reference(ref_name)) {
@@ -68,12 +73,12 @@ class Editor {
             }
         }
         GraphHistory.register('edit', {
-            node: this.node, 
-            name: this.name.value, old_name: this.node.id,
+            node: this.node,
             data: this.node.rerender.innerHTML, old_data:this.latex.innerHTML
         });
         this.node.rename(this.name.value);
         this.node.renderer.innerHTML = this.latex.innerHTML;
+        GraphHistory.register('compose_end', {reason: 'edit', node: this.node});
     }
     render() {
         this.latex.innerHTML = '';

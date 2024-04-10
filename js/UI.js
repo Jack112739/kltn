@@ -52,17 +52,18 @@ class NodeUI {
         this.html_div.onmousedown = (e) => {
             //check for resize event
             let rect = this.html_div.getBoundingClientRect();
-            if(rect.bottom < e.clientY + 8 && rect.left < e.clientX + 8) return;
-            e.preventDefault();
-            let relative_x = this.html_div.offsetLeft - e.clientX;
-            let relative_y = this.html_div.offsetTop - e.clientY;
-            document.body.style.cursor = "grab";
+            if(rect.bottom >= e.clientY + 8 || rect.left > e.clientX + 8) {
+                e.preventDefault();
+                let relative_x = this.html_div.offsetLeft - e.clientX;
+                let relative_y = this.html_div.offsetTop - e.clientY;
+                document.body.style.cursor = "grab";
 
-            document.onmousemove = (e) => {
-                this.html_div.style.left = e.clientX + relative_x + "px";
-                this.html_div.style.top = e.clientY + relative_y + "px";
-                for(let [_, in_edges] of this.from) in_edges.position();
-                for(let [_, out_edges] of this.to) out_edges.position();
+                document.onmousemove = (e) => {
+                    this.html_div.style.left = e.clientX + relative_x + "px";
+                    this.html_div.style.top = e.clientY + relative_y + "px";
+                    for(let [_, in_edges] of this.from) in_edges.position();
+                    for(let [_, out_edges] of this.to) out_edges.position();
+                }
             }
             document.onmouseup = (e) => {
                 let new_rect = this.html_div.getBoundingClientRect();
@@ -97,6 +98,7 @@ class NodeUI {
             Menu.rightclicked.popup(e.clientX, e.clientY);
         }
         this.html_div.assoc_node = this;
+        GraphHistory.register('create', {node: this, graph: graph});
     }
     highlight() {
         this.html_div.style.zIndex = 20;
@@ -137,7 +139,7 @@ class NodeUI {
         if(this.graph.resolve(name)) {
             return alert(`there already is another node with name ${name}`);
         }
-        if(!recursive) GraphHistory.register('edit', {node: this, name: name, old_name: this.id});
+        if(!recursive) GraphHistory.register('rename', {node: this, name: name, old_name: this.id});
         this.graph?.internal_nodes.delete(this.id);
         this.graph?.internal_nodes.set(name, this);
         this.id = name;
@@ -163,19 +165,28 @@ class NodeUI {
     reference(link) {
         let from = this.graph.resolve(link);
         if(!from) return false;
-        let climb = this;
-        for(; !climb.graph.internal_nodes.has(from.id); climb = climb.parent) {
+        let count = 0;
+        GraphHistory.register('compose_start', {reason: 'ref', count: 0, link: link});
+
+        for(let climb = this; true; climb = climb.parent) {
+            let origin_node = climb.graph.internal_nodes.get(from.id);
+            if(origin_node) {
+                if(!origin_node.to.has(climb)) {
+                    origin_node.connect(climb);
+                    count++;
+                }
+                break;
+            }
             let ref = new NodeUI(from.id, climb.graph);
             ref.math_logic = 'referenced';
             ref.detail = from.detail;
             ref.html_div.classList.add('referenced');
             ref.renderer.style.display = "none";
             ref.connect(climb);
+            count += 2;
         }
-        let ref_node = climb.graph.internal_nodes.get(from.id);
-        let need = ref_node.to.has(climb);
-        if(need) ref_node.connect(climb);
-        GraphHistory.register('ref', {node: this, link: link, reach: climb, reconnect: need});
+        GraphHistory.stack[GraphHistory.position - count - 1].count = count + 1;
+        GraphHistory.register('compose_end', {reason: 'ref', count: count + 1, link: link});
         return true;
     }
     get renderer() {
@@ -267,6 +278,14 @@ class GraphUI {
             for(let [_, edges]  of node.from) edges.hide('none'); 
         }
     }
+    static delete_edge(edge) {
+        let from = edge.from.parentNode.assoc_node;
+        let to = edge.to.parentNode.assoc_node;
+        GraphHistory.register('rmedge', {from: from, to: to});
+        edge.remove();
+        from.to.delete(to);
+        to.from.delete(from);
+    }
     static highlight_unique(e) {
         let node = is_node_component(e.target);
         GraphUI.current_graph.highlighting?.fade();
@@ -309,7 +328,6 @@ class GraphUI {
             let viewpoint = document.documentElement.getBoundingClientRect();
             node.html_div.style.top = `${e.clientY - viewpoint.top}px`;
             node.html_div.style.left = `${e.clientX - viewpoint.left}px`
-            GraphHistory.register('create', {node: node});
         }
         editor.load(node);
     }
@@ -332,7 +350,9 @@ class GraphUI {
 //setup function
 document.addEventListener('DOMContentLoaded', () => {
     window.counter = 0;
+    GraphHistory.active = true;
     GraphUI.current_graph = new GraphUI(new NodeUI('#root', null));
+    GraphHistory.active = false;
     document.body.appendChild(GraphUI.current_graph.html_div);
     document.onmousedown = GraphUI.highlight_unique;
     document.addEventListener('click', GraphUI.monitor_node_at_cursor);
