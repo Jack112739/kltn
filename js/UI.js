@@ -51,23 +51,24 @@ class NodeUI {
 
         this.html_div.onmousedown = (e) => {
             //check for resize event
-            let rect = this.html_div.getBoundingClientRect();
-            if(rect.bottom >= e.clientY + 8 || rect.left > e.clientX + 8) {
-                e.preventDefault();
-                let relative_x = this.html_div.offsetLeft - e.clientX;
-                let relative_y = this.html_div.offsetTop - e.clientY;
-                document.body.style.cursor = "grab";
+            let rect = this.html_div.getBoundingClientRect(), click = true;
+            if(rect.bottom < e.clientY + 8 && rect.right < e.clientX + 8) return;
+            e.preventDefault();
+            let relative_x = this.html_div.offsetLeft - e.clientX;
+            let relative_y = this.html_div.offsetTop - e.clientY;
+            document.body.style.cursor = "grab";
 
-                document.onmousemove = (e) => {
-                    this.html_div.style.left = e.clientX + relative_x + "px";
-                    this.html_div.style.top = e.clientY + relative_y + "px";
-                    for(let [_, in_edges] of this.from) in_edges.position();
-                    for(let [_, out_edges] of this.to) out_edges.position();
-                }
+            document.onmousemove = (e) => {
+                click = false;
+                this.html_div.style.left = e.clientX + relative_x + "px";
+                this.html_div.style.top = e.clientY + relative_y + "px";
+                for(let [_, in_edges] of this.from) in_edges.position();
+                for(let [_, out_edges] of this.to) out_edges.position();
             }
+        
             document.onmouseup = (e) => {
                 let new_rect = this.html_div.getBoundingClientRect();
-                GraphHistory.register('move', {node: this, from: rect, to: new_rect});
+                if(!click) GraphHistory.register('move', {node: this, from: rect, to: new_rect});
                 document.body.style.cursor = "";
                 document.onmousemove = null;
                 document.onmouseup = null;
@@ -139,7 +140,7 @@ class NodeUI {
         if(this.graph.resolve(name)) {
             return alert(`there already is another node with name ${name}`);
         }
-        if(!recursive) GraphHistory.register('rename', {node: this, name: name, old_name: this.id});
+        GraphHistory.register('rename', {node: this, name: name, old_name: this.id});
         this.graph?.internal_nodes.delete(this.id);
         this.graph?.internal_nodes.set(name, this);
         this.id = name;
@@ -279,8 +280,8 @@ class GraphUI {
         }
     }
     static delete_edge(edge) {
-        let from = edge.from.parentNode.assoc_node;
-        let to = edge.to.parentNode.assoc_node;
+        let from = edge.start.assoc_node;
+        let to = edge.end.assoc_node;
         GraphHistory.register('rmedge', {from: from, to: to});
         edge.remove();
         from.to.delete(to);

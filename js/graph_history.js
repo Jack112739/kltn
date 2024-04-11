@@ -32,8 +32,6 @@ const GraphHistory = {
             let y_diff = command.from.y - command.to.y;
             div.style.top = div.offsetTop + y_diff + "px";
             div.style.left = div.offsetLeft + x_diff + "px";
-            div.style.width = command.from.width + "px";
-            div.style.height = command.from.height + "px";
             break;
         case 'remove':
             let graph = command.node.graph;
@@ -46,14 +44,17 @@ const GraphHistory = {
             GraphUI.current_graph.switch_to(command.from);
             break;
         case 'connect':
-            GraphUI.delete_edge(command.from.to.get(to));
+            GraphUI.delete_edge(command.from.to.get(command.to));
             break;
         case 'rmedge':
             command.from.connect(command.to);
             break;
-        case 'edit':
+        case 'rename':
             command.node.rename(command.old_name);
-            if(command.old_data) command.node.renderer.innerHTML = command.old_data;
+            break;
+        case 'edit':
+            command.node.raw_text = command.old_data;
+            command.node.renderer.innerHTML = command.old_html;
             break;
         case 'compose_end':
             this.position--;
@@ -64,7 +65,7 @@ const GraphHistory = {
     },
     redo: function() {
         this.active = true;
-        if(this.position === this.active.length) return;
+        if(this.position === this.stack.length) return;
         let command = this.stack[this.position];
         switch(command.type) {
         case 'create':
@@ -78,8 +79,6 @@ const GraphHistory = {
             let y_diff = command.to.y - command.from.y;
             div.style.top = div.offsetTop + y_diff + "px";
             div.style.left = div.offsetLeft + x_diff + "px";
-            div.style.width = command.to.width + "px";
-            div.style.height = command.to.height + "px";
             break;
         case 'remove':
             command.node.remove();
@@ -91,10 +90,13 @@ const GraphHistory = {
             command.from.connect(command.to);
             break;
         case 'rmedge':
-            GraphUI.delete_edge(command.from.to.get(to));
-        case 'edit':
+            GraphUI.delete_edge(command.from.to.get(command.to));
+        case 'rename':
             command.node.rename(command.name);
-            if(command.data) command.node.renderer.innerHTML = command.data;
+            break;
+        case 'edit':
+            command.node.renderer.innerHTML = command.html;
+            command.node.raw_text = command.data;
             break;
         case 'compose_start':
             this.position++;
