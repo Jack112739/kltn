@@ -45,9 +45,14 @@
     <li class="rename"> <i class="fa-solid fa-tag"></i> Rename</li>
     <li class="remove"> <i class="fa-solid fa-trash"></i> Remove </li>
   </ul>
-  <input type="file" id="upload" accept=".txt" style="display: none;">
-  <button id="uploader">Upload a file!</button>
-  <button id="confirm">confirm</button>
+  <div class="toolbar">
+    <input type="file" id="uploader" hidden>
+    <button class="upload" title="upload from file"><i class="fa-solid fa-upload"></i></button>
+    <button class="download" title="save to file"><i class="fa-solid fa-download"></i></button>
+    <button class="undo" title="undo action"><i class="fa-solid fa-undo"></i></button>
+    <button class="redo" title="redo action"><i class="fa-solid fa-redo"></i></button>
+    <button class="hide" title="show hidden edges"><i class="fa-solid fa-eye"></i></button>
+  </div>
   <div id="dot"></div>
   <div id="editor" style="display: none;">
     <div class="settings">

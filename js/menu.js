@@ -45,18 +45,18 @@ class Menu {
     }
 
     /**@param {PointerEvent} e  */
-    popup(clientX, clientY) {
+    popup(e) {
         this.items.style.display = "";
         document.addEventListener('click', (e) => this.hide(), {once: true, capture: true});
         let viewpoint = document.documentElement.getBoundingClientRect();
-        this.items.style.left = `${clientX - viewpoint.left}px`;
-        this.items.style.top = `${clientY - viewpoint.top }px`;
+        this.items.style.left = `${e.clientX - viewpoint.left}px`;
+        this.items.style.top = `${e.clientY - viewpoint.top }px`;
         let item_layout = this.items.getBoundingClientRect();
         if(item_layout.right > viewpoint.width) {
-            this.items.style.top = viewpoint.x +clientX - this.items.offsetWidth;
+            this.items.style.left = (-viewpoint.x + e.clientX - this.items.offsetWidth) + "px";
         }
         if(item_layout.bottom > viewpoint.height) {
-            this.items.style.top = viewpoint.y + clientY - this.items.offsetHeight;
+            this.items.style.top = (-viewpoint.y + e.clientY - this.items.offsetHeight) + "px";
         }
     }
     /**@param {HTMLLIElement} elem  */

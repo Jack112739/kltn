@@ -32,6 +32,8 @@ const GraphHistory = {
             let y_diff = command.from.y - command.to.y;
             div.style.top = div.offsetTop + y_diff + "px";
             div.style.left = div.offsetLeft + x_diff + "px";
+            for(const [_, line] of command.node.from) line.position();
+            for(const [_, line] of command.node.to) line.position();
             break;
         case 'remove':
             let graph = command.node.graph;
@@ -79,6 +81,8 @@ const GraphHistory = {
             let y_diff = command.to.y - command.from.y;
             div.style.top = div.offsetTop + y_diff + "px";
             div.style.left = div.offsetLeft + x_diff + "px";
+            for(const [_, line] of command.node.from) line.position();
+            for(const [_, line] of command.node.to) line.position();
             break;
         case 'remove':
             command.node.remove();

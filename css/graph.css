@@ -42,6 +42,9 @@
 .leader-line {
     z-index: 15;
 }
+.leader-line path {
+    pointer-events: all;
+}
 /* this might be changed later */
 .graph {
     background-color: #1E1E2E;

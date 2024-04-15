@@ -42,7 +42,7 @@ class NodeUI {
         this.html_div = document.createElement('div');
         this.html_div.className = "node";
         this.html_div.insertAdjacentHTML('beforeend', `
-            <div class="header">${id}</div>
+            <div class="header">${map_to_html(id)}</div>
             <div class="tex_render"></div>
         `);
     
@@ -59,6 +59,7 @@ class NodeUI {
             document.body.style.cursor = "grab";
 
             document.onmousemove = (e) => {
+                document.body.style.cursor = "grabbing";
                 click = false;
                 this.html_div.style.left = e.clientX + relative_x + "px";
                 this.html_div.style.top = e.clientY + relative_y + "px";
@@ -96,7 +97,7 @@ class NodeUI {
                 menu[MAX].style.display = "none";
                 menu[MIN].style.display = "";
             }
-            Menu.rightclicked.popup(e.clientX, e.clientY);
+            Menu.rightclicked.popup(e);
         }
         this.html_div.assoc_node = this;
         GraphHistory.register('create', {node: this, graph: graph});
@@ -152,13 +153,20 @@ class NodeUI {
             GraphUI.current_graph.html_div.appendChild(to.html_div);
             GraphUI.current_graph.html_div.appendChild(this.html_div);
         }
-        let line = new LeaderLine(this.html_div, to.html_div, {path: 'straight', size: 2});
+        let line = new LeaderLine(this.html_div, to.html_div, {path: 'straight', size: 3});
+        document.body.lastChild.querySelector('path').addEventListener('click', (e) => {
+            let mode = document.querySelector('.fa-eye-slash');
+            if(!mode) return;
+            let is_hidden = line.color === 'coral';
+            line.setOptions({color: is_hidden ? 'rgba(255,127,80,0.5)' : 'coral'});
+            this.graph.hidden_edges[is_hidden ? 'add': 'delete'](line);
+        });
         this.to.set(to, line);
         to.from.set(this, line);
         if(this.graph !== GraphUI.current_graph) {
             this.graph.html_div.appendChild(to.html_div);
             this.graph.html_div.appendChild(this.html_div);
-            line.hide();
+            line.hide('none');
         }
         GraphHistory.register('connect', {from: this, to: to});
     }
@@ -186,7 +194,6 @@ class NodeUI {
             ref.connect(climb);
             count += 2;
         }
-        GraphHistory.stack[GraphHistory.position - count - 1].count = count + 1;
         GraphHistory.register('compose_end', {reason: 'ref', count: count + 1, link: link});
         return true;
     }
@@ -217,6 +224,8 @@ class GraphUI {
     html_div;
     /** @type{String}, math mode or draw mode, auto mode. */
     mode;
+    /**@type {Set<LeaderLine>}  */
+    hidden_edges;
 
     static current_graph;
 
@@ -227,6 +236,7 @@ class GraphUI {
         this.create_math_logic();
         this.create_html();
         this.mode = "math";
+        this.hidden_edges = new Set();
     }
     //TODO: add this
     create_math_logic() {
@@ -247,10 +257,6 @@ class GraphUI {
             this.html_div.appendChild(traverse);
         };
         recursive(this.summary);
-        this.html_div.insertAdjacentHTML('beforeend', `
-            <div class="toolbar">
-            </div>
-        `);
     }
     //TODO: recursively remove all the child
     remove_childs() {
@@ -260,6 +266,8 @@ class GraphUI {
     }
     //pop up the edit window for that specific node
     switch_to(graph) {
+        let hide_button = document.querySelector('.hide');
+        if(hide_button.querySelector('.fa-eye-slash')) hide_button.click();
         for(let button of graph.html_div.querySelectorAll('.parent')) {
             if(button.assoc_node) button.firstChild.data = button.assoc_node.id;
         }
@@ -271,7 +279,7 @@ class GraphUI {
     }
     show_edges() {
         for(let [_, node] of this.internal_nodes) {
-            for(let [_, edges]  of node.from) edges.show('none'); 
+            for(let [_, edge]  of node.from) if(edge.color === 'coral') edge.show('none'); 
         }
     }
     hide_edges() {
@@ -303,7 +311,7 @@ class GraphUI {
         dot.style.left = `${e.clientX - viewpoint.left}px`;
         dot.style.top = `${e.clientY - viewpoint.top }px`;
         dot.style.display = "block";
-        let line = new LeaderLine(start.html_div, dot, {dash: true, path: 'straight', size: 2});
+        let line = new LeaderLine(start.html_div, dot, {dash: true, path: 'straight', size: 3});
         document.addEventListener('mousemove', move =  e => {
             GraphUI.highlight_unique(e);
             dot.style.left = `${e.clientX - viewpoint.left}px`;
@@ -352,9 +360,20 @@ class GraphUI {
 document.addEventListener('DOMContentLoaded', () => {
     window.counter = 0;
     GraphHistory.active = true;
-    GraphUI.current_graph = new GraphUI(new NodeUI('#root', null));
+    GraphUI.current_graph = new GraphUI(new NodeUI('playground', null));
     GraphHistory.active = false;
     document.body.appendChild(GraphUI.current_graph.html_div);
     document.onmousedown = GraphUI.highlight_unique;
     document.addEventListener('click', GraphUI.monitor_node_at_cursor);
+    document.querySelector('.undo').onclick = () => GraphHistory.undo();
+    document.querySelector('.redo').onclick = () => GraphHistory.redo();
+    document.querySelector('.hide').onclick = (e) => {
+        let button = document.querySelector('.hide');
+        let on = button.querySelector('.fa-eye'), effect = e.isTrusted ? undefined : 'none';
+        button.firstChild.className = on ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
+        button.setAttribute('title', on ? 'hide all selected edges': 'show hidden edges');
+        for(const line of GraphUI.current_graph.hidden_edges) {
+            on ? line.show(effect) : line.hide(effect);
+        }
+    };
 });

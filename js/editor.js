@@ -231,7 +231,7 @@ class Editor {
         assoc.addEventListener('keydown', Menu.menu_complete);
         Menu.suggest.associate = assoc;
         Menu.suggest.change_lib(lib)
-        Menu.suggest.popup(pos.x, pos.y);
+        Menu.suggest.popup(new PointerEvent('click', {clientX: pos.x, clientY: pos.y}));
     }
 }
 /**@param {KeyboardEvent} e  */

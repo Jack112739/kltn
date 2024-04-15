@@ -11,7 +11,7 @@ Specification:
         v double click the node will switch to the content inside the node and re-render the screen
         v have all of the options for the nodes resize, rename, edit,... appear when right clicked
         v shortcuts for edit, create node,...
-        - hide and show edges, remove edges
+        v hide and show edges, remove edges
         v undo-redo option
         - have different modes (low priority)
     2: the latex editor
