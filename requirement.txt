@@ -29,8 +29,8 @@ Specification:
         - user can explain their intention with the node further
         - every node is a "simple" mathematical arguement
     4: the website:
-        - able to save the proof into a file
-        - able to read to proof from a file
+        v able to save the proof into a file
+        v able to read to proof from a file
         - include 
             + write an introduction into index file
             + playground which is for user playing with the graph functionality
