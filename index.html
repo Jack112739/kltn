@@ -1,81 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script>
-    MathJax = {
-      tex: {
-        packages: ['base'],
-        processEscapes: true,
-        packages: {'[+]': ['ams', 'mathtools', 'cases', 'physics']}
-      },
-      options: {enableMenu: false},
-      loader: { 
-        load: ['input/tex', 'output/chtml', '[tex]/ams', '[tex]/mathtools','[tex]/cases','[tex]/physics'] 
-      }
-    }
-  </script>
-  <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
-  <script src="dependency/leader-line.min.js"></script>
-  <link rel="stylesheet" href="css/menu.css">
-  <link rel="stylesheet" href="css/graph.css">
-  <link rel="stylesheet" href="css/editor.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    /* display the style of the playground, might be changed later */
-    html, body {
-      height: 100%;
-      background-color: #1E1E2E;
-    }
-  </style>
-  <script async src="dependency/mjx_support.js"></script>
-  <script src="js/UI.js"></script>
-  <script src="js/editor.js"></script>
-  <script src="js/fragment.js"></script>
-  <script src="js/visual.js"></script>
-  <script src="js/menu.js"></script>
-  <script src="js/graph_history.js"></script>
+    <link rel="stylesheet" href="css/index.css">
 </head>
 <body>
-  <ul id="rightclick" class="menu" style="display: none;">
-    <li class="edit"> <i class="fa-solid fa-gear"></i> Edit </li>
-    <li class="min"> <i class="fa-solid fa-window-minimize"></i> Minimize </li>
-    <li class="max"> <i class="fa-solid fa-window-maximize"></i> Maximize </li>
-    <li class="detail"> <i class="fa-solid fa-magnifying-glass"></i> Show details </li>
-    <li class="ref"> <i class="fa-solid fa-link"></i> Reference to </li>
-    <li class="rename"> <i class="fa-solid fa-tag"></i> Rename</li>
-    <li class="remove"> <i class="fa-solid fa-trash"></i> Remove </li>
-  </ul>
-  <div class="toolbar">
-    <input type="file" id="uploader" hidden>
-    <button class="upload" title="upload from file"><i class="fa-solid fa-upload"></i></button>
-    <button class="download" title="save to file"><i class="fa-solid fa-download"></i></button>
-    <button class="undo" title="undo action"><i class="fa-solid fa-undo"></i></button>
-    <button class="redo" title="redo action"><i class="fa-solid fa-redo"></i></button>
-    <button class="hide" title="show hidden edges"><i class="fa-solid fa-eye"></i></button>
-  </div>
-  <div id="dot"></div>
-  <div id="editor" style="display: none;">
-    <div class="settings">
-      <div class="row">
-        <label class="name"> Name: </label> 
-        <input type="text" class="name" spellcheck="false">
-        <button class="del"><i class="fa-solid fa-trash"></i></button>
-        <button class="save"><i class="fa-solid fa-floppy-disk"></i></button>
-        <button class="close"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div class="row" >
-        <button class="text bold"><i class="fa-solid fa-bold"></i></button>
-        <button class="text italic"><i class="fa-solid fa-italic"></i></button>
-        <button class="text ul"><i class="fa-solid fa-list"></i></button>
-        <button class="text ol"><i class="fa-solid fa-list-ol"></i></button>
-        <button class="text align" title="align equation"><i class="fa-solid fa-align-left"></i></button>
-        <button class="text rm" title="remove format"><i class="fa-solid fa-text-slash"></i></button>
-        <label>visual mode</label> <input type="checkbox" checked="checked" class="mode"> 
-      </div>
+  <div class="wrapper">
+    <div id="title"> 
+      <h1>Graphic math editor</h1>
     </div>
-    <textarea class="text-view raw-text" spellcheck="false"></textarea>
-    <div class="row"> <label> Preview:</label> <i class="load fa-solid fa-spinner fa-spin"></i> </div>
-    <div class="text-view latex" spellcheck="false"></div>
+    <hr>
+    <div id="navigate">
+      <a href="">Home</a>
+      <a href="html/playground.html">Playground</a>
+      <a href="html/doc.html">Documentation</a>
+      <a href="html/example.html">Examples</a>
+    </div>
+    <hr>
+    <h2> Introduction</h2>
+    <p>
+      In the tradditional way of display mathematical proof, we present it in a linearly way and read from line to
+      line. This sometime can make that proof harder to go through, especially when it is not well documented since the the relations between proof's arguement is not always linear and it's harder to keep track all the references when the proof is more complicated.
+    </p>
+    <p>
+      In this website we aim to make that mathematical proof become easier to visualize and increase the readablity so that even machines can understand wether the proof is correct or not. To do so we interpret it as a directed acyclic graph where arguements are represented as nodes and the dependencies between them are represented as edges. <br>
+    </p>
+    <h2> Getting startted</h2>
+    <p>
+      You can create your own proof immediatedly by visiting this <a href="html/playground.html"> link</a>. 
+    </p>
+    <h2> Future works</h2>
   </div>
-</body>  
+</body>
 </html>

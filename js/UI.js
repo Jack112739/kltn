@@ -11,7 +11,7 @@ class NodeUI {
     // @type{String}, The raw latex string
     raw_text;
     //TODO represent the logic behind the latex string, currently undefined
-    /**@type {'input' | 'output' | 'referenced'| 'lemma' | ''} */
+    /**@type {'input' | 'output' | 'referenced'| 'lemma' | 'definition' |''} */
     math_logic = '';
 
     // @type{Map<NodeUI, LeaderLine>} the in-edges and out-edges of this node
@@ -31,6 +31,8 @@ class NodeUI {
 
     constructor(id, graph) {
         this.id = id;
+        if(id.startsWith('lemma:')) this.math_logic = 'lemma';
+        if(id.startsWith('definition:')) this.math_logic = 'definition';
         this.raw_text = "";
         this.from = new Map();
         this.to = new Map();
@@ -146,6 +148,8 @@ class NodeUI {
         this.graph?.internal_nodes.set(name, this);
         this.id = name;
         this.html_div.querySelector('.header').firstChild.data = name;
+        if(name.startsWith('lemma:')) this.math_logic = 'lemma';
+        if(name.startsWith('definition:')) this.math_logic = 'definition';
     }
     /** @param {NodeUI} to */
     connect(to) {

@@ -32,6 +32,7 @@ Specification:
         v able to save the proof into a file
         v able to read to proof from a file
         - include 
+            + examples
             + write an introduction into index file
             + playground which is for user playing with the graph functionality
             + a manual document on what this website provide

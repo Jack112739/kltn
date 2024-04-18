@@ -1,0 +1,26 @@
+#navigate {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+body {
+    background-image: url("https://png.pngtree.com/background/20210712/original/pngtree-cute-hand-drawn-style-math-education-plaid-background-picture-image_1176716.jpg");
+    background-size: cover;
+    margin: 0;
+}
+div.wrapper {
+    height: 100vh;
+    max-width: 800px;
+    background-color: white;
+    margin: 0px auto;
+}
+.wrapper > p {
+    margin-left: 25px;
+}
+#title {
+    background-color: #1E1E2E;;
+    color: #D9E0EE;
+    height: 100px;
+    display: flex;
+    align-items: flex-end;
+}

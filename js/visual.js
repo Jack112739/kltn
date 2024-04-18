@@ -158,7 +158,7 @@ class Visual {
         if(e.inputType.startsWith('insert')) {
             let data = e.data ?? e.dataTransfer?.getData('text') ?? '';
             if(e.inputType === 'insertParagraph') data = '\n';
-            data = data.replace(' ', '\u00a0');
+            data = data.replaceAll(' ', '\u00a0');
             Visual.change(range, data);
         }
         else if(e.inputType.startsWith('delete')) {
