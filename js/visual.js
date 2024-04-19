@@ -118,14 +118,14 @@ class Visual {
     static is_math_only(frag) {
         if(frag.parts.length > 2) return false;
         if(frag.parts.length === 2 && frag.parts[1].str !== '') return false; 
-        if(frag.parts[0].type === 'math') return true;
+        if(frag.parts[0]?.type === 'math') return true;
         return false;
     }
     /**@param {Boolean} deep @param {'ArrowLeft' | 'ArrowRight'} dir @param {Range} range    */
     static walk(dir, deep, range) {
-        let [setrange, dir_left, child, sibling] = 
-            (dir === 'ArrowLeft') ? ['setStart', true, 'lastChild', 'previousSibling']
-                                  :['setEnd', false, 'firstChild', 'nextSibling'];
+        let [setrange, dir_left, child, sibling, setrange_relative] = 
+            (dir === 'ArrowLeft') ? ['setStart', true, 'lastChild', 'previousSibling', 'setStartBefore']
+                                  :['setEnd', false, 'firstChild', 'nextSibling', 'setEndAfter'];
         let parent = range.commonAncestorContainer;
         if(parent.nodeName === '#text') {
             if(dir === 'ArrowLeft' && range.startOffset !== 0) 
@@ -145,8 +145,9 @@ class Visual {
             while(parent[sibling] === null && parent !== editor.latex) parent = parent.parentNode;
             if(parent === editor.latex) return; // do nothing
             let target = parent[sibling];
-            while(target.nodeName !== '#text' && target.nodeName !== 'MJX-CONTAINER') target=target[child];
-            range[setrange](target, get_offset(target, !dir_left));
+            while(!['MJX-CONTAINER', 'BR', '#text'].includes(target.nodeName)) target=target[child];
+            if(target.nodeName === 'BR') range[setrange_relative](target);
+            else range[setrange](target, get_offset(target, !dir_left));
         }
     }
     /**@param {InputEvent} e  */
@@ -186,10 +187,15 @@ class Visual {
         history.buffer += change_index;
         if(history.buffer > 10 && history.buffer !== change_index) Visual.history_command('s');
         range.deleteContents();
-        if(range.startContainer.nodeName === '#text' && data.length > 0) {
-            let str = range.startContainer.data, offset = range.startOffset;
-            range.startContainer.data = str.slice(0, offset) + data + str.slice(offset);
-            range.setStart(range.startContainer, offset + data.length);
+        let start = range.startContainer;
+        if(data === '\n' && start.parentNode.nodeName !== 'PRE') {
+            range.insertNode(document.createElement('br'));
+            range.setStartAfter(start.nextSibling);
+        }
+        else if(start.nodeName === '#text' && data.length > 0) {
+            let str = start.data, offset = range.startOffset;
+            start.data = str.slice(0, offset) + data + str.slice(offset);
+            range.setStart(start, offset + data.length);
         }
         else if(data.length > 0) {
             let node = document.createTextNode(data);

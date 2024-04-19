@@ -180,8 +180,8 @@ class Fragment {
         for(let i = 0; i < this.parts.length; i++) {
             if(i === this.offset.start) ret.start = sum + (this.offset.partial_start ?? 0);
             if(i === this.offset.end) ret.end = sum + (this.offset.partial_end ?? 0);
-            sum += this.parts[i].str.length;
-            sum += this.parts[i].type === 'open' ? 2: this.parts[i].type === 'close' ? 3: 0;
+            if(this.parts[i].type === 'fmt') sum += inv_format[this.parts[i].str].length;
+            else sum += this.parts[i].str.length;
         }
         return ret;
     }
