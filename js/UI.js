@@ -350,7 +350,7 @@ class GraphUI {
         for(const [key, val] of this.internal_nodes) names.push(key);
         return names;
     }
-    /**@param {String} name @returns {NodeUI}  */
+    /**@param {String} name @returns {NodeUI?}  */
     resolve(name) {
         let ret = this.internal_nodes.get(name);
         return ret ?? this.parent?.resolve(name);

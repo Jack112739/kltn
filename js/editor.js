@@ -154,32 +154,16 @@ class Editor {
         case 'i':
         case 'ol':
         case 'ul':
-            replace = (o.length == 2 ? '\n':'') + `<${o}>`;
-            if(o.length !== 2) replace += selected;
-            else {
-                replace += '\n  <li> ';
-                
-                for(const chars of selected) {
-                    if(chars === '\n') replace += ' </li>\n  <li> ';
-                    else replace += chars;
-                }
-                replace += ' </li>\n';
-            }
-            replace += `</${o}>` + (o.length == 2 ? '\n': '');
-            start_offset = `<${o}>`.length + (o.length === 2 ? 2: 0);
-            end_offset = `</${o}>`.length + (o.length === 2 ? 1: 0);
+            let type = inv_format[o];
+            if(o.length === 1) replace = `${type}{${selected}}`;
+            else replace = `${type}{\n${selected.split('\n').map(elem => `  \\item ${elem}\n`).join('')}}\n`;
+            start_offset = type.length + o.length; //magically correct xD
+            end_offset = o.length; 
             break;
         case 'rm':
-            for(let j = 0; j < selected.length;) {
-                let tag = null;
-                if(tag =   Object.keys(tags).find(t => selected.startsWith(t, j))
-                        ?? Object.values(tags).find(t => selected.startsWith(t, j)))
-                {
-                    j += tag.length;
-                    replace += ' ';
-                } 
-                else replace += selected[j], j += 1;
-            }
+            let frag = new Fragment(selected, 'text');
+            for(let token of frag.parts) if(['open','close','fmt'].includes(token.type)) token.str = '';
+            replace = frag.output('text');
             break;
         case 'a':
             let search_for = relations.find(arr => arr.some(str => selected.includes(str)));
@@ -237,7 +221,6 @@ class Editor {
 /**@param {KeyboardEvent} e  */
 function auto_complete(e) {
     switch(e.key) {
-    case '>':
     case '$':
     case '(':
     case '[':
@@ -245,27 +228,24 @@ function auto_complete(e) {
         let {str, start, end} = editor.get_selection();
         if(str === null) return;
     
-        const lookup = Object.assign({'$': '$'}, math_delimeter, {'(':')','[':']','{':'}'}, tags);
-        let replace = '', end_offset = 0;
-        let candidate = str.slice(Math.max(0, start - 10), start) + e.key, open = null;
-        if(open = Object.keys(lookup).find(t => candidate.endsWith(t))) {
-            e.preventDefault();
-            replace = e.key + (open.length == 1 ? str.slice(start, end): '') + lookup[open];
-            // if it was a close bracket then still select it, otherwise just append text
-            if(lookup[open].length == 1) end_offset = 1;
-            else end_offset = replace.length - 1;
-            if(open === '\\ref{') {
-                if(editor.on_visual_mode) {
-                    let range = window.getSelection().getRangeAt(0);
-                    range.setStart(range.startContainer, range.startOffset - '\\ref'.length);
-                    Visual.wrap_selection();
-                    range.setStart(range.startContainer, range.startOffset + '\\ref'.length);
-                }
-                if(start === end) editor.popup_menu(GraphUI.current_graph.get_name().sort());
+        const lookup = {'$': '$' ,'(':')','[':']','{':'}'};
+        e.preventDefault();
+        let replace = e.key + str.slice(start, end) + lookup[e.key];
+        // if it was a close bracket then still select it, otherwise just append text
+        if(e.key === '{') {
+            let search = Object.keys(format).concat(['\\ref']).find(x => str.endsWith(x, start)) ?? '';
+            if(editor.on_visual_mode) {
+                let range = window.getSelection().getRangeAt(0);
+                range.setStart(range.startContainer, range.startOffset - search.length);
+                Visual.wrap_selection();
+                range.setStart(range.startContainer, range.startOffset + search.length);
             }
-            return editor.insert_and_set(replace, 1, end_offset);
+            if(search === '\\ref') setTimeout(() => {
+                editor.popup_menu(GraphUI.current_graph.get_name().sort());
+                Menu.suggest.load(str.slice(start, end));
+            });
         }
-        break;
+        return editor.insert_and_set(replace, 1, 1);
     case '\\':
         editor.popup_menu(mjx_support);
         Menu.suggest.handle_key_event(new KeyboardEvent('keydown', {key: '\\'}));
@@ -282,6 +262,7 @@ function drag_editor(e) {
     let relative_y = editor.div.offsetTop - e.clientY;
 
     document.onmousemove = (e) => {
+        document.body.style.cursor = "grabbing";
         editor.div.style.left = e.clientX + relative_x + "px";
         editor.div.style.top = e.clientY + relative_y + "px";
     }
@@ -324,10 +305,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-//tags that can be use to format the text
-const allow_tag = ['b', 'i', 'ol', 'ul', 'li'];
-const tags = allow_tag.reduce((acc, name) =>(acc[`<${name}>`] = `</${name}>`,acc) ,{});
-const math_delimeter = {'$$':'$$', '\\[':'\\]', '$':'$', '\\ref{': '}'};
+//latex formating options
+const format = {'\\it':'i', '\\bf':'b', '\\item':'li', '\\enumurate':'ol', '\\itemize':'ul', '\\\\': 'br'};
+const inv_format = {'i':'\\it', 'b':'\\bf', 'li':'\\item', 'ol':'\\enumurate', 'ul':'\\itemize', 'br':'\\\\'};
+const math_delimeter = {'$$':'$$', '$':'$', '\\ref{': '}'};
 const relations = [
     ['\\implies', '\\iff'],     // logical chaining 
     ['\\le', '<', '\\lessim'],  // less 

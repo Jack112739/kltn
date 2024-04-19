@@ -35,7 +35,7 @@ class Fragment {
             this.dfs_init(start, end, range);
         }
         else {
-            this.init_text(range, 0, '');
+            this.init_text(range, 0, -1);
             this.offset = {start: 0, end: this.parts.length};
         }
     }
@@ -58,28 +58,33 @@ class Fragment {
             range.setEnd(common, i + 1);
         }
     }
-    init_text(str, j, tag) {
-        let test = arr => arr.find(tg => str.startsWith(tg, j));
-        let start = this.parts.length - 1;
+    init_text(str, j, open_idx) {
         while(true) {
             let t = null;
             if(j >= str.length) {
-                if(start >= 0) {
-                    this.parts[start].err = 1;
+                if(open_idx >= 0) {
+                    this.parts[open_idx].err = 1;
                 }
                 return j;
             }
-            if(t = test(Object.keys(tags))) {
-                this.parts.push({str: t.slice(1,-1), err: 0, type: 'open'});
-                j = this.init_text(str, j + t.length, t);
-            }
-            else if(t = test(Object.values(tags))) {
-                this.parts.push({str: t.slice(2, -1), err: 0, type: 'close'});
+            if(t = Object.keys(format).find(tg => str.startsWith(tg, j))) {
+                this.parts.push({str: format[t], err: t === '\\\\' ? 0 : 1, type: 'fmt'});
                 j += t.length;
-                if(t === tags[tag]) return j;
-                else this.parts.at(-1).err = 1;
             }
-            else if(t = test(Object.keys(math_delimeter))) {
+            else if(str[j] === '{') {
+                this.parts.push({str: '{', err: 1, type: 'open'});
+                let prev = this.parts.at(-1), prev2 = this.parts.at(-2);
+                if(prev2?.type === 'fmt' && prev2.str !== 'br' && prev2.str !== 'li') {
+                    prev.err = 0; prev2.err = 0;
+                }
+                if(prev.err) j++;
+                else j = this.init_text(str, j + 1, this.parts.length - 1);
+            }
+            else if(str[j] === '}') {
+                this.parts.push({str: '}', err: (this.parts[open_idx] ?? {err: 1}).err, type: 'close'});
+                return j + 1;
+            }
+            else if(t = Object.keys(math_delimeter).find(tg => str.startsWith(tg, j))) {
                 let start = j;
                 j += t.length;
                 while(!str.startsWith(math_delimeter[t], j) && j < str.length) j++;
@@ -123,14 +128,16 @@ class Fragment {
             }
             return;
         }
-        this.parts.push({str: node.nodeName.toLowerCase(), type: 'open', err: 0});
+        this.parts.push({str: node.nodeName.toLowerCase(), type: 'fmt', err: 0});
+        if(node.nodeName === 'BR') return;
+        if(node.nodeName !== 'LI') this.parts.push({str: '{', type: 'open', err: 0});
         let it = node.firstChild;
         for(let i = 0; i < node.childNodes.length; i++) {
             this.init_range(it, i, range);
             it = it.nextSibling;
         }
         set(node, node.childNodes.length);
-        this.parts.push({str: node.nodeName.toLowerCase(), type: 'close', err: 0});
+        if(node.nodeName !== 'LI') this.parts.push({str: '}', type: 'close', err: 0});
     }
     /**@param {'text' | 'html'} type  @returns {string | Array<Node>}*/
     output(type) {
@@ -144,11 +151,16 @@ class Fragment {
             else if(token.type === 'text') {
                 cur.insertAdjacentHTML('beforeend', map_to_html(token.str));
             }
+            else if(token.type === 'fmt') {
+                if(token.str === 'li' && cur.nodeName === 'LI') cur = cur.parentNode;
+                cur.appendChild(document.createElement(token.str));;
+                if(token.str === 'li') cur = cur.lastChild;
+            }
             else if(token.type === 'open') {
-                cur.appendChild(document.createElement(token.str));
                 cur = cur.lastChild;
             }
             else if(token.type === 'close') {
+                if(cur.nodeName === 'LI') cur = cur.parentNode;
                 cur = cur.parentNode;
             } 
             else if(token.type === 'math') {
@@ -175,8 +187,7 @@ class Fragment {
     }
 }
 function toString(token) {
-    return  token.type === 'open' ? `<${token.str}>`: 
-            token.type === 'close' ? `</${token.str}>` : 
+    return  token.type === 'fmt' ? inv_format[token.str]: 
             token.str.replaceAll('\u00a0', ' ');
 }
 function map_to_html(str) {
