@@ -9,7 +9,6 @@ body {
     margin: 0;
 }
 div.wrapper {
-    height: 100vh;
     max-width: 800px;
     background-color: white;
     margin: 0px auto;
@@ -23,4 +22,9 @@ div.wrapper {
     height: 100px;
     display: flex;
     align-items: flex-end;
+}
+footer {
+    display: flex;
+    align-items: flex-end;
+    flex-direction: column;
 }

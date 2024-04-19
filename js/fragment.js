@@ -68,7 +68,7 @@ class Fragment {
                 return j;
             }
             if(t = Object.keys(format).find(tg => str.startsWith(tg, j))) {
-                this.parts.push({str: format[t], err: t === '\\\\' ? 0 : 1, type: 'fmt'});
+                this.parts.push({str: format[t], err: t === '\\\\' || t === '\\item' ? 0 : 1, type: 'fmt'});
                 j += t.length;
             }
             else if(str[j] === '{') {

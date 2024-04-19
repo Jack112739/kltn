@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 //latex formating options
-const format = {'\\it':'i', '\\bf':'b', '\\item':'li', '\\enumurate':'ol', '\\itemize':'ul', '\\\\': 'br'};
+const format = {'\\itemize':'ul','\\item':'li', '\\it':'i', '\\bf':'b', '\\enumurate':'ol', '\\\\': 'br'};
 const inv_format = {'i':'\\it', 'b':'\\bf', 'li':'\\item', 'ol':'\\enumurate', 'ul':'\\itemize', 'br':'\\\\'};
 const math_delimeter = {'$$':'$$', '$':'$', '\\ref{': '}'};
 const relations = [
