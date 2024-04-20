@@ -4,14 +4,12 @@ class FileIO {
         if(node.math_logic === 'referenced') return;
         document.body.appendChild(node.html_div);
         let rect = node.html_div.getBoundingClientRect();
-        let str = `${rect.top}, ${rect.left}`;
+        let str=`${rect.top}, ${rect.left}, ${node.renderer.offsetWidth-10}, ${node.renderer.offsetHeight-10}`;
         node.graph.html_div.appendChild(node.html_div);
         for(const [refs, _] of node.from) {
             str +=`, ${refs.id.trim()}`;
         }
-        str = `%% ${node.math_logic}, ${str}\n\\label{${node.id}}\n`;
-        if(node.math_logic === 'lemma') str += `\\begin{lemma}{${node.id}}\n${node.raw_text}\n\\end{lemma}\n`;
-        else str += node.raw_text + '\n';
+        str = `%% ${str}\n\\label{${node.id}}\n${node.raw_text}\n`;
         if(node.math_logic === 'input' || node.math_logic === 'output') return str;
         if(node.detail && node.detail.internal_nodes.size !== 0) {
              str += `\n\\begin{proof}\n${FileIO.parse_children(node)}\n\\end{proof}\n`;
@@ -46,21 +44,20 @@ class FileIO {
         let lines = str.split('\n');
         let cur = null, err_msg = null, now = null;
         GraphHistory.active = true;
-        cur = new GraphUI(new NodeUI(file_name, null));
+        cur = new GraphUI(new NodeUI(file_name.slice(0, -'.tex'.length), null));
         parse:
         for(let i = 0; i < lines.length; i++) {
             let line = lines[i].trim();
             if(line.startsWith('%%')) {
                 now = new NodeUI('<<error>>', cur);
-                let headers = line.slice(2).split(','), tmp;
-                now.math_logic = headers[0].trim();
-                now.html_div.style.resize = "none";
-                now.html_div.style.top = (parseInt(headers[1]) ?? 0) + "px";
-                now.html_div.style.left = (parseInt(headers[2]) ?? 0) + "px";
-                now.html_div.style.resize = "";
-                for(let j = 3; j < headers.length; j++) {
+                let headers = line.slice(2).split(',').map(str => str.trim());
+                now.html_div.style.top = parse_int_px(headers[0]);
+                now.html_div.style.left = parse_int_px(headers[1]);
+                now.renderer.style.width = parse_int_px(headers[2]);
+                now.renderer.style.height = parse_int_px(headers[3]);
+                for(let j = 4; j < headers.length; j++) {
                     if(!now.reference(headers[j].trim())) {
-                        err_msg = `error at line ${i}: node named ${headers[i].trim()} does not exist`;
+                        err_msg = `error at line ${i}: node named ${headers[j].trim()} does not exist`;
                         break parse;
                     }
                 }
@@ -100,6 +97,7 @@ class FileIO {
                 now = null;
             }
             else {
+                if(line.length === 0) continue;
                 if(!now) {
                     err_msg = `error at line ${i}: exptected the %% comment at the begining of a node`;
                     break parse;
@@ -127,6 +125,10 @@ class FileIO {
         }
     }
 }
+function parse_int_px(str) {
+    if(isNaN(str)) return "";
+    return str.trim() + "px";
+}
 document.addEventListener('DOMContentLoaded', () => {
     let input = document.getElementById('uploader');
     document.querySelector('.upload').onclick = () => input.click();
@@ -134,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let file = e.target.files[0];
         let reader = new FileReader();
         reader.onload = (e1) => {
+            if(!file.name.endsWith('.tex')) return alert('Can only upload proof stored in .tex file');
             let replace = FileIO.parse_file(e1.target.result, file.name);
             e.target.value = "";
             if(replace instanceof Error) return alert(replace.message);
@@ -143,15 +146,21 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         reader.readAsText(file);
     }
-    document.querySelector('.download').onclick = () => {
-        let a = document.createElement('a');
-        let download_text = FileIO.parse_children(GraphUI.current_graph.summary.root); 
-        if(download_text instanceof Error) return alert(download_text.message);
-        a.href = `data:text/plain;charset=utf-8,` + encodeURIComponent(download_text);
-        a.download = "math-example.tex";
-        a.style.display = "none";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+    document.querySelector('.download').onclick = async () => {
+        let root = GraphUI.current_graph.summary.root;
+        try {
+            let file_handler = await window.showSaveFilePicker({
+                suggestedName: `${root.id}.tex`,
+                types: [{
+                    accept: {'text/plain': ['.tex']}
+                }]
+            });
+            let stream = await file_handler.createWritable();
+            await stream.write(FileIO.parse_children(root));
+            await stream.close();
+        } catch(e) {
+            if(e instanceof AbortError || !(e instanceof DOMException)) return;
+            alert(`Fail to save your proof, reason: ${e.message}`);
+        }
     }
 })

@@ -30,6 +30,7 @@ class Editor {
 
     /** @param {NodeUI} node  */
     load(node) {
+        if(window.graph_is_readonly) return alert("can not edit node in readonly mode");
         if(node.math_logic === 'input' || node.math_logic === 'output' || node.math_logic === 'referenced') {
             return alert(`can not edit node of type ${this.math_logic}`);
         }

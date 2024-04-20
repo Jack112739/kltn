@@ -37,6 +37,9 @@ class Visual {
         if(window.getSelection().rangeCount === 0 || !editor.on_visual_mode) return null;
         let range = window.getSelection().getRangeAt(0), change = null;
         let start = range.startContainer, end = range.endContainer;
+        if(end === editor.latex && range.endOffset == editor.latex.childNodes.length - 1) {
+            editor.latex.appendChild(document.createTextNode('\u200b'));
+        }
         if(!editor.latex.contains(start) || !editor.latex.contains(end)) return null;
         if(start = Visual.is_math_elem(start)) {
             if(start == start.parentNode.firstChild) range.setStart(start.parentNode, 0);
@@ -191,6 +194,7 @@ class Visual {
         if(data === '\n' && start.parentNode.nodeName !== 'PRE') {
             range.insertNode(document.createElement('br'));
             range.setStartAfter(start.nextSibling);
+            Visual.validate_selection();
         }
         else if(start.nodeName === '#text' && data.length > 0) {
             let str = start.data, offset = range.startOffset;
@@ -231,8 +235,8 @@ class Visual {
         let clone = Visual.clone_img(history.stack[history.pos]);
         editor.latex.innerHTML = '';
         while(clone.div.firstChild) editor.latex.appendChild(clone.div.firstChild);
-        sel.setStart(clone.start, clone.startOffset);
-        sel.setEnd(clone.end, clone.endOffset);
+        sel.setStart(clone.start === clone.div ? editor.latex : clone.start, clone.startOffset);
+        sel.setEnd(clone.end === clone.div ? editor.latex : clone.end, clone.endOffset);
         editor.focus_element = clone.focus;
     }
     static clone_img(image) {

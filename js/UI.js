@@ -31,8 +31,8 @@ class NodeUI {
 
     constructor(id, graph) {
         this.id = id;
-        if(id.startsWith('lemma:')) this.math_logic = 'lemma';
-        if(id.startsWith('definition:')) this.math_logic = 'definition';
+        if(id.includes('definition:')) this.math_logic = 'definition';
+        else if(id.includes('lemma:')) this.math_logic = 'lemma';
         this.raw_text = "";
         this.from = new Map();
         this.to = new Map();
@@ -135,12 +135,14 @@ class NodeUI {
     get parent() {
         return this.graph?.summary;
     }
+    /** @param {String} name  */
     rename(name) {
+        if(window.graph_is_readonly) return alert("can not rename node in readonly mode");
         if(name === this.id) return;
         if(this.math_logic === 'referenced') {
             return alert('can not rename referenced node');
         }
-        if(this.graph.resolve(name)) {
+        if(this.graph?.resolve(name)) {
             return alert(`there already is another node with name ${name}`);
         }
         GraphHistory.register('rename', {node: this, name: name, old_name: this.id});
@@ -148,11 +150,12 @@ class NodeUI {
         this.graph?.internal_nodes.set(name, this);
         this.id = name;
         this.html_div.querySelector('.header').firstChild.data = name;
-        if(name.startsWith('lemma:')) this.math_logic = 'lemma';
-        if(name.startsWith('definition:')) this.math_logic = 'definition';
+        if(name.includes('definition:')) this.math_logic = 'definition';
+        else if(name.includes('lemma:')) this.math_logic = 'lemma';
     }
     /** @param {NodeUI} to */
     connect(to) {
+        if(window.graph_is_readonly) return alert("can not reference other node in readonly mode");
         if(this.graph !== GraphUI.current_graph) {
             GraphUI.current_graph.html_div.appendChild(to.html_div);
             GraphUI.current_graph.html_div.appendChild(this.html_div);
@@ -331,6 +334,7 @@ class GraphUI {
         }, {once: true});
     }
     static monitor_node_at_cursor(e) {
+        if(window.graph_is_readonly) return alert("can create or edit node in readonly mode");
         if(!e.ctrlKey) return;
 
         document.removeEventListener('click', GraphUI.monitor_node_at_cursor);
