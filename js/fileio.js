@@ -4,7 +4,7 @@ class FileIO {
         if(node.math_logic === 'referenced') return;
         document.body.appendChild(node.html_div);
         let rect = node.html_div.getBoundingClientRect();
-        let str=`${rect.top}, ${rect.left}, ${node.renderer.offsetWidth-10}, ${node.renderer.offsetHeight-10}`;
+        let str=`${rect.top}, ${rect.left}, ${node.renderer.offsetWidth}, ${node.renderer.offsetHeight}`;
         node.graph.html_div.appendChild(node.html_div);
         for(const [refs, _] of node.from) {
             str +=`, ${refs.id.trim()}`;

@@ -32,7 +32,7 @@ class NodeUI {
     constructor(id, graph) {
         this.id = id;
         if(id.includes('definition:')) this.math_logic = 'definition';
-        else if(id.includes('lemma:')) this.math_logic = 'lemma';
+        else if(id.includes('lemma:') || id.includes('theorem')) this.math_logic = 'lemma';
         this.raw_text = "";
         this.from = new Map();
         this.to = new Map();
@@ -151,7 +151,7 @@ class NodeUI {
         this.id = name;
         this.html_div.querySelector('.header').firstChild.data = name;
         if(name.includes('definition:')) this.math_logic = 'definition';
-        else if(name.includes('lemma:')) this.math_logic = 'lemma';
+        else if(name.includes('lemma:') || name.includes('theorem')) this.math_logic = 'lemma';
     }
     /** @param {NodeUI} to */
     connect(to) {
