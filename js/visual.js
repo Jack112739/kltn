@@ -162,7 +162,6 @@ class Visual {
         if(e.inputType.startsWith('insert')) {
             let data = e.data ?? e.dataTransfer?.getData('text') ?? '';
             if(e.inputType === 'insertParagraph') data = '\n';
-            data = data.replaceAll(' ', '\u00a0');
             Visual.change(range, data);
         }
         else if(e.inputType.startsWith('delete')) {
@@ -191,6 +190,7 @@ class Visual {
         if(history.buffer > 10 && history.buffer !== change_index) Visual.history_command('s');
         range.deleteContents();
         let start = range.startContainer;
+        if(start.parentNode.nodeName !== 'PRE') data = data.replaceAll('\u00a0', ' ');
         if(data === '\n' && start.parentNode.nodeName !== 'PRE') {
             range.insertNode(document.createElement('br'));
             range.setStartAfter(start.nextSibling);

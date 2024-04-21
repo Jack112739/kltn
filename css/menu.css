@@ -12,7 +12,7 @@
     list-style: none;
     display: flex;
     align-items: center;
-    height: 25px;
+    min-height: 25px;
     background-color: inherit;
     color: #D9E0EE;
     user-select: none;

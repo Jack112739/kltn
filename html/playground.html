@@ -13,6 +13,11 @@
         load: ['input/tex', 'output/chtml', '[tex]/ams', '[tex]/mathtools','[tex]/cases','[tex]/physics'] 
       }
     }
+    window.originalAddEventListener = window.addEventListener;
+    window.addEventListener = function (type, handler, options) {
+      if(type === "resize") return;
+      window.originalAddEventListener(type, handler, options);
+    }
   </script>
   <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
   <script src="../dependency/leader-line.min.js"></script>

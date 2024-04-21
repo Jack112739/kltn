@@ -32,7 +32,7 @@ class Editor {
     load(node) {
         if(window.graph_is_readonly) return alert("can not edit node in readonly mode");
         if(node.math_logic === 'input' || node.math_logic === 'output' || node.math_logic === 'referenced') {
-            return alert(`can not edit node of type ${this.math_logic}`);
+            return alert(`can not edit node of type ${node.math_logic}`);
         }
         if(!node) return;
         GraphUI.current_graph.highlighting = null;
@@ -221,6 +221,7 @@ class Editor {
 }
 /**@param {KeyboardEvent} e  */
 function auto_complete(e) {
+    if(e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') editor.saved = false;
     switch(e.key) {
     case '$':
     case '(':

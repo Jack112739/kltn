@@ -44,7 +44,7 @@ class FileIO {
         let lines = str.split('\n');
         let cur = null, err_msg = null, now = null;
         GraphHistory.active = true;
-        cur = new GraphUI(new NodeUI(file_name.slice(0, -'.tex'.length), null));
+        cur = new GraphUI(new NodeUI(remove_ext(file_name), null));
         parse:
         for(let i = 0; i < lines.length; i++) {
             let line = lines[i].trim();
@@ -158,9 +158,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let stream = await file_handler.createWritable();
             await stream.write(FileIO.parse_children(root));
             await stream.close();
+            let file = await file_handler.getFile();
+            root.rename(remove_ext(file.name));
+            GraphUI.current_graph.switch_to(GraphUI.current_graph);
         } catch(e) {
             if(e instanceof AbortError || !(e instanceof DOMException)) return;
             alert(`Fail to save your proof, reason: ${e.message}`);
         }
     }
 })
+function remove_ext(name) {
+    return name.split('.').slice(0, -1).join('');
+}

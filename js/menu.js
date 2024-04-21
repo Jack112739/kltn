@@ -149,6 +149,8 @@ document.addEventListener('DOMContentLoaded', () => {
     menu[DETAIL].onclick = (e) => Menu.ref_node.html_div.ondblclick();
     menu[REF].onclick = (e) => GraphUI.new_edge(Menu.ref_node, e);
     menu[RENAME].onclick = (e) => {
+        if(window.graph_is_readonly) return alert('can not rename node in readonly mode');
+        if(Menu.ref_node.math_logic === 'referenced') return alert('can not edit rename referenced node');
         let input = document.createElement('input');
         let viewpoint  = document.documentElement.getBoundingClientRect();
         Menu.rightclicked.items.style.display = "";

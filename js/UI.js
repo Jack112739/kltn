@@ -78,8 +78,8 @@ class NodeUI {
             }
         }
         this.html_div.ondblclick = (e) => {
-            if(this.math_logic !== 'lemma' && this.math_logic !== '') {
-                return alert(`only sublemma node can have further explaination`);
+            if(!['lemma', 'referenced', ''].includes(this.math_logic)) {
+                return alert(`this type of node dont have further explaination`);
             }
             if(this.detail === null) {
                 //TODO: not allow if the math inside this is a simple substitution or using other lemma
@@ -137,11 +137,7 @@ class NodeUI {
     }
     /** @param {String} name  */
     rename(name) {
-        if(window.graph_is_readonly) return alert("can not rename node in readonly mode");
         if(name === this.id) return;
-        if(this.math_logic === 'referenced') {
-            return alert('can not rename referenced node');
-        }
         if(this.graph?.resolve(name)) {
             return alert(`there already is another node with name ${name}`);
         }
@@ -161,13 +157,7 @@ class NodeUI {
             GraphUI.current_graph.html_div.appendChild(this.html_div);
         }
         let line = new LeaderLine(this.html_div, to.html_div, {path: 'straight', size: 3});
-        document.body.lastChild.querySelector('path').addEventListener('click', (e) => {
-            let mode = document.querySelector('.fa-eye-slash');
-            if(!mode) return;
-            let is_hidden = line.color === 'coral';
-            line.setOptions({color: is_hidden ? 'rgba(255,127,80,0.5)' : 'coral'});
-            this.graph.hidden_edges[is_hidden ? 'add': 'delete'](line);
-        });
+        document.body.lastChild.querySelector('path').onclick = (e) => this.edit_edge(e, line);
         this.to.set(to, line);
         to.from.set(this, line);
         if(this.graph !== GraphUI.current_graph) {
@@ -195,7 +185,7 @@ class NodeUI {
             }
             let ref = new NodeUI(from.id, climb.graph);
             ref.math_logic = 'referenced';
-            ref.detail = from.detail;
+            ref.detail = from.graph;
             ref.html_div.classList.add('referenced');
             ref.renderer.style.display = "none";
             ref.connect(climb);
@@ -210,6 +200,18 @@ class NodeUI {
     get root() {
         if(!this.parent) return this;
         return this.parent.root;
+    }
+    edit_edge(e, line) {
+        let mode = document.querySelector('.fa-eye-slash');
+        if(!mode) return;
+        let is_hidden = line.color === 'coral';
+        if(e.ctrlKey) {
+            e.stopPropagation();
+            if(is_hidden) this.graph.hidden_edges.delete(line);
+            return GraphUI.delete_edge(line); 
+        }
+        line.setOptions({color: is_hidden ? 'rgba(255,127,80,0.5)' : 'coral'});
+        this.graph.hidden_edges[is_hidden ? 'add': 'delete'](line);
     }
 }
 
@@ -377,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.redo').onclick = () => GraphHistory.redo();
     document.querySelector('.hide').onclick = (e) => {
         let button = document.querySelector('.hide');
-        let on = button.querySelector('.fa-eye'), effect = e.isTrusted ? undefined : 'none';
+        let on = button.querySelector('.fa-eye'), effect = e.isTrusted ? 'fade' : 'none';
         button.firstChild.className = on ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
         button.setAttribute('title', on ? 'hide all selected edges': 'show hidden edges');
         for(const line of GraphUI.current_graph.hidden_edges) {
