@@ -47,6 +47,7 @@ class FileIO {
         let cur = null, err_msg = null, now = null;
         GraphHistory.active = true;
         cur = new GraphUI(new NodeUI(remove_ext(file_name), null));
+        window.MathGraph_config.all_label = new Set();
         parse:
         for(let i = 0; i < lines.length; i++) {
             let line = lines[i].trim();
