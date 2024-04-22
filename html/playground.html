@@ -18,6 +18,7 @@
       if(type === "resize") return;
       window.originalAddEventListener(type, handler, options);
     }
+    window.MathGraph_config = {readonly: false};
   </script>
   <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
   <script src="../dependency/leader-line.min.js"></script>
@@ -51,14 +52,19 @@
     <li class="rename"> <i class="fa-solid fa-tag"></i> Rename</li>
     <li class="remove"> <i class="fa-solid fa-trash"></i> Remove </li>
   </ul>
-  <div class="toolbar">
-    <input type="file" id="uploader" hidden>
-    <button class="upload" title="upload from file"><i class="fa-solid fa-upload"></i></button>
-    <button class="download" title="save to file"><i class="fa-solid fa-download"></i></button>
-    <button class="undo" title="undo action"><i class="fa-solid fa-undo"></i></button>
-    <button class="redo" title="redo action"><i class="fa-solid fa-redo"></i></button>
-    <button class="hide" title="show hidden edges"><i class="fa-solid fa-eye"></i></button>
-    <button title="home page"><a href="../index.html"><i class="fa-solid fa-home"></i></a></button>
+  <div style="display: flex;">
+    <a href="../index.html">
+      <button class="parent" title="return to home page"><i class="fa-solid fa-home"></i></button>
+    </a>
+    <div id="href"></div>
+    <div class="toolbar">
+      <input type="file" id="uploader" hidden>
+      <button class="upload" title="upload from file"><i class="fa-solid fa-upload"></i></button>
+      <button class="download" title="save to file"><i class="fa-solid fa-download"></i></button>
+      <button class="undo" title="undo action"><i class="fa-solid fa-undo"></i></button>
+      <button class="redo" title="redo action"><i class="fa-solid fa-redo"></i></button>
+      <button class="hide" title="show hidden edges"><i class="fa-solid fa-eye"></i></button>
+    </div>
   </div>
   <div id="dot"></div>
   <div id="editor" style="display: none;">

@@ -1,7 +1,6 @@
 
 /**
  * Represent the element of the proof, as a directed graph
- * 
  */
 class NodeUI {
 
@@ -48,6 +47,7 @@ class NodeUI {
             <div class="tex_render"></div>
         `);
     
+        window.MathGraph_config.all_label.add(this.id);
         graph?.internal_nodes.set(this.id, this);
         graph?.html_div.appendChild(this.html_div);
 
@@ -82,7 +82,11 @@ class NodeUI {
                 return alert(`this type of node dont have further explaination`);
             }
             if(this.detail === null) {
-                //TODO: not allow if the math inside this is a simple substitution or using other lemma
+                if(this.math_logic === 'referenced') {
+                    let ref_node = this.graph.resolve(this.id);
+                    if(!ref_node) return alert(`the node named ${this.id} has been deleted`);
+                    else return ref_node.html_div.ondblclick();
+                }
                 this.detail = new GraphUI(this);
             }
             GraphUI.current_graph.switch_to(this.detail);
@@ -115,11 +119,14 @@ class NodeUI {
         assoc_node.style.zIndex = 9;
         assoc_node.classList.remove('highlighted');
     }
-    remove(recursive) {
-        if(this.math_logic === 'input' || this.math_logic === 'output') {
-            return alert(`can not delete ${this.math_logic} node`);
+    modify_name_recursive(op) {
+        for(const [_, child] of this.detail?.internal_nodes ?? []) {
+            child.modify_name_recursive(op);
         }
-        if(recursive) this.detail?.remove_childs();
+        if(this.math_logic !== 'referenced') window.MathGraph_config.all_label[op](this.id);
+    }
+    remove() {
+        this.modify_name_recursive('delete')
         for(let[id, line] of this.from) {
             id.to.delete(this);
             line.remove();
@@ -138,10 +145,13 @@ class NodeUI {
     /** @param {String} name  */
     rename(name) {
         if(name === this.id) return;
-        if(this.graph?.resolve(name)) {
+        let all_label = window.MathGraph_config.all_label;
+        if(all_label.has(name)) {
             return alert(`there already is another node with name ${name}`);
         }
         GraphHistory.register('rename', {node: this, name: name, old_name: this.id});
+        all_label.delete(this.id);
+        all_label.add(name);
         this.graph?.internal_nodes.delete(this.id);
         this.graph?.internal_nodes.set(name, this);
         this.id = name;
@@ -151,6 +161,7 @@ class NodeUI {
     }
     /** @param {NodeUI} to */
     connect(to) {
+        if(to === this) return;
         if(window.MathGraph_config.readonly) return alert("can not reference other node in readonly mode");
         if(this.graph !== GraphUI.current_graph) {
             GraphUI.current_graph.html_div.appendChild(to.html_div);
@@ -185,7 +196,6 @@ class NodeUI {
             }
             let ref = new NodeUI(from.id, climb.graph);
             ref.math_logic = 'referenced';
-            ref.detail = from.graph;
             ref.html_div.classList.add('referenced');
             ref.renderer.style.display = "none";
             ref.connect(climb);
@@ -251,35 +261,26 @@ class GraphUI {
     create_math_logic() {
         this.internal_nodes = new Map();
     }
+    init_href() {
+        let href = document.getElementById('href');
+        href.innerHTML = '';
+        for(let cur = this; cur; cur = cur.parent) {
+            href.insertAdjacentHTML('afterbegin', `
+                <button class="parent">${map_to_html(cur.summary.id)}</button>
+            `);
+            href.firstElementChild.onclick = (e) => this.switch_to(cur);
+        }
+    }
     create_html() {
         this.html_div = document.createElement('div');
         this.html_div.classList.add('graph');
-        let recursive = (node) => {
-            if(!node) return;
-            recursive(node.parent);
-
-            let traverse = document.createElement('button');
-            traverse.classList.add('parent');
-            traverse.onclick = () => this.switch_to(node.detail);
-            traverse.assoc_node = node;
-            traverse.appendChild(document.createTextNode(node.id));
-            this.html_div.appendChild(traverse);
-        };
-        recursive(this.summary);
-    }
-    //TODO: recursively remove all the child
-    remove_childs() {
-        for(let [id, node] of this.internal_nodes) {
-            node.remove(true);
-        }
+        this.init_href();
     }
     //pop up the edit window for that specific node
     switch_to(graph) {
         let hide_button = document.querySelector('.hide');
         if(hide_button.querySelector('.fa-eye-slash')) hide_button.click();
-        for(let button of graph.html_div.querySelectorAll('.parent')) {
-            if(button.assoc_node) button.firstChild.data = button.assoc_node.id;
-        }
+        graph.init_href();
         GraphUI.current_graph = graph;
         this.hide_edges();
         graph.show_edges();
@@ -342,7 +343,7 @@ class GraphUI {
         document.removeEventListener('click', GraphUI.monitor_node_at_cursor);
         let node = is_node_component(e.target);
         if(!node) {
-            node = new NodeUI('', GraphUI.current_graph);
+            node = new NodeUI(get_random_name(), GraphUI.current_graph);
             let viewpoint = document.documentElement.getBoundingClientRect();
             node.html_div.style.top = `${e.clientY - viewpoint.top}px`;
             node.html_div.style.left = `${e.clientX - viewpoint.left}px`
@@ -351,22 +352,29 @@ class GraphUI {
     }
     /**@returns {Array<String>} */
     get_name() {
-        let names = this.summary?.graph ? this.summary.graph.get_name() : [];
-        for(const [key, val] of this.internal_nodes) names.push(key);
+        let names = this.summary?.graph ? this.parent.get_name() : [];
+        for(const [key, val] of this.internal_nodes) if(val.math_logic !== 'referenced') names.push(key);
         return names;
     }
     /**@param {String} name @returns {NodeUI?}  */
-    resolve(name) {
+    resolve(name, prev = null) {
         let ret = this.internal_nodes.get(name);
-        return ret ?? this.parent?.resolve(name);
+        if(ret && (ret.math_logic === 'referenced' || ret?.detail === prev)) ret = null;
+        return ret ?? this.parent?.resolve(name, this);
     }
     get parent() {
         return this.summary?.graph;
     }
 }
 
+function get_random_name() {
+    let counter = 0;
+    while(window.MathGraph_config.all_label.has('#' + counter)) counter++;
+    return '#' + counter;
+}
 //setup function
 document.addEventListener('DOMContentLoaded', () => {
+    window.MathGraph_config.all_label = new Set();
     GraphHistory.active = true;
     GraphUI.current_graph = new GraphUI(new NodeUI('playground', null));
     GraphHistory.active = false;
