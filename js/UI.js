@@ -261,7 +261,7 @@ class GraphUI {
     create_math_logic() {
         this.internal_nodes = new Map();
     }
-    init_href() {
+    refresh_href() {
         let href = document.getElementById('href');
         href.innerHTML = '';
         for(let cur = this; cur; cur = cur.parent) {
@@ -274,13 +274,12 @@ class GraphUI {
     create_html() {
         this.html_div = document.createElement('div');
         this.html_div.classList.add('graph');
-        this.init_href();
     }
     //pop up the edit window for that specific node
     switch_to(graph) {
         let hide_button = document.querySelector('.hide');
         if(hide_button.querySelector('.fa-eye-slash')) hide_button.click();
-        graph.init_href();
+        graph.refresh_href();
         GraphUI.current_graph = graph;
         this.hide_edges();
         graph.show_edges();
