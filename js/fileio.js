@@ -1,11 +1,11 @@
 class FileIO {
     /** @param {NodeUI} node @returns {String} */
     static to_file(node) {
-        if(node.math_logic === 'referenced') return;
+        if(node.math_logic === 'referenced') return '';
         document.body.appendChild(node.html_div);
         let rect = node.html_div.getBoundingClientRect();
         let height = node.renderer.style.height.slice(0, -2);
-        let width = node.renderer.style.height.slice(0, -2);
+        let width = node.renderer.style.width.slice(0, -2);
         let str=`${rect.top}, ${rect.left}, ${height}, ${width}`;
         node.graph.html_div.appendChild(node.html_div);
         for(const [refs, _] of node.from) {
@@ -58,8 +58,8 @@ class FileIO {
                 try {
                     now.html_div.style.top = parse_int_px(headers[0], 0);
                     now.html_div.style.left = parse_int_px(headers[1], 1);
-                    now.renderer.style.width = parse_int_px(headers[2], 2);
-                    now.renderer.style.height = parse_int_px(headers[3], 3);
+                    now.renderer.style.height = parse_int_px(headers[2], 2);
+                    now.renderer.style.width = parse_int_px(headers[3], 3);
                 } catch(e) {
                     implicit_start = e;
                 }
@@ -125,7 +125,7 @@ class FileIO {
     }
     static compile(graph) {
         if(!graph) return;
-        for(const [_, node] of graph.internal_nodes) {
+        for(const [_, node] of graph.internal_nodes) if(node.math_logic !== 'referenced') {
             editor.load(node);
             editor.raw.data = node.raw_text;
             editor.save();
