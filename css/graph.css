@@ -38,7 +38,7 @@
     border-style: dotted;
 }
 .leader-line {
-    z-index: 15;
+    z-index: 5;
 }
 .leader-line path {
     pointer-events: all;

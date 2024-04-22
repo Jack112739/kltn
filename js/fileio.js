@@ -4,7 +4,9 @@ class FileIO {
         if(node.math_logic === 'referenced') return;
         document.body.appendChild(node.html_div);
         let rect = node.html_div.getBoundingClientRect();
-        let str=`${rect.top}, ${rect.left}, ${node.renderer.offsetWidth}, ${node.renderer.offsetHeight}`;
+        let height = node.renderer.style.height.slice(0, -2);
+        let width = node.renderer.style.height.slice(0, -2);
+        let str=`${rect.top}, ${rect.left}, ${height}, ${width}`;
         node.graph.html_div.appendChild(node.html_div);
         for(const [refs, _] of node.from) {
             str +=`, ${refs.id.trim()}`;
@@ -51,11 +53,17 @@ class FileIO {
             if(line.startsWith('%%')) {
                 now = new NodeUI('<<error>>', cur);
                 let headers = line.slice(2).split(',').map(str => str.trim());
-                now.html_div.style.top = parse_int_px(headers[0]);
-                now.html_div.style.left = parse_int_px(headers[1]);
-                now.renderer.style.width = parse_int_px(headers[2]);
-                now.renderer.style.height = parse_int_px(headers[3]);
-                for(let j = 4; j < headers.length; j++) {
+                let implicit_start = 4;
+                try {
+                    now.html_div.style.top = parse_int_px(headers[0], 0);
+                    now.html_div.style.left = parse_int_px(headers[1], 1);
+                    now.renderer.style.width = parse_int_px(headers[2], 2);
+                    now.renderer.style.height = parse_int_px(headers[3], 3);
+                } catch(e) {
+                    implicit_start = e;
+                }
+                for(let j = implicit_start; j < headers.length; j++) {
+                    if(headers[j] === '') continue;
                     if(!now.reference(headers[j].trim())) {
                         err_msg = `error at line ${i}: node named ${headers[j].trim()} does not exist`;
                         break parse;
@@ -124,9 +132,10 @@ class FileIO {
             FileIO.compile(node.detail);
         }
     }
+    static file_saver;
 }
-function parse_int_px(str) {
-    if(isNaN(str)) return "";
+function parse_int_px(str, i) {
+    if(isNaN(str)) throw i;
     return str.trim() + "px";
 }
 document.addEventListener('DOMContentLoaded', () => {
@@ -147,23 +156,25 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsText(file);
     }
     document.querySelector('.download').onclick = async () => {
-        let root = GraphUI.current_graph.summary.root;
+        let root = GraphUI.current_graph.summary.root, name = null;
         try {
             let file_handler = await window.showSaveFilePicker({
+                startIn: FileIO.file_saver,
                 suggestedName: `${root.id}.tex`,
                 types: [{
                     accept: {'text/plain': ['.tex']}
                 }]
             });
+            FileIO.file_saver = file_handler;
             let stream = await file_handler.createWritable();
             await stream.write(FileIO.parse_children(root));
             await stream.close();
-            let file = await file_handler.getFile();
-            root.rename(remove_ext(file.name));
+            root.rename(remove_ext(name = file_handler.name));
             GraphUI.current_graph.switch_to(GraphUI.current_graph);
         } catch(e) {
-            if(e instanceof AbortError || !(e instanceof DOMException)) return;
-            alert(`Fail to save your proof, reason: ${e.message}`);
+            if(!(e instanceof DOMException)) return;
+            if(e.message.includes('abort')) return;
+            alert(`Fail to save your proof${name ? ' into' + name: ''}, reason: ${e.message}`);
         }
     }
 })
