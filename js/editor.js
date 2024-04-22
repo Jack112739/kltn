@@ -308,8 +308,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 //latex formating options
-const format = {'\\itemize':'ul','\\item':'li', '\\it':'i', '\\bf':'b', '\\enumurate':'ol', '\\\\': 'br'};
-const inv_format = {'i':'\\it', 'b':'\\bf', 'li':'\\item', 'ol':'\\enumurate', 'ul':'\\itemize', 'br':'\\\\'};
+const format = {'\\itemize':'ul','\\item':'li', '\\it':'i', '\\bf':'b', '\\enumurate':'ol'};
+const inv_format = {'i':'\\it', 'b':'\\bf', 'li':'\\item', 'ol':'\\enumurate', 'ul':'\\itemize'};
 const math_delimeter = {'$$':'$$', '$':'$', '\\ref{': '}'};
 const relations = [
     ['\\implies', '\\iff'],     // logical chaining 

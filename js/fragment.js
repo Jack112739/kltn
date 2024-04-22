@@ -74,7 +74,7 @@ class Fragment {
             else if(str[j] === '{') {
                 this.parts.push({str: '{', err: 1, type: 'open'});
                 let prev = this.parts.at(-1), prev2 = this.parts.at(-2);
-                if(prev2?.type === 'fmt' && prev2.str !== 'br' && prev2.str !== 'li') {
+                if(prev2?.type === 'fmt' && prev2.str !== 'li') {
                     prev.err = 0; prev2.err = 0;
                 }
                 if(prev.err) j++;
@@ -129,7 +129,6 @@ class Fragment {
             return;
         }
         this.parts.push({str: node.nodeName.toLowerCase(), type: 'fmt', err: 0});
-        if(node.nodeName === 'BR') return;
         if(node.nodeName !== 'LI') this.parts.push({str: '{', type: 'open', err: 0});
         let it = node.firstChild;
         for(let i = 0; i < node.childNodes.length; i++) {
@@ -188,10 +187,10 @@ class Fragment {
 }
 function toString(token) {
     return  token.type === 'fmt' ? inv_format[token.str]: 
-            token.str.replaceAll('\u00a0', ' ');
+            token.str;
 }
 function map_to_html(str) {
-    const html_special = {'<':'&lt;', '>':'&gt;', '&':'&amp;', '\'':'&apos;', '\"':'&quot;', ' ':'\u00a0'};
+    const html_special = {'<':'&lt;', '>':'&gt;', '&':'&amp;', '\'':'&apos;', '\"':'&quot;'};
     let ret = '';
     for(const c of str) {
         ret += html_special[c] ?? c;

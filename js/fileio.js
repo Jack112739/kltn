@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await stream.write(FileIO.parse_children(root));
             await stream.close();
             root.rename(remove_ext(name = file_handler.name));
-            GraphUI.current_graph.switch_to(GraphUI.current_graph);
+            GraphUI.current_graph.refresh_href();
         } catch(e) {
             if(!(e instanceof DOMException)) return;
             if(e.message.includes('abort')) return;

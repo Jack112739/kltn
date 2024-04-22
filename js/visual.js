@@ -91,7 +91,7 @@ class Visual {
             if(e.ctrlKey) Visual.history_command(e.key);
         }
         auto_complete(e);
-        console.log(editor.focus_element);
+        setTimeout(Visual.scroll_if_needed, 0);
     }
     static is_text(range) {
         if(range.startContainer !== range.endContainer) return false;
@@ -148,9 +148,8 @@ class Visual {
             while(parent[sibling] === null && parent !== editor.latex) parent = parent.parentNode;
             if(parent === editor.latex) return; // do nothing
             let target = parent[sibling];
-            while(!['MJX-CONTAINER', 'BR', '#text'].includes(target.nodeName)) target=target[child];
-            if(target.nodeName === 'BR') range[setrange_relative](target);
-            else range[setrange](target, get_offset(target, !dir_left));
+            while(!['MJX-CONTAINER', '#text'].includes(target.nodeName)) target=target[child];
+            range[setrange](target, get_offset(target, !dir_left));
         }
     }
     /**@param {InputEvent} e  */
@@ -190,13 +189,7 @@ class Visual {
         if(history.buffer > 10 && history.buffer !== change_index) Visual.history_command('s');
         range.deleteContents();
         let start = range.startContainer;
-        if(start.parentNode.nodeName !== 'PRE') data = data.replaceAll(' ', '\u00a0');
-        if(data === '\n' && start.parentNode.nodeName !== 'PRE') {
-            range.insertNode(document.createElement('br'));
-            range.setStartAfter(start.nextSibling);
-            Visual.validate_selection();
-        }
-        else if(start.nodeName === '#text' && data.length > 0) {
+        if(start.nodeName === '#text' && data.length > 0) {
             let str = start.data, offset = range.startOffset;
             start.data = str.slice(0, offset) + data + str.slice(offset);
             range.setStart(start, offset + data.length);
@@ -254,6 +247,11 @@ class Visual {
             start: get_respected(image.start), startOffset: image.startOffset,
             end: get_respected(image.end), endOffset: image.endOffset
         };
+    }
+    static scroll_if_needed() {
+        let caret_bottom = editor.get_caret_position().bottom;
+        let editor_bottom = editor.latex.getBoundingClientRect().bottom;
+        if(caret_bottom > editor_bottom - 15) editor.latex.scrollTop += caret_bottom - editor_bottom;
     }
 }
 /** @param {Node} node  */

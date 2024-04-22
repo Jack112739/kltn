@@ -30,7 +30,7 @@ textarea.raw-text {
 }
 div.latex {
     flex: 4;
-    white-space: wrap;
+    white-space: pre-wrap;
     border: 1px solid grey;
     margin-bottom: 10px;
     overflow-y: auto;

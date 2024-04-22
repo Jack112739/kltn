@@ -356,9 +356,9 @@ class GraphUI {
         return names;
     }
     /**@param {String} name @returns {NodeUI?}  */
-    resolve(name, prev = null) {
+    resolve(name, prev = this) {
         let ret = this.internal_nodes.get(name);
-        if(ret && prev &&(ret.math_logic === 'referenced' || ret?.detail === prev)) ret = null;
+        if(ret && (ret.math_logic === 'referenced' || ret?.detail === prev)) ret = null;
         return ret ?? this.parent?.resolve(name, this);
     }
     get parent() {
@@ -376,6 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.MathGraph_config.all_label = new Set();
     GraphHistory.active = true;
     GraphUI.current_graph = new GraphUI(new NodeUI('playground', null));
+    GraphUI.current_graph.refresh_href();
     GraphHistory.active = false;
     document.body.appendChild(GraphUI.current_graph.html_div);
     document.onmousedown = GraphUI.highlight_unique;
