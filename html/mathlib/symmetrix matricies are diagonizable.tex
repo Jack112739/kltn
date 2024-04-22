@@ -1,0 +1,81 @@
+%% 76, 529, , 
+\label{#1}
+
+Let $S$ be a symmetrix real matrix
+%% 72, 787, , 
+\label{same kernel lemma}
+$S$ is a symmetric matrix\\$\implies $S$ \text{ and } S^n$ h​ave the same kernel for all $n$
+
+\begin{proof}
+%% 51, 315, , 
+\label{input}
+
+​a symmetrix matrix $S$
+%% 257, 258, , , input
+\label{lemma 2}
+
+$\ker S^n \subset \ker S^{n+1}$ for all $n$​
+
+\begin{proof}
+%% 107, 265, , 
+\label{#17}
+if $v$ is a vector in $\ker S^n$​
+%% 211, 614, , , #17
+\label{#18}
+​$S^{n+1}v = S(S^n v) = 0$
+%% 328, 951, , , #18
+\label{#19}
+​QED
+
+\end{proof}
+%% 231, 603, , , input, lemma 2
+\label{lemma 1}
+
+$\ker S = \ker S^2$ ​
+
+\begin{proof}
+%% 73, 833, , 
+\label{#15}
+​if $S^2v = 0$ for some $v \not = 0$ then \\$​$ $$0 = v^TS^2v = (Sv)^2 \implies Sv = 0$$
+
+undefined%% 98, 478, , , lemma 2
+\label{#14}
+​as in \ref{lemma 2} $\ker S \subset \ker S^2$
+%% 241, 620, , , #14, #15
+\label{#16}
+QED​
+
+\end{proof}
+%% 379, 624, , , lemma 2, lemma 1
+\label{#13}
+
+$\ker S \subset \ker S^n \subset \ker S^{2^n} \equiv \ker S$​
+%% 491, 935, , , #13
+\label{#11}
+
+QED​
+
+\end{proof}
+%% 75, 14, , 
+\label{eigenvectors definition}
+
+a vector $v$ is called eigenvector of the matrix $M$ \\$\iff ~ \exists \lambda \in \mathbb{C} : Mv = \lambda v$ \\the number $\lambda$ is called eigenvalue of $M$ respected to $v$
+​
+%% 246, 282, , , eigenvectors definition, #1
+\label{v_i definition}
+
+Let $\lambda_1, \lambda_2,...\lambda_n$ ​​be the eigenvalues of $S$
+%% 234, 703, , , v_i definition, #1
+\label{#6}
+
+$S - \lambda_i I$ is a symmetrix matrix for all $i$​
+%% 204, 1034, , , #6, same kernel lemma
+\label{#7}
+
+$\ker (S - \lambda_i I) \equiv \ker (S - \lambda_i I)^m$ for all $i, m$​
+%% 410, 971, , , #7
+\label{#19}
+$S$ ​​has full eigenvector
+%% 430, 670, , , #19
+\label{conclusion}
+​QED

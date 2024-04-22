@@ -151,7 +151,7 @@ class NodeUI {
     }
     /** @param {NodeUI} to */
     connect(to) {
-        if(window.graph_is_readonly) return alert("can not reference other node in readonly mode");
+        if(window.MathGraph_config.readonly) return alert("can not reference other node in readonly mode");
         if(this.graph !== GraphUI.current_graph) {
             GraphUI.current_graph.html_div.appendChild(to.html_div);
             GraphUI.current_graph.html_div.appendChild(this.html_div);
@@ -336,14 +336,13 @@ class GraphUI {
         }, {once: true});
     }
     static monitor_node_at_cursor(e) {
-        if(window.graph_is_readonly) return alert("can create or edit node in readonly mode");
         if(!e.ctrlKey) return;
+        if(window.MathGraph_config.readonly) return alert("can create or edit node in readonly mode");
 
         document.removeEventListener('click', GraphUI.monitor_node_at_cursor);
         let node = is_node_component(e.target);
         if(!node) {
-            window.counter++;
-            node = new NodeUI('#' + window.counter, GraphUI.current_graph);
+            node = new NodeUI('', GraphUI.current_graph);
             let viewpoint = document.documentElement.getBoundingClientRect();
             node.html_div.style.top = `${e.clientY - viewpoint.top}px`;
             node.html_div.style.left = `${e.clientX - viewpoint.left}px`
@@ -368,7 +367,6 @@ class GraphUI {
 
 //setup function
 document.addEventListener('DOMContentLoaded', () => {
-    window.counter = 0;
     GraphHistory.active = true;
     GraphUI.current_graph = new GraphUI(new NodeUI('playground', null));
     GraphHistory.active = false;

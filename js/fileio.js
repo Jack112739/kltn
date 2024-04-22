@@ -114,7 +114,7 @@ class FileIO {
                 now.raw_text += line;
             }
         }
-        if(cur.parent) err_msg = `missing \\end{proof}`;
+        if(cur.parent && !err_msg) err_msg = `missing \\end{proof}`;
         if(err_msg) return new Error(err_msg);
         editor.visual_mode(false);
         FileIO.compile(cur);
