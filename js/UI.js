@@ -358,7 +358,7 @@ class GraphUI {
     /**@param {String} name @returns {NodeUI?}  */
     resolve(name, prev = null) {
         let ret = this.internal_nodes.get(name);
-        if(ret && !prev &&(ret.math_logic === 'referenced' || ret?.detail === prev)) ret = null;
+        if(ret && prev &&(ret.math_logic === 'referenced' || ret?.detail === prev)) ret = null;
         return ret ?? this.parent?.resolve(name, this);
     }
     get parent() {
