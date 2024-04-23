@@ -14,6 +14,9 @@ Specification:
         v hide and show edges, remove edges
         v undo-redo option
         - have different modes (low priority)
+        - show and hide has different meaning, change the name switch_to to focus
+        - update the css-style for nodes
+        - label now is optional, instead, show their math-type
     2: the latex editor
         v automate a link if typed \ref, \cite
         v have a preview
@@ -26,6 +29,14 @@ Specification:
         v movable
         v responsive
     3: computer can understand the proof and judges wether it's true or not
+        - definition define new variables
+        - lemma is ones that can be reused like functions
+        - given is the input
+        - conclusion is the output 
+        - assumption is the same with given but the input it gives only true inside the node
+        - claim is the default one
+        - reference node will partially apeared
+        - add some keywords
         - user can explain their intention with the node further
         - every node is a "simple" mathematical arguement
     4: the website:
@@ -45,6 +56,8 @@ make the editor work
 
 automate linking math argument
 linting for typing latex
+
+
 
 make the compiler understand wether the proof is correct or not (at certain degree)
 make this a compeptitive website
