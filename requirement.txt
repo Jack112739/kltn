@@ -37,14 +37,13 @@ Specification:
             + playground which is for user playing with the graph functionality
             + a manual document on what this website provide
             + a resource page provide basic fundalmental theorem for mathematic 
-            + a problem set for user to solve them online
+            + (low) a problem set for user to solve them online
 
 Aim (sort by priority):
 make the graph fully functional
 make the editor work
 
 automate linking math argument
-vim-like editor
 linting for typing latex
 
 make the compiler understand wether the proof is correct or not (at certain degree)
