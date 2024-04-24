@@ -38,9 +38,10 @@ class Editor {
         }
         if(!node) return;
         if(this.visual_mode) this.history = {stack: new Array(), pos: 0, buffer: 0};
+        this.type.value = node.type
         this.node = node;
         this.saved = true;
-        this.name.value = node.html_div.querySelector('.header').firstChild.data;
+        this.name.value = node.id;
         this.raw.value = node.raw_text;
         this.latex.innerHTML = node.html_div.querySelector('.tex_render').innerHTML;
         this.div.style.display = "";
@@ -55,7 +56,7 @@ class Editor {
         this.div.style.display = "none";
         this.focus_element = null;
         this.node = null;
-        document.addEventListener('click', NodeUI.monitor_node_at_cursor);
+        document.addEventListener('click', UI.monitor_node_at_cursor);
     }
     save() {
         this.saved = true;
@@ -71,6 +72,8 @@ class Editor {
         this.node.raw_text = this.raw.value;
         this.node.renderer.innerHTML = this.latex.innerHTML;
         this.node.rename(this.name.value);
+        this.node.html_div.classList.remove(this.node.type);
+        this.node.html_div.classList.add(this.type.value);
         this.node.type = this.type.value;
     }
     render() {
@@ -205,9 +208,8 @@ class Editor {
         let pos = this.get_caret_position();
         let assoc = this.on_visual_mode ? this.latex : this.raw;
         assoc.addEventListener('keydown', Menu.menu_complete);
-        Menu.suggest.associate = assoc;
         Menu.suggest.change_lib(lib)
-        Menu.suggest.popup(new PointerEvent('click', {clientX: pos.x, clientY: pos.y}));
+        Menu.suggest.popup(new PointerEvent('click', {clientX: pos.x, clientY: pos.y}), assoc);
     }
 }
 /**@param {KeyboardEvent} e  */

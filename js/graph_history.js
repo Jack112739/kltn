@@ -44,13 +44,16 @@ const GraphHistory = {
             command.node.modify_name_recursive('add');
             break;
         case 'jump':
-            GraphUI.current_graph.switch_to(command.from);
+            UI.switch_to(command.from);
             break;
-        case 'connect':
-            GraphUI.delete_edge(command.from.to.get(command.to));
+        case 'edge':
+            UI.edge_option(command.edge, command.old_option, command.old_data);
+            break;
+        case 'mkede':
+            UI.remove_edge(command.from, command.to);
             break;
         case 'rmedge':
-            command.from.connect(command.to);
+            UI.make_edge(command.from, command.to);
             break;
         case 'rename':
             command.node.rename(command.old_name);
@@ -88,13 +91,20 @@ const GraphHistory = {
             command.node.remove();
             break;
         case 'jump':
-            GraphUI.current_graph.switch_to(command.to);
+            UI.switch_to(command.to);
             break;
         case 'connect':
             command.from.connect(command.to);
             break;
+        case 'edge':
+            UI.edge_option(command.edge, command.option);
+            break;
         case 'rmedge':
-            GraphUI.delete_edge(command.from.to.get(command.to));
+            UI.remove_edge(command.from, command.to);
+            break;
+        case 'mkedge':
+            UI.make_edge(command.from, command.to);
+            break;
         case 'rename':
             command.node.rename(command.name);
             break;
@@ -121,7 +131,8 @@ document.addEventListener('keydown', (e) => {
  * connect {from: NodeUI, to: NodeUI}
  * jump {from: GraphUI, to: GraphUI} 
  * edit {node: NodeUI, name: str, old_name: str, data: str, old_data: str, compose: int}
- * compose_start {count:int, data...}
- * compose_end {reason: str, data...}
+ * edge {edge: LeaderLine, option: str, old_option: str, data, old_data}
+ * mkedge {from: node, to: node}
+ * rmedge {from: node, to: node}
  */
 //TODO: rewrite resize function for Node, complete compose action

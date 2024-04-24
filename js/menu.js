@@ -10,7 +10,7 @@ class Menu {
     search = {str: null, span: []}
     /** @type {?(HTMLLIElement) => any} keyboard call back*/
     invoke;
-    /** @type {Node} */
+    /** @type {any} */
     associate = null;
 
     /**@param {HTMLUListElement | Array<String>} items , @param {?(HTMLLIElement) => any} invoke */
@@ -45,8 +45,9 @@ class Menu {
     }
 
     /**@param {PointerEvent} e  */
-    popup(e) {
+    popup(e, associate) {
         this.items.style.display = "";
+        this.associate = associate;
         document.addEventListener('click', (e) => this.hide(), {once: true, capture: true});
         let viewpoint = document.documentElement.getBoundingClientRect();
         this.items.style.left = `${e.clientX - viewpoint.left}px`;
@@ -135,41 +136,15 @@ class Menu {
     }
     static menu_complete = (e) => Menu.suggest.handle_key_event(e);
     
+    /**@type Menu? */
     static suggest = null;
-    static rightclicked = null;
-    static ref_node = null;
+    /** @type Menu? */
+    static node = null;
+    /** @type Menu? */
+    static edges = null;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    Menu.rightclicked = new Menu(document.getElementById('rightclick'));
-    let menu = Menu.rightclicked.items.childNodes;
-    menu[EDIT].onclick = (e) => editor.load(Menu.ref_node);
-    menu[MAX].onclick = (e) => Menu.ref_node.html_div.querySelector('.tex_render').style.display = "";
-    menu[MIN].onclick = (e) => Menu.ref_node.html_div.querySelector('.tex_render').style.display = "none";
-    menu[DETAIL].onclick = (e) => Menu.ref_node.html_div.ondblclick();
-    menu[REF].onclick = (e) => GraphUI.new_edge(Menu.ref_node, e);
-    menu[RENAME].onclick = (e) => {
-        if(window.graph_is_readonly) return alert('can not rename node in readonly mode');
-        if(Menu.ref_node.math_logic === 'referenced') return alert('can not edit rename referenced node');
-        let input = document.createElement('input');
-        let viewpoint  = document.documentElement.getBoundingClientRect();
-        Menu.rightclicked.items.style.display = "";
-        let position = Menu.rightclicked.highlighted.getBoundingClientRect();
-        Menu.rightclicked.hide();
-        input.className = "rename";
-        input.value = Menu.ref_node.id;
-        input.style.left = `${position.left - viewpoint.left}px`;
-        input.style.top = `${position.top - viewpoint.top }px`;
-        document.body.appendChild(input);
-        input.focus();
-        input.addEventListener('focusout', () => document.body.removeChild(input));
-        input.addEventListener('keydown', (e) => {
-            if(e.key === 'Enter') Menu.ref_node.rename(input.value), input.style.display = "none";
-        });
-    };
-    menu[REMOVE].onclick = (e) => {
-        if(window.confirm(`Do you want to delete ${Menu.ref_node.id}?`)) Menu.ref_node.remove();
-    }
     Menu.suggest = new Menu(mjx_support, (li) => {
         let insert = li.textContent, adjust = insert.length;
         if(insert.startsWith('\\begin{')) {
@@ -185,8 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(Menu.suggest.items);
 
 })
-const EDIT = 0, MIN = 1, MAX = 2, DETAIL = 3, REF = 4, RENAME = 5, REMOVE = 6;
-
 function binary_search(start, end, arr, search) {
     if(start == end) return start;
     let mid = Math.floor((start + end) / 2);

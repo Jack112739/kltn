@@ -16,13 +16,9 @@
     user-select: none;
 }
 .header {
-    min-width: 45px;
     padding: 4px;
-    height: 15px;
     text-align: center;
     color: #4edaf3;
-    font-weight: bold;
-    font-size: 20px;
 }
 #dot {
     position: absolute;
@@ -58,7 +54,7 @@ button.parent {
     padding: 1px 2px;
 }
 button.parent::after {
-    content: ' >';
+    content: ' /';
     white-space: pre;
 }
 div.toolbar {

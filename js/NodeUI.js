@@ -4,106 +4,99 @@
  */
 class NodeUI {
 
-    /**@type{string} name of the node */
+    // @type{string}
     id;
-
-    // @type{String}, The raw latex string
+    // @type{String}
     raw_text;
-    //TODO represent the logic behind the latex string, currently undefined
-    /**@type {'input' | 'output' | 'referenced'| 'lemma' | 'definition' |''} */
-    math_logic = '';
-
-    // @type{Map<NodeUI, LeaderLine>} the in-edges and out-edges of this node
-    from; to;
-
+    /**@type {'claim' | 'definition' | 'given'| 'result' | 'lemma'} */
+    type
+    // @type{Map<NodeUI, LeaderLine>}
+    from;
+    // @type{Map<NodeUI, LeaderLine>}
+    to;
     // @type{bool}, true if the node is highlight
     highlighted;
-
-    /** @type{GraphUI} the detail of the proof presented in this node if needed */
+    /** @type{Set<NodeUI>} the detail of the proof presented in this node if needed */
     childs;
-
+    /**@type NodeUI */
+    parent;
     // @type{HTMLDivElement} the HTML element respected to this node
     html_div;
 
-    constructor(id, graph) {
-        this.id = id;
-        if(id.includes('definition:')) this.math_logic = 'definition';
-        else if(id.includes('lemma:') || id.includes('theorem')) this.math_logic = 'lemma';
+    /**@param {NodeUI} parent  */
+    constructor(parent) {
+        this.id = null;
         this.raw_text = "";
+        this.type = 'claim';
         this.from = new Map();
         this.to = new Map();
         this.highlighted = false;
-        //TODO: initialize the detail of this node
-        this.detail = null;
-        this.graph = graph;
-        
+        this.childs = new Set();
+        this.parent = parent;
         this.html_div = document.createElement('div');
-        this.html_div.className = "node";
-        this.html_div.insertAdjacentHTML('beforeend', `
-            <div class="header">${map_to_html(id)}</div>
+        this.html_div.className = "node claim";
+        this.html_div.innerHTML = `
+            <h3 class="header"></h3>
             <div class="tex_render"></div>
-        `);
-    
-        window.MathGraph.all_label.add(this.id);
-        graph?.internal_nodes.set(this.id, this);
-        graph?.html_div.appendChild(this.html_div);
+            <div class="children"></div>
+        `
 
-        this.html_div.onmousedown = (e) => {
-            //check for resize event
-            let rect = this.html_div.getBoundingClientRect(), click = true;
-            if(rect.bottom < e.clientY + 8 && rect.right < e.clientX + 8) return;
-            e.preventDefault();
-            let relative_x = this.html_div.offsetLeft - e.clientX;
-            let relative_y = this.html_div.offsetTop - e.clientY;
-            document.body.style.cursor = "grab";
-
-            document.onmousemove = (e) => {
-                document.body.style.cursor = "grabbing";
-                click = false;
-                this.html_div.style.left = e.clientX + relative_x + "px";
-                this.html_div.style.top = e.clientY + relative_y + "px";
-                for(let [_, in_edges] of this.from) in_edges.position();
-                for(let [_, out_edges] of this.to) out_edges.position();
-            }
-        
-            document.onmouseup = (e) => {
-                let new_rect = this.html_div.getBoundingClientRect();
-                if(!click) GraphHistory.register('move', {node: this, from: rect, to: new_rect});
-                document.body.style.cursor = "";
-                document.onmousemove = null;
-                document.onmouseup = null;
-            }
-        }
+        this.html_div.onmousedown = (e) => this.start_dragging(e);
         this.html_div.ondblclick = (e) => {
-            if(!['lemma', 'referenced', ''].includes(this.math_logic)) {
-                return alert(`this type of node dont have further explaination`);
-            }
-            if(this.detail === null) {
-                if(this.math_logic === 'referenced') {
-                    let ref_node = this.graph.resolve(this.id);
-                    if(!ref_node) return alert(`the node named ${this.id} has been deleted`);
-                    else return ref_node.html_div.ondblclick();
-                }
-                this.detail = new GraphUI(this);
-            }
-            GraphUI.current_graph.switch_to(this.detail);
+            let err = this.maximize();
+            if(err) alert('can not maximize node of type ' + this.type);
         }
-        this.html_div.oncontextmenu = (e) => {
-            e.preventDefault();
-            Menu.ref_node = this;
-            let menu = Menu.rightclicked.items.childNodes;
-            if(this.renderer.style.display === "none") {
-                menu[MIN].style.display = "none";
-                menu[MAX].style.display = "";
-            }
-            else {
-                menu[MAX].style.display = "none";
-                menu[MIN].style.display = "";
-            }
-            Menu.rightclicked.popup(e);
-        }
+        this.html_div.oncontextmenu = (e) => this.open_context_menu(e);
         this.html_div.assoc_node = this;
-        GraphHistory.register('create', {node: this, graph: graph});
+        GraphHistory.register('create', {node: this});
+    }
+    open_context_menu(e) {
+        e.preventDefault();
+        let menu = Menu.node.items.childNodes;
+        if(this.renderer.style.display === "none") {
+            menu[MIN].style.display = "none";
+            menu[MAX].style.display = "";
+        }
+        else {
+            menu[MAX].style.display = "none";
+            menu[MIN].style.display = "";
+        }
+        Menu.rightclicked.popup(e, this);
+    }
+    start_dragging(e) {
+        let reposition, dragging, rect = this.html_div.getBoundingClientRect();;
+        document.addEventListener('mousemove', reposition = (e) => {
+            for(let [_, in_edges] of this.from) in_edges.position();
+            for(let [_, out_edges] of this.to) out_edges.position();
+        });
+        document.addEventListener('mouseup', (e) => {
+            document.removeEventListener('mousemove', reposition);
+        }, {once: true});
+
+        //check for resize event and if the clicked place is dragable
+        if(rect.bottom < e.clientY + 8 && rect.right < e.clientX + 8) return;
+        e.preventDefault();
+        let relative_x = this.html_div.offsetLeft - e.clientX;
+        let relative_y = this.html_div.offsetTop - e.clientY;
+        document.body.style.cursor = "grab";
+
+        document.addEventListener('mousemove', dragging = (e) => {
+            document.body.style.cursor = "grabbing";
+            this.html_div.style.left = e.clientX + relative_x + "px";
+            this.html_div.style.top = e.clientY + relative_y + "px";
+        });
+        document.addEventListener('mouseup', (e) => {
+            let new_rect = this.html_div.getBoundingClientRect();
+            document.removeEventListener('mousemove', dragging);
+            if(document.body.style.cursor !== "grab") GraphHistory.register('move', {from:rect, to:new_rect});
+            document.body.style.cursor = "";
+        }, {once: true});
+    }
+    minimize() {
+
+    }
+    maximize() {
+
     }
     remove() {
         this.modify_name_recursive('delete')
@@ -115,39 +108,22 @@ class NodeUI {
             id.from.delete(this);
             line.remove();
         }
-        this.graph.html_div.removeChild(this.html_div);
-        this.graph.internal_nodes.delete(this.id);
+        this.parent.child_div.removeChild(this.html_div);
         GraphHistory.register('remove', {node: this});
     }
-    get parent() {
-        return this.graph?.summary;
-    }
-    /** @param {String} name @returns {String | null} */
+    /** @param {String} name @returns {String | undefined} */
     rename(name) {
-        
-    }
-    /** @param {NodeUI} to */
-    connect(to) {
-        if(to === this) return;
-        if(window.MathGraph.readonly) return alert("can not reference other node in readonly mode");
-        if(this.graph !== GraphUI.current_graph) {
-            GraphUI.current_graph.html_div.appendChild(to.html_div);
-            GraphUI.current_graph.html_div.appendChild(this.html_div);
-        }
-        let line = new LeaderLine(this.html_div, to.html_div, {path: 'straight', size: 3});
-        document.body.lastChild.querySelector('path').onclick = (e) => this.edit_edge(e, line);
-        this.to.set(to, line);
-        to.from.set(this, line);
-        if(this.graph !== GraphUI.current_graph) {
-            this.graph.html_div.appendChild(to.html_div);
-            this.graph.html_div.appendChild(this.html_div);
-            line.hide('none');
-        }
-        GraphHistory.register('connect', {from: this, to: to});
+        if(name === this.id) return;
+        if(name && window.MathGraph.all_label.get(name)) return `label ${name} has already exist`;
+        GraphHistory.register('rename', {name: name, old_name: this.id});
+        if(this.id) window.MathGraph.all_label.delete(this.id); 
+        if(name) window.MathGraph.all_label.set(name, this);
+        this.id = name;
+        this.html_div.querySelector('.header').textContent = name;
     }
     /**@param {String} link */
     reference(link) {
-        
+        throw new Error('this feature has not been implemented');
     }
     get renderer() {
         return this.html_div.querySelector('.tex_render');
@@ -156,4 +132,44 @@ class NodeUI {
         if(!this.parent) return this;
         return this.parent.root;
     }
+    get child_div() {
+        if(!this.parent) return document.querySelector('.graph');
+        return this.html_div.querySelector('.children');
+    }
+    get is_maximize() {
+        return this.html_div.classList.contains('maximized');
+    }
 }
+function is_node_component(elem) {
+    while(elem && !elem.assoc_node) elem = elem.parentNode;
+    return elem?.assoc_node;
+}
+document.addEventListener('DOMContentLoaded', (e) => {
+    const EDIT = 0, MIN = 1, MAX = 2, DETAIL = 3, REF = 4, RENAME = 5, REMOVE = 6;
+    Menu.node = new Menu(document.getElementById('rightclick'));
+    let menu = Menu.node.items.childNodes;
+    menu[EDIT].onclick = (e) => editor.load(Menu.node.associate);
+    menu[MAX].onclick = (e) => UI.signal(Menu.node.associate.maximize());
+    menu[MIN].onclick = (e) => Menu.node.associate.minimize();
+    menu[DETAIL].onclick = (e) => UI.focus(Menu.node.associate)
+    menu[REF].onclick = (e) => UI.new_edge(Menu.node.associate, e);
+    menu[RENAME].onclick = (e) => {
+        let input = document.createElement('input');
+        let viewpoint  = document.documentElement.getBoundingClientRect();
+        let position = Menu.node.highlighted.getBoundingClientRect();
+        input.className = "rename";
+        input.value = Menu.node.associate.id;
+        input.style.left = `${position.left - viewpoint.left}px`;
+        input.style.top = `${position.top - viewpoint.top }px`;
+        document.body.appendChild(input);
+        input.focus();
+        input.addEventListener('focusout', () => document.body.removeChild(input));
+        input.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter') UI.signal(Menu.ref_node.rename(input.value)), input.style.display = "none";
+        });
+        Menu.node.hide();
+    };
+    menu[REMOVE].onclick = (e) => {
+        if(window.confirm(`Do you want to delete this node?`)) Menu.node.associate.remove();
+    }
+});
