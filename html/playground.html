@@ -18,7 +18,7 @@
       if(type === "resize") return;
       window.originalAddEventListener(type, handler, options);
     }
-    window.MathGraph_config = {readonly: false};
+    window.MathGraph = {readonly: false};
   </script>
   <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
   <script src="../dependency/leader-line.min.js"></script>
@@ -47,7 +47,7 @@
     <li class="edit"> <i class="fa-solid fa-gear"></i> Edit </li>
     <li class="min"> <i class="fa-solid fa-window-minimize"></i> Minimize </li>
     <li class="max"> <i class="fa-solid fa-window-maximize"></i> Maximize </li>
-    <li class="detail"> <i class="fa-solid fa-magnifying-glass"></i> Show details </li>
+    <li class="detail"> <i class="fa-solid fa-magnifying-glass"></i> focus </li>
     <li class="ref"> <i class="fa-solid fa-link"></i> Reference to </li>
     <li class="rename"> <i class="fa-solid fa-tag"></i> Rename</li>
     <li class="remove"> <i class="fa-solid fa-trash"></i> Remove </li>
@@ -63,14 +63,21 @@
       <button class="download" title="save to file"><i class="fa-solid fa-download"></i></button>
       <button class="undo" title="undo action"><i class="fa-solid fa-undo"></i></button>
       <button class="redo" title="redo action"><i class="fa-solid fa-redo"></i></button>
-      <button class="hide" title="show hidden edges"><i class="fa-solid fa-eye"></i></button>
+      <button class="config" title="configuration"><i class="fa-solid fa-gear"></i></button>
     </div>
   </div>
   <div id="dot"></div>
   <div id="editor" style="display: none;">
     <div class="settings">
       <div class="row">
-        <label class="name"> Name: </label> 
+        <select class="math-type">
+          <option>define</option>
+          <option>claim</option>
+          <option>lemma</option>
+          <option>given</option>
+          <option>result</option>
+          <option>using</option>
+        </select>
         <input type="text" class="name" spellcheck="false">
         <button class="del"><i class="fa-solid fa-trash"></i></button>
         <button class="save"><i class="fa-solid fa-floppy-disk"></i></button>

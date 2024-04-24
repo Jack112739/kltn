@@ -29,12 +29,12 @@ Specification:
         v movable
         v responsive
     3: computer can understand the proof and judges wether it's true or not
-        - definition define new variables
+        - define define new variables / terms
         - lemma is ones that can be reused like functions
         - given is the input
-        - conclusion is the output 
-        - assumption is the same with given but the input it gives only true inside the node
+        - result is the output 
         - claim is the default one
+        - using reference other
         - reference node will partially apeared
         - add some keywords
         - user can explain their intention with the node further

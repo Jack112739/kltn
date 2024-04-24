@@ -47,7 +47,7 @@ class NodeUI {
             <div class="tex_render"></div>
         `);
     
-        window.MathGraph_config.all_label.add(this.id);
+        window.MathGraph.all_label.add(this.id);
         graph?.internal_nodes.set(this.id, this);
         graph?.html_div.appendChild(this.html_div);
 
@@ -123,7 +123,7 @@ class NodeUI {
         for(const [_, child] of this.detail?.internal_nodes ?? []) {
             child.modify_name_recursive(op);
         }
-        if(this.math_logic !== 'referenced') window.MathGraph_config.all_label[op](this.id);
+        if(this.math_logic !== 'referenced') window.MathGraph.all_label[op](this.id);
     }
     remove() {
         this.modify_name_recursive('delete')
@@ -145,7 +145,7 @@ class NodeUI {
     /** @param {String} name  */
     rename(name) {
         if(name === this.id) return;
-        let all_label = window.MathGraph_config.all_label;
+        let all_label = window.MathGraph.all_label;
         if(all_label.has(name)) {
             return alert(`there already is another node with name ${name}`);
         }
@@ -162,7 +162,7 @@ class NodeUI {
     /** @param {NodeUI} to */
     connect(to) {
         if(to === this) return;
-        if(window.MathGraph_config.readonly) return alert("can not reference other node in readonly mode");
+        if(window.MathGraph.readonly) return alert("can not reference other node in readonly mode");
         if(this.graph !== GraphUI.current_graph) {
             GraphUI.current_graph.html_div.appendChild(to.html_div);
             GraphUI.current_graph.html_div.appendChild(this.html_div);
@@ -337,7 +337,7 @@ class GraphUI {
     }
     static monitor_node_at_cursor(e) {
         if(!e.ctrlKey) return;
-        if(window.MathGraph_config.readonly) return alert("can create or edit node in readonly mode");
+        if(window.MathGraph.readonly) return alert("can create or edit node in readonly mode");
 
         document.removeEventListener('click', GraphUI.monitor_node_at_cursor);
         let node = is_node_component(e.target);
@@ -368,12 +368,12 @@ class GraphUI {
 
 function get_random_name() {
     let counter = 0;
-    while(window.MathGraph_config.all_label.has('#' + counter)) counter++;
+    while(window.MathGraph.all_label.has('#' + counter)) counter++;
     return '#' + counter;
 }
 //setup function
 document.addEventListener('DOMContentLoaded', () => {
-    window.MathGraph_config.all_label = new Set();
+    window.MathGraph.all_label = new Set();
     GraphHistory.active = true;
     GraphUI.current_graph = new GraphUI(new NodeUI('playground', null));
     GraphUI.current_graph.refresh_href();
@@ -383,13 +383,4 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', GraphUI.monitor_node_at_cursor);
     document.querySelector('.undo').onclick = () => GraphHistory.undo();
     document.querySelector('.redo').onclick = () => GraphHistory.redo();
-    document.querySelector('.hide').onclick = (e) => {
-        let button = document.querySelector('.hide');
-        let on = button.querySelector('.fa-eye'), effect = e.isTrusted ? 'fade' : 'none';
-        button.firstChild.className = on ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
-        button.setAttribute('title', on ? 'hide all selected edges': 'show hidden edges');
-        for(const line of GraphUI.current_graph.hidden_edges) {
-            on ? line.show(effect) : line.hide(effect);
-        }
-    };
 });
