@@ -55,7 +55,7 @@ class Editor {
         this.div.style.display = "none";
         this.focus_element = null;
         this.node = null;
-        document.addEventListener('click', GraphUI.monitor_node_at_cursor);
+        document.addEventListener('click', NodeUI.monitor_node_at_cursor);
     }
     save() {
         this.saved = true;
