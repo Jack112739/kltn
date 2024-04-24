@@ -146,10 +146,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let file = e.target.files[0];
         let reader = new FileReader();
         reader.onload = (e1) => {
-            if(!file.name.endsWith('.tex')) return alert('Can only upload proof stored in .tex file');
+            if(!file.name.endsWith('.tex')) return UI.signal('Can only upload proof stored in .tex file');
             let replace = FileIO.parse_file(e1.target.result, file.name);
             e.target.value = "";
-            if(replace instanceof Error) return alert(replace.message);
+            if(replace instanceof Error) return UI.signal(replace.message);
             GraphUI.current_graph.switch_to(replace);
             GraphHistory.stack = [];
             GraphHistory.position = 0;
@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(e) {
             if(!(e instanceof DOMException)) return;
             if(e.message.includes('abort')) return;
-            alert(`Fail to save your proof${name ? ' into' + name: ''}, reason: ${e.message}`);
+            UI.signal(`Fail to save your proof${name ? ' into' + name: ''}, reason: ${e.message}`);
         }
     }
 })

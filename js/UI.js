@@ -70,7 +70,7 @@ class UI {
         editor.load(node);
     }
     static signal(str) {
-        if(str) window.alert(str);
+        if(str) alert(str);
     }
 }
 //setup function

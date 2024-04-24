@@ -32,9 +32,9 @@ class Editor {
 
     /** @param {NodeUI} node  */
     load(node) {
-        if(window.MathGraph.readonly) return alert("can not edit node in readonly mode");
+        if(window.MathGraph.readonly) return UI.signal("can not edit node in readonly mode");
         if(node.math_logic === 'input' || node.math_logic === 'output' || node.math_logic === 'referenced') {
-            return alert(`can not edit node of type ${node.math_logic}`);
+            return UI.signal(`can not edit node of type ${node.math_logic}`);
         }
         if(!node) return;
         if(this.visual_mode) this.history = {stack: new Array(), pos: 0, buffer: 0};
@@ -162,7 +162,7 @@ class Editor {
             break;
         case 'a':
             let search_for = relations.find(arr => arr.some(str => selected.includes(str)));
-            if(!search_for) { alert('no relation found'); return; }
+            if(!search_for) { UI.signal('no relation found'); return; }
             // = can also be used in those type of comparison
             if(search_for[0] !== '\\implies') search_for.push('=');
 
@@ -252,6 +252,8 @@ function auto_complete(e) {
 /**@param {MouseEvent} e  */
 function drag_editor(e) {
     if(!e.target.parentNode.classList.contains('settings')) return;
+    e.stopPropagation();
+    e.preventDefault();
     document.body.style.cursor = "grab";
     let relative_x = editor.div.offsetLeft - e.clientX;
     let relative_y = editor.div.offsetTop - e.clientY;

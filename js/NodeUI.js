@@ -25,7 +25,7 @@ class NodeUI {
 
     /**@param {NodeUI} parent  */
     constructor(parent) {
-        this.id = null;
+        this.id = '';
         this.raw_text = "";
         this.type = 'claim';
         this.from = new Map();
@@ -39,8 +39,7 @@ class NodeUI {
             <h3 class="header"></h3>
             <div class="tex_render"></div>
             <div class="children"></div>
-        `
-
+        `;
         this.html_div.onmousedown = (e) => this.start_dragging(e);
         this.html_div.ondblclick = (e) => {
             let err = this.maximize();

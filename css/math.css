@@ -1,0 +1,67 @@
+.claim {
+    background-color: #1E1E2E;
+}
+.lemma {
+    font-style: italic;
+    font-family: cursive;
+    font-size: 14px;
+    background-color: #252900
+}
+.given {
+    background-color: #0f1f11;
+}
+.result {
+    background-color: #270000;
+    font-weight: bold;
+}
+.define {
+    background-color: #0f1f11;
+    border-width: 2px;
+    border-color: white;
+    font-style: italic;
+}
+.using {
+    border-style: dotted;
+}
+.using > .header {
+    color: rgb(200, 56, 236);
+}
+.result > .header {
+    text-decoration: underline;
+}
+.zoom > .children {
+    display: block;
+    z-index: 5;
+    box-sizing: content-box;
+    border: 2px dashed #D9E0EE;
+    border-radius: 25px;
+    resize: both;
+    animation: zoom-out 0.5s;
+}
+.zoom > .tex_render {
+    box-sizing: border-box;
+    z-index: 0;
+    resize: none;
+    text-align: center;
+}
+.zoom > .header {
+    display: none;
+}
+.node.zoom {
+    border: none;
+    z-index: 0;
+}
+@keyframes zoom-out {
+    0% {
+        transform: scaleY(0);
+    }
+    100% {
+        transform: scaleY(1);
+    }
+}
+@keyframes zoom-in {
+    0% {
+        transform: scaleY(1);
+        transform: scaleY(0);
+    }
+}

@@ -5,7 +5,12 @@
     padding: 5px;
     overflow-y: auto;
     resize: both;
-    font-size: 14px;
+    font-size: 16px;
+    color: #D9E0EE;
+    user-select: none;
+}
+.children {
+    display: none;
 }
 .node {
     box-sizing: content-box;
@@ -13,12 +18,14 @@
     z-index: 9;
     border: 1px solid #96CDFB;
     border-radius: 10px;
-    user-select: none;
 }
 .header {
-    padding: 4px;
+    margin: 5px;
     text-align: center;
     color: #4edaf3;
+    font-style: normal;
+    font-size: 20px;
+    font-family: serif;
 }
 #dot {
     position: absolute;
@@ -31,7 +38,7 @@
     border-color: rgb(78, 95, 255);
 }
 .leader-line {
-    z-index: 5;
+    z-index: 7;
 }
 .leader-line path {
     pointer-events: all;
