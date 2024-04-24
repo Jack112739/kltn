@@ -58,10 +58,9 @@ const GraphHistory = {
         case 'edit':
             command.node.raw_text = command.old_data;
             command.node.renderer.innerHTML = command.old_html;
+            command.node.rename(command.old_name);
+            command.node.type = command.old_type;
             break;
-        case 'compose_end':
-            this.position--;
-            while(this.stack[this.position - 1].type !== 'compose_start') this.undo();
         }
         this.active = false;
         this.position--;
@@ -102,10 +101,9 @@ const GraphHistory = {
         case 'edit':
             command.node.renderer.innerHTML = command.html;
             command.node.raw_text = command.data;
+            command.node.rename(command.name);
+            command.node.type = command.type;
             break;
-        case 'compose_start':
-            this.position++;
-            while(this.stack[this.position].type !== 'compose_end') this.redo();
         }
         this.position++;
         this.active = false;

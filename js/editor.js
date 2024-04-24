@@ -8,6 +8,8 @@ class Editor {
     div;
     /**@type {HTMLInputElement} name of the node */
     name;
+    /**@type {HTMLSelectElement} math type of the node */
+    type;
     /** @type {NodeUI} The node currently being edited */
     node;
     /**@type {HTMLTextAreaElement} raw text input field*/
@@ -35,8 +37,6 @@ class Editor {
             return alert(`can not edit node of type ${node.math_logic}`);
         }
         if(!node) return;
-        GraphUI.current_graph.highlighting = null;
-        node.highlight();
         if(this.visual_mode) this.history = {stack: new Array(), pos: 0, buffer: 0};
         this.node = node;
         this.saved = true;
@@ -47,40 +47,31 @@ class Editor {
     }
     
     close() {
-        if(!this.saved && !window.confirm('Close without saving changes ?')) return;
+        let is_save = this.saved && this.type.value === this.node.type && this.name.value == this.node.id;
+        if(!is_save && !window.confirm('Close without saving changes ?')) return;
         this.raw.value = "";
         this.name.value = "";
         this.latex.innerHTML = "";
         this.div.style.display = "none";
         this.focus_element = null;
-        this.node.fade();
+        this.node = null;
         document.addEventListener('click', GraphUI.monitor_node_at_cursor);
     }
     save() {
         this.saved = true;
         if(!this.on_visual_mode) this.render();
         else this.inverse_render();
-        GraphHistory.register('compose_start', {reason: 'edit', node: this.node});
-        for(const ref of this.node.renderer.querySelectorAll('mjx-container.ref')) {
-            let ref_node = this.node.graph.internal_nodes.get(ref.firstChild.data);
-            GraphUI.delete_edge(ref_node.to.get(this.node));
-        }
-        for(const ref of this.latex.querySelectorAll('mjx-container.ref')) {
-            let ref_name = ref.firstChild.data;
-            if(ref_name === this.name.value|| !this.node.reference(ref_name)) {
-                ref.insertAdjacentHTML('afterend', `<pre class="err">${ref.lastChild.textContent}</pre>`);
-                ref.parentNode.removeChild(ref);
-            }
-        }
         GraphHistory.register('edit', {
             node: this.node,
             data: this.raw.value, old_data: this.node.raw_text,
-            html: this.latex.innerHTML, old_html: this.node.renderer.innerHTML
+            html: this.latex.innerHTML, old_html: this.node.renderer.innerHTML,
+            name: this.name.value, old_name: this.node.id,
+            type: this.type.value, old_type: this.node.type
         });
         this.node.raw_text = this.raw.value;
-        this.node.rename(this.name.value);
         this.node.renderer.innerHTML = this.latex.innerHTML;
-        GraphHistory.register('compose_end', {reason: 'edit', node: this.node});
+        this.node.rename(this.name.value);
+        this.node.type = this.type.value;
     }
     render() {
         this.latex.innerHTML = '';
@@ -98,8 +89,8 @@ class Editor {
     del() {
         if(!window.confirm('Do you want to delete this node ?')) return;
         this.saved = true;
-        this.close();
         this.node.remove();
+        this.close();
     }
     /**@param {boolean} visual  */
     visual_mode(visual) {
@@ -284,6 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.name = editor.div.querySelector('input.name');
     editor.raw = editor.div.querySelector('.raw-text');
     editor.latex = editor.div.querySelector('.latex');
+    editor.type = editor.div.querySelector('.math-type');
     
     editor.div.querySelector('.close').onclick = () => editor.close();
     editor.div.querySelector('.save').onclick = () => editor.save();
