@@ -55,7 +55,6 @@ class UI {
         if(!e.ctrlKey) return;
         if(window.MathGraph.readonly) return alert("can create or edit node in readonly mode");
 
-        document.removeEventListener('click', UI.monitor_node_at_cursor);
         let node = is_node_component(e.target);
         if(!node || node.is_maximize) {
             let parent = node ? node : window.MathGraph.current;

@@ -8,8 +8,6 @@ class Editor {
     div;
     /**@type {HTMLInputElement} name of the node */
     name;
-    /**@type {HTMLSelectElement} math type of the node */
-    type;
     /** @type {NodeUI} The node currently being edited */
     node;
     /**@type {HTMLTextAreaElement} raw text input field*/
@@ -26,7 +24,7 @@ class Editor {
      * user type more than 10 key stroke in a single pre
      * changing from pre to html and vice versa
      * this only work in visual mode
-     * {stack: Array<div, range>, pos: int, buffer: int}
+     * @type{stack: Array<div, range>, pos: int, buffer: int}
     */
     history
 
@@ -40,7 +38,8 @@ class Editor {
         this.name.value = node.header.textContent;
         this.raw.value = node.raw_text;
         this.latex.innerHTML = node.html_div.querySelector('.tex_render').innerHTML;
-        this.div.style.display = "";
+        this.div.style.animation = "reveal 0.5s ease"
+        this.div.parentNode.style.display = "block";
     }
     
     close() {
@@ -49,10 +48,9 @@ class Editor {
         this.raw.value = "";
         this.name.value = "";
         this.latex.innerHTML = "";
-        this.div.style.display = "none";
+        this.div.parentNode.style.display = "";
         this.focus_element = null;
         this.node = null;
-        document.addEventListener('click', UI.monitor_node_at_cursor);
     }
     save() {
         this.saved = true;
@@ -248,20 +246,18 @@ function drag_editor(e) {
     if(!e.target.parentNode.classList.contains('settings')) return;
     e.stopPropagation();
     e.preventDefault();
-    document.body.style.cursor = "grab";
     let relative_x = editor.div.offsetLeft - e.clientX;
-    let relative_y = editor.div.offsetTop - e.clientY;
+    let relative_y = editor.div.offsetTop - e.clientY, move;
 
-    document.onmousemove = (e) => {
+    document.addEventListener('mousemove', move = (e) => {
         document.body.style.cursor = "grabbing";
         editor.div.style.left = e.clientX + relative_x + "px";
         editor.div.style.top = e.clientY + relative_y + "px";
-    }
-    document.onmouseup = (e) => {
+    });
+    document.addEventListener('mouseup', (e) => {
         document.body.style.cursor = "";
-        document.onmousemove = null;
-        document.onmouseup = null;
-    }
+        document.removeEventListener('mousemove', move);
+    }, {once: true});
 }
 
 /**@type {Editor} */

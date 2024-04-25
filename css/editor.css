@@ -48,6 +48,7 @@ div.latex {
     gap: 7px;
     margin: 7px;
     justify-content: flex-start;
+    cursor: grab;
 }
 .row button {
     height: 25px;
@@ -124,5 +125,23 @@ mjx-container.ref :hover {
     }
     #editor input.name {
         margin-right: 0;
+    }
+}
+.overlay {
+    position: fixed;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 100;
+}
+@keyframes reveal {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
     }
 }

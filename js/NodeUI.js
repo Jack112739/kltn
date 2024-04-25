@@ -60,7 +60,7 @@ class NodeUI {
     start_reshape(e) {
         let cursor = this.get_cursor(e);
         if(cursor === 'text') return;
-        this.toggle_highlight(true);
+        this.toggle_highlight();
 
         let rect = this.html_div.getBoundingClientRect(), new_rect = null;
         let rel_x =  rect.x -  e.clientX;
@@ -70,15 +70,13 @@ class NodeUI {
             for(const [_, line] of this.from) line.position();
             for(const [_, line] of this.to) line.position();
             if(cursor != 'resize') {
-                document.body.style.cursor = "grabbing";
                 this.html_div.style.left = (this.html_div.offsetLeft - new_rect.x + e.clientX + rel_x) + "px";
                 this.html_div.style.top = (this.html_div.offsetTop - new_rect.y + e.clientY + rel_y) + "px";
             }
         };
         document.addEventListener('mousemove',reshape);
         document.addEventListener('mouseup', (e) => {
-            this.toggle_highlight(false);
-            document.body.style.cursor = "";
+            this.toggle_highlight();
             document.removeEventListener('mousemove', reshape);
             if(new_rect) GraphHistory.register('move', {from:rect, to:new_rect});
         }, {once: true});
@@ -111,6 +109,7 @@ class NodeUI {
         if(!opt) setTimeout(() => this.html_div.classList.remove('zoom'), 202);
     }
     toggle_highlight(opt, manual) {
+        if(this.html_div.classList.contains('manual')) return;
         this.html_div.classList.toggle('highlighted', opt);
         if(manual) this.html_div.classList.toggle('manual', opt);
     }
@@ -202,6 +201,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
     Menu.node = new Menu(document.getElementById('rightclick'));
     let menu = Menu.node.items.childNodes;
     menu[EDIT].onclick = (e) => editor.load(Menu.node.associate);
+    menu[HIGHTLIGHT].onclick = (e) => Menu.node.associate.toggle_highlight(undefined, true);
     menu[MAX].onclick = (e) => UI.signal(Menu.node.associate.toggle_detail(true));
     menu[MIN].onclick = (e) => Menu.node.associate.toggle_detail(false);
     menu[DETAIL].onclick = (e) => UI.focus(Menu.node.associate)
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
     }
 });
 
-const EDIT = 0, MIN = 1, MAX = 2, DETAIL = 3, REF = 4, RENAME = 5, REMOVE = 6;
+const EDIT = 0, HIGHTLIGHT = 1, MIN = 2, MAX = 3, DETAIL = 4, REF = 5, RENAME = 6, REMOVE = 7;
 const hints = {
     'given': ['assume', 'given', 'in case', 'otherwise', 'assumption'],
     'result': ['QED', 'result', 'contradiction', 'conclusion'],
