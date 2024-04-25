@@ -17,37 +17,41 @@
 .define {
     background-color: #0f1f11;
     border-width: 2px;
-    border-color: white;
     font-style: italic;
 }
-.using {
+.refer {
     border-style: dotted;
 }
-.using > .header {
-    color: rgb(200, 56, 236);
+.refer > .header {
+    font-weight: 600;
+    font-style: italic;
 }
 .result > .header {
     text-decoration: underline;
 }
 .zoom > .children {
     display: block;
-    z-index: 5;
     box-sizing: content-box;
     border: 2px dashed #D9E0EE;
     border-radius: 25px;
     resize: both;
-    animation: zoom-out 0.5s;
+    min-width: 300px;
+    min-height: 300px;
+    position: relative;
+    overflow: hidden;
 }
 .zoom > .tex_render {
     box-sizing: border-box;
-    z-index: 0;
+    z-index: 5;
     resize: none;
     text-align: center;
+    overflow-y: hidden;
 }
 .zoom > .header {
     display: none;
 }
-.node.zoom {
+.zoom {
+    background-color: transparent;
     border: none;
     z-index: 0;
 }
@@ -62,6 +66,8 @@
 @keyframes zoom-in {
     0% {
         transform: scaleY(1);
+    }
+    100% {
         transform: scaleY(0);
     }
 }

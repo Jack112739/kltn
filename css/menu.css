@@ -36,9 +36,9 @@
     font-family: inherit;
 }
 input.rename {
-    position: absolute;
     background-color: #262644;
     color: #4edaf3;
+    font-weight: bold;
     border: 2px solid;
     border-radius: 2px;
 }

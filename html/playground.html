@@ -32,6 +32,8 @@
     html, body {
       height: 100%;
       background-color: #1E1E2E;
+      display: flex;
+      flex-direction: column;
     }
   </style>
   <script async src="../dependency/mjx_support.js"></script>
@@ -49,36 +51,16 @@
     <li class="edit"> <i class="fa-solid fa-gear"></i> Edit </li>
     <li class="min"> <i class="fa-solid fa-window-minimize"></i> Minimize </li>
     <li class="max"> <i class="fa-solid fa-window-maximize"></i> Maximize </li>
-    <li class="detail"> <i class="fa-solid fa-magnifying-glass"></i> See details </li>
+    <li class="detail"> <i class="fa-solid fa-magnifying-glass"></i> Focus on </li>
     <li class="ref"> <i class="fa-solid fa-link"></i> Reference to </li>
     <li class="rename"> <i class="fa-solid fa-tag"></i> Rename</li>
     <li class="remove"> <i class="fa-solid fa-trash"></i> Remove </li>
   </ul>
-  <div style="display: flex;">
-    <a href="../index.html">
-      <button class="parent" title="return to home page"><i class="fa-solid fa-home"></i></button>
-    </a>
-    <div id="href"></div>
-    <div class="toolbar">
-      <input type="file" id="uploader" hidden>
-      <button class="upload" title="upload from file"><i class="fa-solid fa-upload"></i></button>
-      <button class="download" title="save to file"><i class="fa-solid fa-download"></i></button>
-      <button class="undo" title="undo action"><i class="fa-solid fa-undo"></i></button>
-      <button class="redo" title="redo action"><i class="fa-solid fa-redo"></i></button>
-      <button class="config" title="configuration"><i class="fa-solid fa-gear"></i></button>
-    </div>
-  </div>
   <div id="dot"></div>
   <div id="editor" style="display: none;">
     <div class="settings">
       <div class="row">
-        <select class="math-type">
-          <option>define</option>
-          <option>claim</option>
-          <option>lemma</option>
-          <option>given</option>
-          <option>result</option>
-        </select>
+        <label class="name">Name: </label>
         <input type="text" class="name" spellcheck="false">
         <button class="del"><i class="fa-solid fa-trash"></i></button>
         <button class="save"><i class="fa-solid fa-floppy-disk"></i></button>
@@ -98,5 +80,19 @@
     <div class="row"> <label> Preview:</label> <i class="load fa-solid fa-spinner fa-spin"></i> </div>
     <div class="text-view latex" spellcheck="false"></div>
   </div>
-</body>  
+  <div style="display: flex;">
+    <a href="../index.html">
+      <button class="parent" title="return to home page"><i class="fa-solid fa-home"></i></button>
+    </a>
+    <div id="href"></div>
+    <div class="toolbar">
+      <input type="file" id="uploader" hidden>
+      <button class="upload" title="upload from file"><i class="fa-solid fa-upload"></i></button>
+      <button class="download" title="save to file"><i class="fa-solid fa-download"></i></button>
+      <button class="undo" title="undo action"><i class="fa-solid fa-undo"></i></button>
+      <button class="redo" title="redo action"><i class="fa-solid fa-redo"></i></button>
+      <button class="config" title="configuration"><i class="fa-solid fa-gear"></i></button>
+    </div>
+  </div>
+</body>
 </html>

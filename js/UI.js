@@ -48,9 +48,8 @@ class UI {
     }
     /**@param {NodeUI} node */
     static switch_to(node) {
-        let err = node.maximize();
+        let err = node.toggle_detail(true);
         if(err) return UI.signal(err);
-        
     }
     static monitor_node_at_cursor(e) {
         if(!e.ctrlKey) return;
@@ -61,11 +60,11 @@ class UI {
         if(!node || node.is_maximize) {
             let parent = node ? node : window.MathGraph.current;
             node = new NodeUI(parent);
-            let viewpoint = document.documentElement.getBoundingClientRect();
-            node.html_div.style.top = `${e.clientY - viewpoint.top}px`;
-            node.html_div.style.left = `${e.clientX - viewpoint.left}px`
+            parent.children.add(node);
             parent.child_div.appendChild(node.html_div);
-            parent.childs.add(node);
+            let rect = parent.child_div.getBoundingClientRect();
+            node.html_div.style.left = (e.clientX - rect.x) + "px";
+            node.html_div.style.top = (e.clientY - rect.y) + "px";
         }
         editor.load(node);
     }
@@ -77,6 +76,10 @@ class UI {
 document.addEventListener('DOMContentLoaded', () => {
     window.MathGraph.all_label = new Map();
     window.MathGraph.current = new NodeUI(null);
+    window.MathGraph.current.toggle_detail(true);
+    window.MathGraph.current.html_div.classList.add('playground');
+    window.MathGraph.current.html_div.style.animation = "";
+    document.body.appendChild(window.MathGraph.current.html_div);
 
     document.addEventListener('click', UI.monitor_node_at_cursor);
     document.querySelector('.undo').onclick = () => GraphHistory.undo();

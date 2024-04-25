@@ -8,6 +8,7 @@
     font-size: 16px;
     color: #D9E0EE;
     user-select: none;
+    cursor: grab;
 }
 .children {
     display: none;
@@ -27,6 +28,32 @@
     font-size: 20px;
     font-family: serif;
 }
+body > .node > .children {
+    margin: 10px;
+}
+body > .node {
+    background-color: #1E1E2E;
+    position: static;
+    flex-grow: 1;
+}
+.node.zoom.playground > .children{
+    border: none;
+    height: 100%;
+}
+.node.zoom.playground > .tex_render {
+    display: none;
+}
+.highlighted, .zoom.highlighted, .define.highlighted {
+    z-index: 12;
+    border-width: 3px;
+    border-color: #4E5FFF;
+}
+.zoom.highlighted {
+    border-style: solid;
+}
+.highlighted.manual {
+    border-color: #bee60c;
+}
 #dot {
     position: absolute;
     display: none;
@@ -34,20 +61,11 @@
     width: 0;
 }
 
-.node.highlighted {
-    border-color: rgb(78, 95, 255);
-}
 .leader-line {
     z-index: 7;
 }
 .leader-line path {
     pointer-events: all;
-}
-/* this might be changed later */
-.graph {
-    background-color: #1E1E2E;
-    height: 95vh;
-    width: 95vw;
 }
 button.parent:hover {
     color: blue;

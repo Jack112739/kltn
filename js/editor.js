@@ -33,22 +33,18 @@ class Editor {
     /** @param {NodeUI} node  */
     load(node) {
         if(window.MathGraph.readonly) return UI.signal("can not edit node in readonly mode");
-        if(node.math_logic === 'input' || node.math_logic === 'output' || node.math_logic === 'referenced') {
-            return UI.signal(`can not edit node of type ${node.math_logic}`);
-        }
         if(!node) return;
         if(this.visual_mode) this.history = {stack: new Array(), pos: 0, buffer: 0};
-        this.type.value = node.type
         this.node = node;
         this.saved = true;
-        this.name.value = node.id;
+        this.name.value = node.header.textContent;
         this.raw.value = node.raw_text;
         this.latex.innerHTML = node.html_div.querySelector('.tex_render').innerHTML;
         this.div.style.display = "";
     }
     
     close() {
-        let is_save = this.saved && this.type.value === this.node.type && this.name.value == this.node.id;
+        let is_save = this.saved && this.name.value === this.node.header.textContent;
         if(!is_save && !window.confirm('Close without saving changes ?')) return;
         this.raw.value = "";
         this.name.value = "";
@@ -67,14 +63,12 @@ class Editor {
             data: this.raw.value, old_data: this.node.raw_text,
             html: this.latex.innerHTML, old_html: this.node.renderer.innerHTML,
             name: this.name.value, old_name: this.node.id,
-            type: this.type.value, old_type: this.node.type
         });
         this.node.raw_text = this.raw.value;
         this.node.renderer.innerHTML = this.latex.innerHTML;
-        this.node.rename(this.name.value);
-        this.node.html_div.classList.remove(this.node.type);
-        this.node.html_div.classList.add(this.type.value);
-        this.node.type = this.type.value;
+        this.node.renderer.style.height = "";
+        this.node.renderer.style.width = "";
+        UI.signal(this.node.rename(this.name.value));
     }
     render() {
         this.latex.innerHTML = '';
@@ -279,7 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.name = editor.div.querySelector('input.name');
     editor.raw = editor.div.querySelector('.raw-text');
     editor.latex = editor.div.querySelector('.latex');
-    editor.type = editor.div.querySelector('.math-type');
     
     editor.div.querySelector('.close').onclick = () => editor.close();
     editor.div.querySelector('.save').onclick = () => editor.save();

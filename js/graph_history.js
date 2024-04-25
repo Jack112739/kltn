@@ -41,7 +41,7 @@ const GraphHistory = {
             for(const [id, _] of command.node.to) command.node.connect(id);
             for(const [id, _] of command.node.from) id.connect(command.node);
             graph.internal_nodes.set(command.node.id, command.node);
-            command.node.modify_name_recursive('add');
+            command.node.modify_name_recursive('set');
             break;
         case 'jump':
             UI.switch_to(command.from);

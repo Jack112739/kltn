@@ -8,20 +8,21 @@ class NodeUI {
     id;
     // @type{String}
     raw_text;
-    /**@type {'claim' | 'definition' | 'given'| 'result' | 'lemma'} */
+    /**@type {'claim' | 'define' | 'given'| 'result' | 'lemma'} */
     type
     // @type{Map<NodeUI, LeaderLine>}
     from;
     // @type{Map<NodeUI, LeaderLine>}
     to;
-    // @type{bool}, true if the node is highlight
-    highlighted;
     /** @type{Set<NodeUI>} the detail of the proof presented in this node if needed */
-    childs;
+    children;
     /**@type NodeUI */
     parent;
+    // @type { Set<LeaderLine> }
+    external_ref;
     // @type{HTMLDivElement} the HTML element respected to this node
     html_div;
+
 
     /**@param {NodeUI} parent  */
     constructor(parent) {
@@ -31,8 +32,9 @@ class NodeUI {
         this.from = new Map();
         this.to = new Map();
         this.highlighted = false;
-        this.childs = new Set();
+        this.children = new Set();
         this.parent = parent;
+        this.external_ref = new Set();
         this.html_div = document.createElement('div');
         this.html_div.className = "node claim";
         this.html_div.innerHTML = `
@@ -40,62 +42,83 @@ class NodeUI {
             <div class="tex_render"></div>
             <div class="children"></div>
         `;
-        this.html_div.onmousedown = (e) => this.start_dragging(e);
-        this.html_div.ondblclick = (e) => {
-            let err = this.maximize();
-            if(err) alert('can not maximize node of type ' + this.type);
-        }
-        this.html_div.oncontextmenu = (e) => this.open_context_menu(e);
+        this.html_div.onmousedown = (e) => {e.stopPropagation(); this.start_reshape(e)};
+        this.html_div.ondblclick = (e) => {e.stopPropagation(); this.toggle_detail()};
+        this.html_div.oncontextmenu = (e) => {e.stopPropagation(); this.open_context_menu(e)};
         this.html_div.assoc_node = this;
         GraphHistory.register('create', {node: this});
     }
     open_context_menu(e) {
         e.preventDefault();
         let menu = Menu.node.items.childNodes;
-        if(this.renderer.style.display === "none") {
-            menu[MIN].style.display = "none";
-            menu[MAX].style.display = "";
-        }
-        else {
-            menu[MAX].style.display = "none";
-            menu[MIN].style.display = "";
-        }
-        Menu.rightclicked.popup(e, this);
+        let can_max = !this.is_maximize && !this.is_ref && ['lemma', 'claim'].includes(this.type);
+        menu[MIN].style.display = this.is_maximize ? "" : "none";
+        menu[MAX].style.display = can_max ? "" : "none";
+        menu[REF].style.display = this.type === 'result' ? "none" : ""; 
+        Menu.node.popup(e, this);
     }
-    start_dragging(e) {
-        let reposition, dragging, rect = this.html_div.getBoundingClientRect();;
-        document.addEventListener('mousemove', reposition = (e) => {
-            for(let [_, in_edges] of this.from) in_edges.position();
-            for(let [_, out_edges] of this.to) out_edges.position();
-        });
-        document.addEventListener('mouseup', (e) => {
-            document.removeEventListener('mousemove', reposition);
-        }, {once: true});
+    start_reshape(e) {
+        let cursor = this.get_cursor(e);
+        if(cursor === 'text') return;
+        this.toggle_highlight(true);
 
-        //check for resize event and if the clicked place is dragable
-        if(rect.bottom < e.clientY + 8 && rect.right < e.clientX + 8) return;
-        e.preventDefault();
-        let relative_x = this.html_div.offsetLeft - e.clientX;
-        let relative_y = this.html_div.offsetTop - e.clientY;
-        document.body.style.cursor = "grab";
-
-        document.addEventListener('mousemove', dragging = (e) => {
-            document.body.style.cursor = "grabbing";
-            this.html_div.style.left = e.clientX + relative_x + "px";
-            this.html_div.style.top = e.clientY + relative_y + "px";
-        });
+        let rect = this.html_div.getBoundingClientRect(), new_rect = null;
+        let rel_x =  rect.x -  e.clientX;
+        let rel_y =  rect.y - e.clientY;
+        let reshape = (e) => {
+            new_rect = this.html_div.getBoundingClientRect();
+            for(const [_, line] of this.from) line.position();
+            for(const [_, line] of this.to) line.position();
+            if(cursor != 'resize') {
+                document.body.style.cursor = "grabbing";
+                this.html_div.style.left = (this.html_div.offsetLeft - new_rect.x + e.clientX + rel_x) + "px";
+                this.html_div.style.top = (this.html_div.offsetTop - new_rect.y + e.clientY + rel_y) + "px";
+            }
+        };
+        document.addEventListener('mousemove',reshape);
         document.addEventListener('mouseup', (e) => {
-            let new_rect = this.html_div.getBoundingClientRect();
-            document.removeEventListener('mousemove', dragging);
-            if(document.body.style.cursor !== "grab") GraphHistory.register('move', {from:rect, to:new_rect});
+            this.toggle_highlight(false);
             document.body.style.cursor = "";
+            document.removeEventListener('mousemove', reshape);
+            if(new_rect) GraphHistory.register('move', {from:rect, to:new_rect});
         }, {once: true});
     }
-    minimize() {
-
+    get_cursor(e) {
+        let name = this.name_rect;
+        let render = this.renderer.getBoundingClientRect();
+        let in_range = (x, y, z) => x <= y && y <= z;
+        if(in_range(name.left, e.clientX, name.right) && in_range(name.top, e.clientY, name.bottom)) {
+            return 'text';
+        }
+        if(in_range(-8, e.clientX - render.right, 0) && in_range(- 8, e.clientY - render.bottom, 0)) {
+            return 'resize';
+        }
+        return 'grab';
     }
-    maximize() {
-
+    toggle_detail(opt) {
+        if(typeof opt === 'undefined') opt = !this.is_maximize;
+        if(opt && (this.is_ref || !['lemma', 'claim'].includes(this.type))) {
+            return `${this.is_ref ? 'referenced' : this.type} node can not be expanded`;
+        }
+        if(opt === this.is_maximize) return;
+        ['onmousedown', 'oncontextmenu', 'ondblclick'].forEach(f => {
+            [this.html_div[f], this.renderer[f]] = [this.renderer[f], this.html_div[f]];
+        });
+        this.renderer.style.width = "";
+        this.renderer.style.height = ""
+        if(opt) this.html_div.classList.add('zoom');
+        this.html_div.style.animation = opt ? "zoom-out 0.5s": "zoom-in 0.2s";
+        if(!opt) setTimeout(() => this.html_div.classList.remove('zoom'), 202);
+    }
+    toggle_highlight(opt, manual) {
+        this.html_div.classList.toggle('highlighted', opt);
+        if(manual) this.html_div.classList.toggle('manual', opt);
+    }
+    modify_name_recursive(op) {
+        for(const child of this.children) {
+            child.modify_name_recursive(op);
+        }
+        if(!this.is_ref) window.MathGraph.all_label[op](this.id, this);
     }
     remove() {
         this.modify_name_recursive('delete')
@@ -112,17 +135,43 @@ class NodeUI {
     }
     /** @param {String} name @returns {String | undefined} */
     rename(name) {
-        if(name === this.id) return;
-        if(name && window.MathGraph.all_label.get(name)) return `label ${name} has already exist`;
-        GraphHistory.register('rename', {name: name, old_name: this.id});
+        let tmp, truncate = name.trim(), new_type = 'claim';
+        if(tmp = hints['refer'].find(iden => name.startsWith(iden))) {
+            truncate = truncate.slice(tmp.length).trim();
+        }
+        this.html_div.classList.toggle('refer', tmp ? true : false);
+        for(const type in hints) {
+            if(type !== 'refer' && (tmp = hints[type].find(iden => truncate.startsWith(iden)))) {
+                new_type = type;
+                truncate = truncate.slice(tmp.length).trim();
+            }
+        }
+        truncate = truncate.trim();
+        if(truncate && window.MathGraph.all_label.get(truncate) && truncate !== this.id) {
+            return `label ${truncate} has already exist`;
+        }
+        GraphHistory.register('rename', {name: name, old_name: this.header.textContent});
         if(this.id) window.MathGraph.all_label.delete(this.id); 
-        if(name) window.MathGraph.all_label.set(name, this);
-        this.id = name;
-        this.html_div.querySelector('.header').textContent = name;
+        if(truncate) window.MathGraph.all_label.set(truncate, this);
+        this.header.textContent = name;
+        this.html_div.classList.remove(this.type);
+        this.html_div.classList.add(new_type);
+        this.id = truncate;
+        this.type = new_type;
+        this.renderer.style.minWidth = (this.name_rect.width + 10) + "px";
     }
     /**@param {String} link */
     reference(link) {
         throw new Error('this feature has not been implemented');
+    }
+    get name_rect() {
+        let range = document.createRange();
+        range.setStart(this.header, 0);
+        range.setEnd(this.header, this.header.childNodes.length);
+        return range.getBoundingClientRect();
+    }
+    get header() {
+        return this.html_div.querySelector('.header');
     }
     get renderer() {
         return this.html_div.querySelector('.tex_render');
@@ -132,39 +181,41 @@ class NodeUI {
         return this.parent.root;
     }
     get child_div() {
-        if(!this.parent) return document.querySelector('.graph');
         return this.html_div.querySelector('.children');
     }
     get is_maximize() {
-        return this.html_div.classList.contains('maximized');
+        return this.html_div.classList.contains('zoom');
+    }
+    get is_ref() {
+        return this.html_div.classList.contains('refer');
+    }
+    get is_hightlight() {
+        return this.html_div.classList.contains('highlight');
     }
 }
+/**@param {Element} elem @returns {NodeUI} */
 function is_node_component(elem) {
     while(elem && !elem.assoc_node) elem = elem.parentNode;
     return elem?.assoc_node;
 }
 document.addEventListener('DOMContentLoaded', (e) => {
-    const EDIT = 0, MIN = 1, MAX = 2, DETAIL = 3, REF = 4, RENAME = 5, REMOVE = 6;
     Menu.node = new Menu(document.getElementById('rightclick'));
     let menu = Menu.node.items.childNodes;
     menu[EDIT].onclick = (e) => editor.load(Menu.node.associate);
-    menu[MAX].onclick = (e) => UI.signal(Menu.node.associate.maximize());
-    menu[MIN].onclick = (e) => Menu.node.associate.minimize();
+    menu[MAX].onclick = (e) => UI.signal(Menu.node.associate.toggle_detail(true));
+    menu[MIN].onclick = (e) => Menu.node.associate.toggle_detail(false);
     menu[DETAIL].onclick = (e) => UI.focus(Menu.node.associate)
     menu[REF].onclick = (e) => UI.new_edge(Menu.node.associate, e);
     menu[RENAME].onclick = (e) => {
-        let input = document.createElement('input');
-        let viewpoint  = document.documentElement.getBoundingClientRect();
-        let position = Menu.node.highlighted.getBoundingClientRect();
-        input.className = "rename";
-        input.value = Menu.node.associate.id;
-        input.style.left = `${position.left - viewpoint.left}px`;
-        input.style.top = `${position.top - viewpoint.top }px`;
-        document.body.appendChild(input);
+        let header = Menu.node.associate.header, old_name = header.textContent;
+        header.innerHTML = `<input class="rename" value="${old_name}">`;
+        let input = header.firstElementChild;
         input.focus();
         input.addEventListener('focusout', () => document.body.removeChild(input));
         input.addEventListener('keydown', (e) => {
-            if(e.key === 'Enter') UI.signal(Menu.ref_node.rename(input.value)), input.style.display = "none";
+            if(e.key !== 'Enter') return;
+            header.replaceChild(document.createTextNode(old_name), input);
+            header.rename(input.value);
         });
         Menu.node.hide();
     };
@@ -172,3 +223,13 @@ document.addEventListener('DOMContentLoaded', (e) => {
         if(window.confirm(`Do you want to delete this node?`)) Menu.node.associate.remove();
     }
 });
+
+const EDIT = 0, MIN = 1, MAX = 2, DETAIL = 3, REF = 4, RENAME = 5, REMOVE = 6;
+const hints = {
+    'given': ['assume', 'given', 'in case', 'otherwise', 'assumption'],
+    'result': ['QED', 'result', 'contradiction', 'conclusion'],
+    'claim': ['claim', 'substitution', 'equation', 'inequality'],
+    'lemma': ['lemma', 'theorem', 'proposition', 'corollary'],
+    'define': ['define', 'definition', 'variable'],
+    'refer': ['refer', 'reference', 'preliminary', 'premise', '#']
+};
