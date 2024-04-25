@@ -55,6 +55,14 @@
     border: none;
     z-index: 0;
 }
+.children > h2 {
+    color: #4edaf3;
+    z-index: 0;
+    text-align: center;
+    position: sticky;
+    margin: 12px;
+    top: 0;
+}
 @keyframes zoom-out {
     0% {
         transform: scaleY(0);

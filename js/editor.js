@@ -38,7 +38,7 @@ class Editor {
         this.name.value = node.header.textContent;
         this.raw.value = node.raw_text;
         this.latex.innerHTML = node.html_div.querySelector('.tex_render').innerHTML;
-        this.div.style.animation = "reveal 0.5s ease"
+        this.div.style.animation = "reveal 0.3s ease"
         this.div.parentNode.style.display = "block";
     }
     

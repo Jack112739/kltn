@@ -40,7 +40,7 @@ class NodeUI {
         this.html_div.innerHTML = `
             <h3 class="header"></h3>
             <div class="tex_render"></div>
-            <div class="children"></div>
+            <div class="children"><h2>proof:</h2></div>
         `;
         this.html_div.onmousedown = (e) => {e.stopPropagation(); this.start_reshape(e)};
         this.html_div.ondblclick = (e) => {e.stopPropagation(); this.toggle_detail()};

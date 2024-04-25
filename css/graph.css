@@ -28,17 +28,19 @@
     font-size: 20px;
     font-family: serif;
 }
-body > .node > .children {
-    margin: 10px;
+body > .node.zoom > .children {
+    margin: 8px;
     resize: none;
-    height: 100%;
+    flex-grow: 1;
 }
-body > .node {
+body > .node.zoom {
+    display: flex;
+    flex-direction: column;
     position: static;
     width: 100%;
     flex-grow: 1;
 }
-.body > .node > .tex_render {
+body > .node.zoom > .tex_render {
     pointer-events: none;
 }
 .highlighted, .zoom.highlighted, .define.highlighted {

@@ -77,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.MathGraph.current = new NodeUI(null);
     window.MathGraph.current.toggle_detail(true);
     window.MathGraph.current.html_div.classList.add('playground');
+    window.MathGraph.current.child_div.querySelector('h2').textContent = "playground";
     window.MathGraph.current.html_div.style.animation = "";
     document.body.appendChild(window.MathGraph.current.html_div);
 
