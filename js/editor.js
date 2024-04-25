@@ -66,7 +66,9 @@ class Editor {
         this.node.renderer.innerHTML = this.latex.innerHTML;
         this.node.renderer.style.height = "";
         this.node.renderer.style.width = "";
+        GraphHistory.active = true;
         UI.signal(this.node.rename(this.name.value));
+        GraphHistory.active = false;
     }
     render() {
         this.latex.innerHTML = '';

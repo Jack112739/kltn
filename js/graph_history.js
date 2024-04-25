@@ -27,20 +27,16 @@ const GraphHistory = {
             command.node.remove();
             break;
         case 'move':
-            let div = command.node.html_div;
-            let x_diff = command.from.x - command.to.x;
-            let y_diff = command.from.y - command.to.y;
-            div.style.top = div.offsetTop + y_diff + "px";
-            div.style.left = div.offsetLeft + x_diff + "px";
-            for(const [_, line] of command.node.from) line.position();
-            for(const [_, line] of command.node.to) line.position();
+            this.move_node(command.to, command.from, command.node);
             break;
         case 'remove':
-            let graph = command.node.graph;
-            graph.html_div.appendChild(command.node.html_div);
+            command.node.parent.child_div.appendChild(command.node.html_div);
             for(const [id, _] of command.node.to) command.node.connect(id);
             for(const [id, _] of command.node.from) id.connect(command.node);
-            graph.internal_nodes.set(command.node.id, command.node);
+            for(const line of command.node.external_ref) {
+                line.start.assoc_node.to.set(line.end.assoc_node, line);
+                line.show("none");
+            }
             command.node.modify_name_recursive('set');
             break;
         case 'jump':
@@ -58,11 +54,13 @@ const GraphHistory = {
         case 'rename':
             command.node.rename(command.old_name);
             break;
+        case 'zoom':
+            command.node.toggle_detail();
+            break;
         case 'edit':
             command.node.raw_text = command.old_data;
             command.node.renderer.innerHTML = command.old_html;
             command.node.rename(command.old_name);
-            command.node.type = command.old_type;
             break;
         }
         this.active = false;
@@ -74,18 +72,10 @@ const GraphHistory = {
         let command = this.stack[this.position];
         switch(command.type) {
         case 'create':
-            let graph = command.node.graph;
-            graph.html_div.appendChild(command.node.html_div);
-            graph.internal_nodes.set(command.node.id, command.node);
+            command.node.parent.child_div.appendChild(command.node.html_div);
             break;
         case 'move':
-            let div = command.node.html_div;
-            let x_diff = command.to.x - command.from.x;
-            let y_diff = command.to.y - command.from.y;
-            div.style.top = div.offsetTop + y_diff + "px";
-            div.style.left = div.offsetLeft + x_diff + "px";
-            for(const [_, line] of command.node.from) line.position();
-            for(const [_, line] of command.node.to) line.position();
+            this.move_node(command.from, command.to, command.node);
             break;
         case 'remove':
             command.node.remove();
@@ -108,19 +98,29 @@ const GraphHistory = {
         case 'rename':
             command.node.rename(command.name);
             break;
+        case 'zoom':
+            command.node.toggle_detail();
+            break;
         case 'edit':
             command.node.renderer.innerHTML = command.html;
             command.node.raw_text = command.data;
             command.node.rename(command.name);
-            command.node.type = command.type;
             break;
         }
         this.position++;
         this.active = false;
+    },
+    move_node: function(from, to, node) {
+        let div_xy = node.html_div;
+        let div_wh = node.is_maximize ? node.child_div : node.renderer;
+        div_xy.style.top = div_xy.offsetTop + to.top - from.top + "px";
+        div_xy.style.left = div_xy.offsetLeft + to.left - from.left + "px";
+        div_wh.style.width = div_wh.offsetWidth + to.width - from.width - 10 + "px";
+        div_wh.style.height = div_wh.offsetHeight + to.height - from.height - 10 + "px";
     }
 }
 document.addEventListener('keydown', (e) => {
-    if(editor.div.style.display !== "none" || !e.ctrlKey) return;
+    if(document.querySelector('.overlay').style.display === "block" || !e.ctrlKey) return;
     if(e.key === 'z') { e.preventDefault(); GraphHistory.undo(); }
     if(e.key === 'y') { e.preventDefault(); GraphHistory.redo(); }
 })

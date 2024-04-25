@@ -59,7 +59,7 @@ class NodeUI {
     }
     start_reshape(e) {
         let cursor = this.get_cursor(e);
-        if(cursor === 'text') return;
+        if(cursor !== 'grab' && cursor !== 'resize') return;
         this.toggle_highlight();
 
         let rect = this.html_div.getBoundingClientRect(), new_rect = null;
@@ -67,31 +67,29 @@ class NodeUI {
         let rel_y =  rect.y - e.clientY;
         let reshape = (e) => {
             new_rect = this.html_div.getBoundingClientRect();
-            for(const [_, line] of this.from) line.position();
-            for(const [_, line] of this.to) line.position();
             if(cursor != 'resize') {
                 this.html_div.style.left = (this.html_div.offsetLeft - new_rect.x + e.clientX + rel_x) + "px";
                 this.html_div.style.top = (this.html_div.offsetTop - new_rect.y + e.clientY + rel_y) + "px";
+                this.reposition();
             }
         };
         document.addEventListener('mousemove',reshape);
         document.addEventListener('mouseup', (e) => {
             this.toggle_highlight();
             document.removeEventListener('mousemove', reshape);
-            if(new_rect) GraphHistory.register('move', {from:rect, to:new_rect});
+            if(new_rect) GraphHistory.register('move', {node: this, from:rect, to:new_rect});
         }, {once: true});
     }
     get_cursor(e) {
-        let name = this.name_rect;
+        let inside = (rect) => rect.x <= e.x && e.x <= rect.right && rect.y <= e.y && e.y <= rect.bottom;
         let render = this.renderer.getBoundingClientRect();
-        let in_range = (x, y, z) => x <= y && y <= z;
-        if(in_range(name.left, e.clientX, name.right) && in_range(name.top, e.clientY, name.bottom)) {
-            return 'text';
-        }
-        if(in_range(-8, e.clientX - render.right, 0) && in_range(- 8, e.clientY - render.bottom, 0)) {
-            return 'resize';
-        }
-        return 'grab';
+        let resizer = (this.is_maximize ? this.child_div : this.renderer);
+        let rect = resizer.getBoundingClientRect(), able = getComputedStyle(resizer).resize !== "none";
+        
+        if(inside(this.name_rect)) return 'text';
+        if(able && inside(new DOMRect(rect.right - 14, rect.bottom - 14, 14, 14))) return 'resize';
+        if(inside(render)) return 'grab';
+        return !this.is_maximize ? 'grab' : 'other';
     }
     toggle_detail(opt) {
         if(typeof opt === 'undefined') opt = !this.is_maximize;
@@ -99,7 +97,7 @@ class NodeUI {
             return `${this.is_ref ? 'referenced' : this.type} node can not be expanded`;
         }
         if(opt === this.is_maximize) return;
-        ['onmousedown', 'oncontextmenu', 'ondblclick'].forEach(f => {
+        ['oncontextmenu', 'ondblclick'].forEach(f => {
             [this.html_div[f], this.renderer[f]] = [this.renderer[f], this.html_div[f]];
         });
         this.renderer.style.width = "";
@@ -107,9 +105,10 @@ class NodeUI {
         if(opt) this.html_div.classList.add('zoom');
         this.html_div.style.animation = opt ? "zoom-out 0.5s": "zoom-in 0.2s";
         if(!opt) setTimeout(() => this.html_div.classList.remove('zoom'), 202);
+        GraphHistory.register('zoom', {node: this});
     }
     toggle_highlight(opt, manual) {
-        if(this.html_div.classList.contains('manual')) return;
+        if(!manual && this.html_div.classList.contains('manual')) return;
         this.html_div.classList.toggle('highlighted', opt);
         if(manual) this.html_div.classList.toggle('manual', opt);
     }
@@ -117,7 +116,12 @@ class NodeUI {
         for(const child of this.children) {
             child.modify_name_recursive(op);
         }
-        if(!this.is_ref) window.MathGraph.all_label[op](this.id, this);
+        if(!(this.is_ref && this.from instanceof NodeUI)) window.MathGraph.all_label[op](this.id, this);
+    }
+    reposition() {
+        for(const [_, line] of this.from) line.position();
+        for(const [_, line] of this.to) line.position();
+        for(const line of this.external_ref) line.position();
     }
     remove() {
         this.modify_name_recursive('delete')
@@ -128,6 +132,10 @@ class NodeUI {
         for(let [id, line] of this.to) {
             id.from.delete(this);
             line.remove();
+        }
+        for(let line of this.external_ref) {
+            line.start.assoc_node.to.delete(line.end.assoc_node);
+            line.hide("none");
         }
         this.parent.child_div.removeChild(this.html_div);
         GraphHistory.register('remove', {node: this});
@@ -150,7 +158,7 @@ class NodeUI {
         if(truncate && window.MathGraph.all_label.get(truncate) && truncate !== this.id) {
             return `label ${truncate} has already exist`;
         }
-        GraphHistory.register('rename', {name: name, old_name: this.header.textContent});
+        GraphHistory.register('rename', {node: this, name: name, old_name: this.header.textContent});
         if(this.id) window.MathGraph.all_label.delete(this.id); 
         if(truncate) window.MathGraph.all_label.set(truncate, this);
         this.header.textContent = name;
@@ -158,7 +166,7 @@ class NodeUI {
         this.html_div.classList.add(new_type);
         this.id = truncate;
         this.type = new_type;
-        this.renderer.style.minWidth = (this.name_rect.width + 10) + "px";
+        this.renderer.style.minWidth = Math.max(this.name_rect.width, 45) + "px";
     }
     /**@param {String} link */
     reference(link) {
@@ -208,15 +216,17 @@ document.addEventListener('DOMContentLoaded', (e) => {
     menu[DETAIL].onclick = (e) => UI.focus(Menu.node.associate)
     menu[REF].onclick = (e) => UI.new_edge(Menu.node.associate, e);
     menu[RENAME].onclick = (e) => {
-        let header = Menu.node.associate.header, old_name = header.textContent;
-        header.innerHTML = `<input class="rename" value="${old_name}">`;
+        let header = Menu.node.associate.header, old = header.textContent;
+        header.innerHTML = `<input class="rename" value="${old}">`;
         let input = header.firstElementChild;
+        let remove = () => {
+            if(input.parentNode === header) header.removeChild(input), header.textContent = old;
+        }
         input.focus();
-        input.addEventListener('focusout', () => document.body.removeChild(input));
+        input.addEventListener('focusout', remove);
         input.addEventListener('keydown', (e) => {
             if(e.key !== 'Enter') return;
-            header.replaceChild(document.createTextNode(old_name), input);
-            header.rename(input.value);
+            UI.signal(Menu.node.associate.rename(input.value));
         });
         Menu.node.hide();
     };
