@@ -1,87 +1,46 @@
 class FileIO {
     /** @param {NodeUI} node @returns {String} */
     static to_file(node) {
-        if(node.math_logic === 'referenced') return '';
-        document.body.appendChild(node.html_div);
-        let rect = node.html_div.getBoundingClientRect();
-        let height = node.renderer.style.height.slice(0, -2);
-        let width = node.renderer.style.width.slice(0, -2);
-        let str=`${rect.top}, ${rect.left}, ${height}, ${width}`;
-        node.graph.html_div.appendChild(node.html_div);
-        for(const [refs, _] of node.from) {
-            str +=`, ${refs.id.trim()}`;
-        }
-        str = `%% ${str}\n\\label{${node.id}}\n${node.raw_text}\n`;
-        if(node.math_logic === 'input' || node.math_logic === 'output') return str;
-        if(node.detail && node.detail.internal_nodes.size !== 0) {
-             str += `\n\\begin{proof}\n${FileIO.parse_children(node)}\n\\end{proof}\n`;
-        }
-        return str;
-    }
-    static parse_children(node) {
-        let str = '';
-        let deg_map = new Map(), count = 0;
-        let search = [];
-        if(!node.detail) return '';
-        for(const [_, child] of node.detail?.internal_nodes) {
-            deg_map.set(child, child.from.size);
-            if(child.from.size === 0) search.push(child);
-        }
-        while(search.length !== 0) {
-            let cur = search.pop();
-            count++;
-            for(const [adj, _] of cur.to) {
-                let deg_dec = deg_map.get(adj) - 1;
-                if(deg_dec === 0) search.push(adj);
-                deg_map.set(adj, deg_dec);
-            }
-            str += FileIO.to_file(cur);
-        }
-        if(count !== node.detail.internal_nodes.size) {
-            return new Error('can not process graph with cyclic dependency');
-        }
-        return str;
+        
     }
     static parse_file(str, file_name) {
         let lines = str.split('\n');
         let cur = null, err_msg = null, now = null;
+        let implicit_id = new Map();
         GraphHistory.active = true;
-        cur = new GraphUI(new NodeUI(remove_ext(file_name), null));
-        window.MathGraph_config.all_label = new Set();
+        cur = new NodeUI(null);
+        cur.rename(remove_ext(file_name));
+        window.MathGraph.all_label = new Map();
         parse:
         for(let i = 0; i < lines.length; i++) {
             let line = lines[i].trim();
             if(line.startsWith('%%')) {
-                now = new NodeUI('<<error>>', cur);
+                now = new NodeUI(cur);
+                implicit_id.set(i, now);
                 let headers = line.slice(2).split(',').map(str => str.trim());
-                let implicit_start = 4;
+                let implicit_start = 5;
+                let test = now.rename(headers[0]);
+                if(test) {
+                    err_msg = `error at line ${i}: ${test}`;
+                    break parse;
+                }
                 try {
-                    now.html_div.style.top = parse_int_px(headers[0], 0);
-                    now.html_div.style.left = parse_int_px(headers[1], 1);
-                    now.renderer.style.height = parse_int_px(headers[2], 2);
-                    now.renderer.style.width = parse_int_px(headers[3], 3);
+                    now.html_div.style.top = parse_int_px(headers[1], 1);
+                    now.html_div.style.left = parse_int_px(headers[2], 2);
+                    now.renderer.style.height = parse_int_px(headers[3], 3);
+                    now.renderer.style.width = parse_int_px(headers[4], 4);
                 } catch(e) {
                     implicit_start = e;
                 }
                 for(let j = implicit_start; j < headers.length; j++) {
                     if(headers[j] === '') continue;
-                    if(!now.reference(headers[j].trim())) {
-                        err_msg = `error at line ${i}: node named ${headers[j].trim()} does not exist`;
+                    if(headers[j].startsWith('\\')) test = FileIO.link(now, headers, j, implicit_id);
+                    else test = now.reference(headers[j]);
+                    if(test) {
+                        err_msg = `error at line ${i}: ${test}`;
                         break parse;
                     }
                 }
-                let name = lines[i + 1]?.trim();
-                if(!name) {
-                    err_msg = `error at line ${i}: expected a label after line ${i}`;
-                    break parse;
-                }
-                if(!name.startsWith('\\label{') || !name.endsWith('}')) {
-                    err_msg = `error at line ${i+1}: labels must have the form \`\\label{<name>}\``;
-                    err_msg += `error at line ${i}: expected a label after line ${i}`;
-                    break parse;
-                }
-                now.rename(name.slice('\\label{'.length, -1));
-                i++;
             }
             else if(line === '\\begin{proof}') {
                 if(!now) {
@@ -94,11 +53,9 @@ class FileIO {
                         err_msg = `error at line ${i}: missing \\end{lemma}`;
                         break parse;
                     }
-                    now.math_logic = 'lemma';
                     now.raw_text = now.raw_text.slice('\\begin{lemma}'.length, -'\\end{lemma}'.length);
                 }
-                cur = new GraphUI(now);
-                now.detail = cur;
+                cur = now;
                 now = null;
             }
             else if(line === '\\end{proof}') {
@@ -115,23 +72,27 @@ class FileIO {
                 now.raw_text += line;
             }
         }
-        if(cur.parent && !err_msg) err_msg = `missing \\end{proof}`;
+        if(cur.parent && !err_msg) err_msg = `missing \\end{proof} at the and of the file`;
         if(err_msg) return new Error(err_msg);
         editor.visual_mode(false);
         FileIO.compile(cur);
-        editor.visual_mode(true);
         GraphHistory.active = false;
         return cur;
     }
-    static compile(graph) {
-        if(!graph) return;
-        for(const [_, node] of graph.internal_nodes) if(node.math_logic !== 'referenced') {
-            editor.load(node);
-            editor.raw.data = node.raw_text;
-            editor.save();
-            editor.close();
-            FileIO.compile(node.detail);
-        }
+    static compile(node) {
+        for(const [_, child] of node.children) FileIO.compile(child);
+        let data = (new Fragment(node.raw_text, 'text')).output('html');
+        for(const child of data) node.html_div.appendChild(child);
+    }
+    static link(now, args, id, implicit_id) {
+        if(isNaN(args[id].slice(1))) return `invalid syntax, expect the ${id}-th arguement \
+                                        to be a valid reference or a '\\' follow by a number`;
+        let line = parseInt(args[id].slice(1));
+        let node = implicit_id.get(line);
+        if(!node) return `can not reference to node at line ${line}
+                         because there are no node's comment (start with %%) at that line`;
+        return now.reference(node);
+
     }
     static file_saver;
 }
@@ -150,14 +111,14 @@ document.addEventListener('DOMContentLoaded', () => {
             let replace = FileIO.parse_file(e1.target.result, file.name);
             e.target.value = "";
             if(replace instanceof Error) return UI.signal(replace.message);
-            GraphUI.current_graph.switch_to(replace);
+
             GraphHistory.stack = [];
             GraphHistory.position = 0;
         };
         reader.readAsText(file);
     }
     document.querySelector('.download').onclick = async () => {
-        let root = GraphUI.current_graph.summary.root, name = null;
+        let root = window.MathGraph.current, name = null;
         try {
             let file_handler = await window.showSaveFilePicker({
                 startIn: FileIO.file_saver,
@@ -170,8 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let stream = await file_handler.createWritable();
             await stream.write(FileIO.parse_children(root));
             await stream.close();
-            root.rename(remove_ext(name = file_handler.name));
-            GraphUI.current_graph.refresh_href();
+            UI.refresh_href();
         } catch(e) {
             if(!(e instanceof DOMException)) return;
             if(e.message.includes('abort')) return;

@@ -187,10 +187,10 @@ class Fragment {
 }
 function toString(token) {
     return  token.type === 'fmt' ? inv_format[token.str]: 
-            token.str;
+            token.str.replace('\u200b', '');
 }
 function map_to_html(str) {
-    const html_special = {'<':'&lt;', '>':'&gt;', '&':'&amp;', '\'':'&apos;', '\"':'&quot;'};
+    const html_special = {'<':'&lt;', '>':'&gt;', '&':'&amp;', '\'':'&apos;', '\"':'&quot;', '\u200b': ''};
     let ret = '';
     for(const c of str) {
         ret += html_special[c] ?? c;

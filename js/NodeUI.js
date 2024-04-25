@@ -146,6 +146,7 @@ class NodeUI {
             }
         }
         truncate = truncate.trim();
+        if(truncate.startsWith('\\')) return `a label can not start with a '\\'`;
         if(truncate && window.MathGraph.all_label.get(truncate) && truncate !== this.id) {
             return `label ${truncate} has already exist`;
         }

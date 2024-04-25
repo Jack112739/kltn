@@ -30,18 +30,16 @@
 }
 body > .node > .children {
     margin: 10px;
-}
-body > .node {
-    background-color: #1E1E2E;
-    position: static;
-    flex-grow: 1;
-}
-.node.zoom.playground > .children{
-    border: none;
+    resize: none;
     height: 100%;
 }
-.node.zoom.playground > .tex_render {
-    display: none;
+body > .node {
+    position: static;
+    width: 100%;
+    flex-grow: 1;
+}
+.body > .node > .tex_render {
+    pointer-events: none;
 }
 .highlighted, .zoom.highlighted, .define.highlighted {
     z-index: 12;
