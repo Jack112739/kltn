@@ -4,13 +4,6 @@ import editor from './EditorUI.js';
 import Fragment from './Fragment.js';
 
 export default class Visual {
-    /**@param {HTMLScriptElement} jax  */
-    static init(jax) {
-        if(jax.className === 'checked') return;
-        jax.className = 'checked';
-        let elem = jax.previousSibling;
-        elem.appendChild(jax);
-    }
     /**@param {Node} elem  */
     static is_math_elem(elem) {
         if(!elem) return null;
@@ -20,6 +13,7 @@ export default class Visual {
         if(elem === editor.latex) return null;
         else return elem;
     }
+    /**@param {number?} cursor */
     static validate_selection(cursor) {
         if(typeof cursor !== 'number') { cursor = -1; }
         let range = Visual.normalize_selection();
@@ -68,6 +62,7 @@ export default class Visual {
         else
             return range;
     }
+    /**@param {Node} elem  */
     static rerender(elem) {
         let nodes = (new Fragment(elem.firstChild.data)).output('html');
         for(const node of nodes) elem.parentNode.insertBefore(node, elem);
@@ -98,6 +93,7 @@ export default class Visual {
         editor.auto_complete(e);
         setTimeout(Visual.scroll_if_needed, 0);
     }
+    /**@param {Range} range  */
     static is_text(range) {
         if(range.startContainer !== range.endContainer) return false;
         let node = range.startContainer, child = node.firstChild;
@@ -123,6 +119,7 @@ export default class Visual {
         r.setEnd(new_select, selected_str.length);
         Visual.normalize_selection()
     }
+    /**@param {Fragment} frag  */
     static is_math_only(frag) {
         if(frag.parts.length > 2) return false;
         if(frag.parts.length === 2 && frag.parts[1].str !== '') return false; 
@@ -212,6 +209,7 @@ export default class Visual {
         }
         range.collapse(true);
     }
+    /**@param {'s' | 'z' | 'y'} type */
     static history_command(type) {
         let history = editor.history;
         let sel = window.getSelection().getRangeAt(0);
@@ -237,8 +235,10 @@ export default class Visual {
         sel.setEnd(clone.end === clone.div ? editor.latex : clone.end, clone.endOffset);
         editor.focus_element = clone.focus;
     }
+    /**@param {{div:Node, focus:Node, start:Node, end:Node, startOffset:number, endOffset:number}} image  */
     static clone_img(image) {
         let clone = image.div.cloneNode(true);
+        /** @param {Node} elem @returns {Node} */
         let get_respected = (elem) => {
             if(!elem) return null;
             if(elem === image.div) return clone;

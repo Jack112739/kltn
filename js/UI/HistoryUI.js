@@ -94,6 +94,7 @@ export default class GraphHistory {
         this.position++;
         this.active = false;
     }
+    /**@param {DOMRect} from @param {DOMRect} to  @param {NodeUI} node  */
     static move_node(from, to, node) {
         let div_xy = node.html_div;
         let div_wh = node.is_maximize ? node.child_div : node.renderer;

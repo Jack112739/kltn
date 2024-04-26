@@ -16,15 +16,15 @@ export default class NodeUI {
     raw_text;
     /**@type {'claim' | 'define' | 'given'| 'result' | 'lemma'} */
     type
-    // @type{Map<NodeUI, EdgeUI> | EdgeUI}
+    /**  @type{Map<NodeUI, EdgeUI> | EdgeUI}*/
     from;
-    // @type{Map<NodeUI, EdgeUI>}
+    /** @type{Map.<NodeUI, EdgeUI>}*/ 
     to;
     /** @type{Set<NodeUI>} the detail of the proof presented in this node if needed */
     children;
-    /**@type NodeUI */
+    /**@type {NodeUI} */
     parent;
-    // @type{HTMLDivElement} the HTML element respected to this node
+    /** @type{HTMLDivElement} the HTML element respected to this node*/
     html_div;
 
 
@@ -51,6 +51,7 @@ export default class NodeUI {
         this.html_div.assoc_node = this;
         GraphHistory.register('create', {node: this});
     }
+    /**@param {MouseEvent} e  */
     open_context_menu(e) {
         e.preventDefault();
         let menu = Menu.node.items.childNodes;
@@ -60,6 +61,7 @@ export default class NodeUI {
         menu[REF].style.display = this.type === 'result' ? "none" : ""; 
         Menu.node.popup(e, this);
     }
+    /**@param {MouseEvent} */
     start_reshape(e) {
         let cursor = this.get_cursor(e);
         if(cursor !== 'move' && cursor !== 'resize') return;
@@ -83,6 +85,7 @@ export default class NodeUI {
             if(new_rect) GraphHistory.register('move', {node: this, from:rect, to:new_rect});
         }, {once: true});
     }
+    /**@param {MouseEvent} e  */
     get_cursor(e) {
         let inside = (rect) => rect.x <= e.x && e.x <= rect.right && rect.y <= e.y && e.y <= rect.bottom;
         let render = this.renderer.getBoundingClientRect();
@@ -94,6 +97,7 @@ export default class NodeUI {
         if(inside(render)) return 'move';
         return !this.is_maximize ? 'move' : 'grab';
     }
+    /**@param {boolean} opt */
     toggle_detail(opt) {
         if(typeof opt === 'undefined') opt = !this.is_maximize;
         if(opt && (this.is_pseudo|| !['lemma', 'claim'].includes(this.type))) {
@@ -111,11 +115,13 @@ export default class NodeUI {
         if(!opt) setTimeout(() => this.html_div.classList.remove('zoom'), 202);
         GraphHistory.register('zoom', {node: this});
     }
+    /**@param {boolean} opt @param {boolean} manual  */
     toggle_highlight(opt, manual) {
         if(!manual && this.html_div.classList.contains('manual')) return;
         this.html_div.classList.toggle('highlighted', opt);
         if(manual) this.html_div.classList.toggle('manual', opt);
     }
+    /**@param {'delete' | 'set'} op  */
     modify_name_recursive(op) {
         for(const child of this.children) {
             child.modify_name_recursive(op);
@@ -183,6 +189,7 @@ export default class NodeUI {
     get renderer() {
         return this.html_div.querySelector('.tex_render');
     }
+    /**@return {NodeUI} */
     get root() {
         if(!this.parent) return this;
         return this.parent.root;
@@ -216,7 +223,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
     menu[MAX].onclick = (e) => GraphUI.signal(Menu.node.associate.toggle_detail(true));
     menu[MIN].onclick = (e) => Menu.node.associate.toggle_detail(false);
     menu[DETAIL].onclick = (e) => GraphUI.focus(Menu.node.associate)
-    menu[REF].onclick = (e) => GraphUI.create_edge(e);
+    menu[REF].onclick = (e) => GraphUI.new_edge(e);
     menu[RENAME].onclick = (e) => {
         let header = Menu.node.associate.header, old_name = header.textContent;
         header.innerHTML = `<input class="rename" value="${old_name}">`;

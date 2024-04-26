@@ -3,14 +3,10 @@ import { format, inv_format } from "./EditorUI.js";
 
 // a fragment of the editor can be use to manipulate the data inside
 /**
- * @typedef {object} Token
- * @property {number} err
- * @property {string} type
- * @property {string} str
  */
 export default class Fragment {
     //An array of token can be use to concatinate to a valid string later
-    /**@type {Token} */
+    /**@type {{type: 'text'|'math'|'open'|'close'|'fmt' , str: string, err: number}} */
     parts;
     // range of the selected fragment, if any
     offset;
@@ -42,6 +38,8 @@ export default class Fragment {
             this.offset = {start: 0, end: this.parts.length};
         }
     }
+    /**@param {Node} start, @param {Node} end @param {Range
+     * } range   */
     dfs_init(start, end, range) {
         let range_ = range.cloneRange(), common = range.commonAncestorContainer;
         let i = Array.from(common.childNodes).indexOf(start);
@@ -61,6 +59,7 @@ export default class Fragment {
             range.setEnd(common, i + 1);
         }
     }
+    /**@param {str} string, @param {number} j @param {number} open_idx */
     init_text(str, j, open_idx) {
         while(true) {
             let t = null;
@@ -188,6 +187,7 @@ export default class Fragment {
         return ret;
     }
 }
+/**@param {{type: 'text'|'math'|'open'|'close'|'fmt' , str: string, err: number}} token */
 function toString(token) {
     return  token.type === 'fmt' ? inv_format[token.str]: 
             token.str.replace('\u200b', '');

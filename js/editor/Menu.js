@@ -11,8 +11,8 @@ export default class Menu {
     highlighted = null;
     /**@type {Array<String>?} lazy added items in this list*/
     library;
-    /**the search object, if this menu is the suggest menu */
-    search = {str: null, span: []}
+    /**@type {{str: string, span: Array<string>}} the search object, if this menu is the suggest menu */
+    search = {str: '', span: []}
     /** @type {?(HTMLLIElement) => any} keyboard call back*/
     invoke;
     /** @type {any} */
@@ -111,11 +111,13 @@ export default class Menu {
             return Menu.suggest.load(Menu.suggest.search.str += e.key);
         }
     }
+    /**@param {Array<string>} lib */
     change_lib(lib) {
         this.library = lib;
         this.search = {str: 0, span: []};
         this.load("");
     }
+    /** @param {string} text  */
     load(text) {
         if(!this.library) return;
         if(text !== undefined && text !== null) {

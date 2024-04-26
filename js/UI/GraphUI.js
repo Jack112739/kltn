@@ -5,6 +5,7 @@ import EdgeUI from './EdgeUI.js';
 import GraphHistory from './HistoryUI.js';
 import editor from './../editor/EditorUI.js';
 import FileIO from './FileIO.js';
+import { map_to_html } from '../editor/Fragment.js';
 
 export default class GraphUI {
     static new_edge(start, e) {
@@ -46,7 +47,7 @@ export default class GraphUI {
         }
     }
     /**@param {NodeUI} node */
-    static switch_to(node) {
+    static focus(node) {
         let err = node.toggle_detail(true);
         if(err) return UI.signal(err);
         GraphHistory.register('jump', {from: window.MathGraph.current, to: node});
