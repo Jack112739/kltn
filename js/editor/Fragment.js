@@ -1,3 +1,6 @@
+"use strict";
+import { format, inv_format } from "./EditorUI.js";
+
 // a fragment of the editor can be use to manipulate the data inside
 /**
  * @typedef {object} Token
@@ -5,7 +8,7 @@
  * @property {string} type
  * @property {string} str
  */
-class Fragment {
+export default class Fragment {
     //An array of token can be use to concatinate to a valid string later
     /**@type {Token} */
     parts;
@@ -189,7 +192,7 @@ function toString(token) {
     return  token.type === 'fmt' ? inv_format[token.str]: 
             token.str.replace('\u200b', '');
 }
-function map_to_html(str) {
+export function map_to_html(str) {
     const html_special = {'<':'&lt;', '>':'&gt;', '&':'&amp;', '\'':'&apos;', '\"':'&quot;', '\u200b': ''};
     let ret = '';
     for(const c of str) {
@@ -197,3 +200,4 @@ function map_to_html(str) {
     }
     return ret;
 }
+const math_delimeter = {'$$':'$$', '$':'$', '\\ref{': '}'};

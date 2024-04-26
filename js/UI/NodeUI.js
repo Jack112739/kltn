@@ -1,8 +1,14 @@
+"use strict";
 
+import Menu from './../editor/Menu.js';
+import editor from '../editor/EditorUI.js';
+import GraphUI from './GraphUI.js';
+import EdgeUI from './EdgeUI.js';
+import GraphHistory from './HistoryUI.js';
 /**
  * Represent the element of the proof, as a directed graph
  */
-class NodeUI {
+export default class NodeUI {
 
     // @type{string}
     id;
@@ -10,16 +16,14 @@ class NodeUI {
     raw_text;
     /**@type {'claim' | 'define' | 'given'| 'result' | 'lemma'} */
     type
-    // @type{Map<NodeUI, LeaderLine>}
+    // @type{Map<NodeUI, EdgeUI> | EdgeUI}
     from;
-    // @type{Map<NodeUI, LeaderLine>}
+    // @type{Map<NodeUI, EdgeUI>}
     to;
     /** @type{Set<NodeUI>} the detail of the proof presented in this node if needed */
     children;
     /**@type NodeUI */
     parent;
-    // @type { Set<LeaderLine> }
-    external_ref;
     // @type{HTMLDivElement} the HTML element respected to this node
     html_div;
 
@@ -34,7 +38,6 @@ class NodeUI {
         this.highlighted = false;
         this.children = new Set();
         this.parent = parent;
-        this.external_ref = new Set();
         this.html_div = document.createElement('div');
         this.html_div.className = "node claim";
         this.html_div.innerHTML = `
@@ -59,7 +62,7 @@ class NodeUI {
     }
     start_reshape(e) {
         let cursor = this.get_cursor(e);
-        if(cursor !== 'grab' && cursor !== 'resize') return;
+        if(cursor !== 'move' && cursor !== 'resize') return;
         this.toggle_highlight();
 
         let rect = this.html_div.getBoundingClientRect(), new_rect = null;
@@ -88,13 +91,14 @@ class NodeUI {
         
         if(inside(this.name_rect)) return 'text';
         if(able && inside(new DOMRect(rect.right - 14, rect.bottom - 14, 14, 14))) return 'resize';
-        if(inside(render)) return 'grab';
-        return !this.is_maximize ? 'grab' : 'other';
+        if(inside(render)) return 'move';
+        return !this.is_maximize ? 'move' : 'grab';
     }
     toggle_detail(opt) {
         if(typeof opt === 'undefined') opt = !this.is_maximize;
-        if(opt && (this.is_ref || !['lemma', 'claim'].includes(this.type))) {
-            return `${this.is_ref ? 'referenced' : this.type} node can not be expanded`;
+        if(opt && (this.is_pseudo|| !['lemma', 'claim'].includes(this.type))) {
+            return `this node can not be expanded since it does not ${
+                   this.is_pseudo ? 'defined primary inside this node': 'have type claim nor lemma'}`;
         }
         if(opt === this.is_maximize) return;
         ['oncontextmenu', 'ondblclick'].forEach(f => {
@@ -116,26 +120,21 @@ class NodeUI {
         for(const child of this.children) {
             child.modify_name_recursive(op);
         }
-        if(!(this.is_ref && this.from instanceof NodeUI)) window.MathGraph.all_label[op](this.id, this);
+        if(this.is_ref && !this.is_pseudo) window.MathGraph.all_label[op](this.id, this);
     }
     reposition() {
         for(const [_, line] of this.from) line.position();
         for(const [_, line] of this.to) line.position();
-        for(const line of this.external_ref) line.position();
     }
     remove() {
         this.modify_name_recursive('delete')
-        for(let[id, line] of this.from) {
+        for(let [id, line] of this.from) {
             id.to.delete(this);
             line.remove();
         }
         for(let [id, line] of this.to) {
             id.from.delete(this);
             line.remove();
-        }
-        for(let line of this.external_ref) {
-            line.start.assoc_node.to.delete(line.end.assoc_node);
-            line.hide("none");
         }
         this.parent.child_div.removeChild(this.html_div);
         GraphHistory.register('remove', {node: this});
@@ -154,7 +153,7 @@ class NodeUI {
             }
         }
         truncate = truncate.trim();
-        if(truncate.startsWith('\\')) return `a label can not start with a '\\'`;
+        if(truncate.startsWith('#')) return `a label can not start with a '#'`;
         if(truncate && window.MathGraph.all_label.get(truncate) && truncate !== this.id) {
             return `label ${truncate} has already exist`;
         }
@@ -200,33 +199,33 @@ class NodeUI {
     get is_hightlight() {
         return this.html_div.classList.contains('highlight');
     }
-}
-/**@param {Element} elem @returns {NodeUI} */
-function is_node_component(elem) {
-    while(elem && !elem.assoc_node) elem = elem.parentNode;
-    return elem?.assoc_node;
+    get is_pseudo() {
+        return this.html_div.classList.contains('pseudo');
+    }
+    /**@param {Element} elem @returns {NodeUI} */
+    static is_node_component(elem) {
+        while(elem && !elem.assoc_node) elem = elem.parentNode;
+        return elem?.assoc_node;
+    }
 }
 document.addEventListener('DOMContentLoaded', (e) => {
     Menu.node = new Menu(document.getElementById('rightclick'));
     let menu = Menu.node.items.childNodes;
     menu[EDIT].onclick = (e) => editor.load(Menu.node.associate);
     menu[HIGHTLIGHT].onclick = (e) => Menu.node.associate.toggle_highlight(undefined, true);
-    menu[MAX].onclick = (e) => UI.signal(Menu.node.associate.toggle_detail(true));
+    menu[MAX].onclick = (e) => GraphUI.signal(Menu.node.associate.toggle_detail(true));
     menu[MIN].onclick = (e) => Menu.node.associate.toggle_detail(false);
-    menu[DETAIL].onclick = (e) => UI.focus(Menu.node.associate)
-    menu[REF].onclick = (e) => UI.new_edge(Menu.node.associate, e);
+    menu[DETAIL].onclick = (e) => GraphUI.focus(Menu.node.associate)
+    menu[REF].onclick = (e) => GraphUI.create_edge(e);
     menu[RENAME].onclick = (e) => {
-        let header = Menu.node.associate.header, old = header.textContent;
-        header.innerHTML = `<input class="rename" value="${old}">`;
+        let header = Menu.node.associate.header, old_name = header.textContent;
+        header.innerHTML = `<input class="rename" value="${old_name}">`;
         let input = header.firstElementChild;
-        let remove = () => {
-            if(input.parentNode === header) header.removeChild(input), header.textContent = old;
-        }
         input.focus();
-        input.addEventListener('focusout', remove);
+        input.addEventListener('focusout', e=> header.textContent = old_name );
         input.addEventListener('keydown', (e) => {
             if(e.key !== 'Enter') return;
-            UI.signal(Menu.node.associate.rename(input.value));
+            GraphUI.signal(Menu.node.associate.rename(input.value));
         });
         Menu.node.hide();
     };
@@ -241,6 +240,6 @@ const hints = {
     'result': ['QED', 'result', 'contradiction', 'conclusion'],
     'claim': ['claim', 'substitution', 'equation', 'inequality'],
     'lemma': ['lemma', 'theorem', 'proposition', 'corollary'],
-    'define': ['define', 'definition', 'variable'],
-    'refer': ['refer', 'reference', 'preliminary', 'premise', '#']
+    'define': ['define', 'definition', 'axiom'],
+    'refer': ['refer', 'reference', 'preliminary', 'premise', 'requires']
 };

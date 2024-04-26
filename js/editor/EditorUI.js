@@ -1,6 +1,15 @@
+"use strict";
 /**
  * The editor for writing latex
  */
+
+import NodeUI from '../UI/NodeUI.js';
+import Visual from './Visual.js';
+import Menu from './Menu.js';
+import mjx_support from './../../dependency/mjx_support.js';
+import Fragment from './Fragment.js';
+import GraphHistory from '../UI/HistoryUI.js';
+import GraphUI from '../UI/GraphUI.js';
 
 class Editor {
     
@@ -30,7 +39,6 @@ class Editor {
 
     /** @param {NodeUI} node  */
     load(node) {
-        if(window.MathGraph.readonly) return UI.signal("can not edit node in readonly mode");
         if(!node) return;
         if(this.visual_mode) this.history = {stack: new Array(), pos: 0, buffer: 0};
         this.node = node;
@@ -40,6 +48,11 @@ class Editor {
         this.latex.innerHTML = node.html_div.querySelector('.tex_render').innerHTML;
         this.div.style.animation = "reveal 0.3s ease"
         this.div.parentNode.style.display = "block";
+        let readonly = node.is_pseudo || window.MathGraph?.readonly;
+        if(readonly) this.visual_mode(false);
+        this.name.readOnly = readonly;
+        this.latex.contentEditable = !readonly;
+        this.raw.readOnly = readonly;
     }
     
     close() {
@@ -67,7 +80,7 @@ class Editor {
         this.node.renderer.style.height = "";
         this.node.renderer.style.width = "";
         GraphHistory.active = true;
-        UI.signal(this.node.rename(this.name.value));
+        GraphUI.signal(this.node.rename(this.name.value));
         GraphHistory.active = false;
     }
     render() {
@@ -156,7 +169,7 @@ class Editor {
             break;
         case 'a':
             let search_for = relations.find(arr => arr.some(str => selected.includes(str)));
-            if(!search_for) { UI.signal('no relation found'); return; }
+            if(!search_for) { GraphUI.signal('no relation found'); return; }
             // = can also be used in those type of comparison
             if(search_for[0] !== '\\implies') search_for.push('=');
 
@@ -205,42 +218,42 @@ class Editor {
         Menu.suggest.change_lib(lib)
         Menu.suggest.popup(new PointerEvent('click', {clientX: pos.x, clientY: pos.y}), assoc);
     }
-}
-/**@param {KeyboardEvent} e  */
-function auto_complete(e) {
-    if(e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') editor.saved = false;
-    switch(e.key) {
-    case '$':
-    case '(':
-    case '[':
-    case '{':
-        let {str, start, end} = editor.get_selection();
-        if(str === null) return;
-    
-        const lookup = {'$': '$' ,'(':')','[':']','{':'}'};
-        e.preventDefault();
-        let replace = e.key + str.slice(start, end) + lookup[e.key];
-        // if it was a close bracket then still select it, otherwise just append text
-        if(e.key === '{') {
-            let search = Object.keys(format).concat(['\\ref']).find(x => str.endsWith(x, start)) ?? '';
-            if(editor.on_visual_mode) {
-                let range = window.getSelection().getRangeAt(0);
-                range.setStart(range.startContainer, range.startOffset - search.length);
-                Visual.wrap_selection();
-                range.setStart(range.startContainer, range.startOffset + search.length);
+    /**@param {KeyboardEvent} e  */
+    auto_complete(e) {
+        if(e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') editor.saved = false;
+        switch(e.key) {
+        case '$':
+        case '(':
+        case '[':
+        case '{':
+            let {str, start, end} = editor.get_selection();
+            if(str === null) return;
+        
+            const lookup = {'$': '$' ,'(':')','[':']','{':'}'};
+            e.preventDefault();
+            let replace = e.key + str.slice(start, end) + lookup[e.key];
+            // if it was a close bracket then still select it, otherwise just append text
+            if(e.key === '{') {
+                let search = Object.keys(format).concat(['\\ref']).find(x => str.endsWith(x, start)) ?? '';
+                if(editor.on_visual_mode) {
+                    let range = window.getSelection().getRangeAt(0);
+                    range.setStart(range.startContainer, range.startOffset - search.length);
+                    Visual.wrap_selection();
+                    range.setStart(range.startContainer, range.startOffset + search.length);
+                }
+                if(search === '\\ref') setTimeout(() => {
+                    editor.popup_menu(GraphUI.current_graph.get_name().sort());
+                    Menu.suggest.load(str.slice(start, end));
+                });
             }
-            if(search === '\\ref') setTimeout(() => {
-                editor.popup_menu(GraphUI.current_graph.get_name().sort());
-                Menu.suggest.load(str.slice(start, end));
-            });
+            return editor.insert_and_set(replace, 1, 1);
+        case '\\':
+            editor.popup_menu(mjx_support);
+            Menu.suggest.handle_key_event(new KeyboardEvent('keydown', {key: '\\'}));
+            break;
+        default:
+            break;
         }
-        return editor.insert_and_set(replace, 1, 1);
-    case '\\':
-        editor.popup_menu(mjx_support);
-        Menu.suggest.handle_key_event(new KeyboardEvent('keydown', {key: '\\'}));
-        break;
-    default:
-        break;
     }
 }
 /**@param {MouseEvent} e  */
@@ -263,10 +276,10 @@ function drag_editor(e) {
 }
 
 /**@type {Editor} */
-var editor;
+const editor = new Editor();
+export default editor;
 
 document.addEventListener('DOMContentLoaded', () => {
-    editor = new Editor();
     editor.div = document.getElementById('editor');
     editor.name = editor.div.querySelector('input.name');
     editor.raw = editor.div.querySelector('.raw-text');
@@ -286,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.latex.addEventListener('mouseup', Visual.validate_selection);
     editor.latex.addEventListener('keydown', Visual.key_handler);
     editor.latex.addEventListener('beforeinput', Visual.handle_input);
-    editor.raw.addEventListener('keydown', auto_complete);
+    editor.raw.addEventListener('keydown',e => editor.auto_complete(e));
 
     editor.div.querySelector('.settings').onmousedown = drag_editor;
     editor.visual_mode(true);
@@ -295,9 +308,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 //latex formating options
-const format = {'\\itemize':'ul','\\item':'li', '\\it':'i', '\\bf':'b', '\\enumurate':'ol'};
-const inv_format = {'i':'\\it', 'b':'\\bf', 'li':'\\item', 'ol':'\\enumurate', 'ul':'\\itemize'};
-const math_delimeter = {'$$':'$$', '$':'$', '\\ref{': '}'};
+export const format = {'\\itemize':'ul','\\item':'li', '\\it':'i', '\\bf':'b', '\\enumurate':'ol'};
+export const inv_format = {'i':'\\it', 'b':'\\bf', 'li':'\\item', 'ol':'\\enumurate', 'ul':'\\itemize'};
 const relations = [
     ['\\implies', '\\iff'],     // logical chaining 
     ['\\le', '<', '\\lessim'],  // less 

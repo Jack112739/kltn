@@ -1,10 +1,17 @@
+"use strict";
+
+import GraphUI from './GraphUI.js';
+import EdgeUI from './EdgeUI.js';
+import NodeUI from './NodeUI.js';
+
+
 const GRAPH_HISTORY_MAX = 65536;
 
-const GraphHistory = {
-    stack : [],
-    position : 0,
-    active : false,
-    register: function(command, data) {
+export default class GraphHistory {
+    static stack = [];
+    static position = 0;
+    static active = false;
+    static register(command, data) {
         if(this.active) return;
         while(this.stack.length > this.position) this.stack.pop();
         if(this.stack.length === GRAPH_HISTORY_MAX) {
@@ -17,8 +24,8 @@ const GraphHistory = {
         this.stack.push(data);
         this.position = this.stack.length;
         return;
-    },
-    undo: function() {
+    }
+    static undo() {
         this.active = true;
         if(this.position === 0) return;
         let command = this.stack[this.position - 1];
@@ -31,25 +38,11 @@ const GraphHistory = {
             break;
         case 'remove':
             command.node.parent.child_div.appendChild(command.node.html_div);
-            for(const [id, _] of command.node.to) command.node.connect(id);
-            for(const [id, _] of command.node.from) id.connect(command.node);
-            for(const line of command.node.external_ref) {
-                line.start.assoc_node.to.set(line.end.assoc_node, line);
-                line.show("none");
-            }
+            EdgeUI.toggle_pseudo(command.node, true, true);
             command.node.modify_name_recursive('set');
             break;
         case 'jump':
-            UI.switch_to(command.from);
-            break;
-        case 'edge':
-            UI.edge_option(command.edge, command.old_option, command.old_data);
-            break;
-        case 'mkede':
-            UI.remove_edge(command.from, command.to);
-            break;
-        case 'rmedge':
-            UI.make_edge(command.from, command.to);
+            GraphUI.switch_to(command.from);
             break;
         case 'rename':
             command.node.rename(command.old_name);
@@ -65,8 +58,8 @@ const GraphHistory = {
         }
         this.active = false;
         this.position--;
-    },
-    redo: function() {
+    }
+    static redo() {
         this.active = true;
         if(this.position === this.stack.length) return;
         let command = this.stack[this.position];
@@ -86,15 +79,6 @@ const GraphHistory = {
         case 'connect':
             command.from.connect(command.to);
             break;
-        case 'edge':
-            UI.edge_option(command.edge, command.option);
-            break;
-        case 'rmedge':
-            UI.remove_edge(command.from, command.to);
-            break;
-        case 'mkedge':
-            UI.make_edge(command.from, command.to);
-            break;
         case 'rename':
             command.node.rename(command.name);
             break;
@@ -109,8 +93,8 @@ const GraphHistory = {
         }
         this.position++;
         this.active = false;
-    },
-    move_node: function(from, to, node) {
+    }
+    static move_node(from, to, node) {
         let div_xy = node.html_div;
         let div_wh = node.is_maximize ? node.child_div : node.renderer;
         div_xy.style.top = div_xy.offsetTop + to.top - from.top + "px";

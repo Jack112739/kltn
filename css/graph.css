@@ -8,7 +8,7 @@
     font-size: 16px;
     color: #D9E0EE;
     user-select: none;
-    cursor: grab;
+    cursor: move;
 }
 .children {
     display: none;
@@ -59,6 +59,7 @@ body > .node.zoom > .tex_render {
     display: none;
     height: 0;
     width: 0;
+    z-index: 50000;
 }
 
 .leader-line {

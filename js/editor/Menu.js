@@ -1,4 +1,9 @@
-class Menu {
+"use strict";
+
+import editor from './EditorUI.js';
+import mjx_support from '../../dependency/mjx_support.js';
+
+export default class Menu {
 
     /**@type {HTMLUListElement} the Node representation */
     items;

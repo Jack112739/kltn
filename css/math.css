@@ -26,6 +26,16 @@
     font-weight: 600;
     font-style: italic;
 }
+.refer > .header::before {
+    font-family: 'Font Awesome 6 Free';
+    font-size: 16px;
+    font-style: normal;
+    content: '\f0c1';
+    color: #2edb76;
+}
+.refer.pseudo > .header::before {
+    color: #f54848;
+}
 .result > .header {
     text-decoration: underline;
 }

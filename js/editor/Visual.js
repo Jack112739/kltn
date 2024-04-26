@@ -1,4 +1,9 @@
-class Visual {
+"use-strict"
+
+import editor from './EditorUI.js';
+import Fragment from './Fragment.js';
+
+export default class Visual {
     /**@param {HTMLScriptElement} jax  */
     static init(jax) {
         if(jax.className === 'checked') return;
@@ -90,7 +95,7 @@ class Visual {
         case 'z': case 'y':
             if(e.ctrlKey) Visual.history_command(e.key);
         }
-        auto_complete(e);
+        editor.auto_complete(e);
         setTimeout(Visual.scroll_if_needed, 0);
     }
     static is_text(range) {

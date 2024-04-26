@@ -1,4 +1,11 @@
-class FileIO {
+"use strict";
+
+import Fragment from './../editor/Fragment.js';
+import NodeUI from './NodeUI.js';
+import GraphHistory from './HistoryUI.js';
+import GraphUI from './GraphUI.js';
+
+export default class FileIO {
     /** @param {NodeUI} node @returns {String} */
     static to_file(node) {
         
@@ -34,7 +41,7 @@ class FileIO {
                 }
                 for(let j = implicit_start; j < headers.length; j++) {
                     if(headers[j] === '') continue;
-                    if(headers[j].startsWith('\\')) test = FileIO.link(now, headers, j, implicit_id);
+                    if(headers[j].startsWith('#')) test = FileIO.link(now, headers, j, implicit_id);
                     else test = now.reference(headers[j]);
                     if(test) {
                         err_msg = `error at line ${i}: ${test}`;
@@ -74,7 +81,6 @@ class FileIO {
         }
         if(cur.parent && !err_msg) err_msg = `missing \\end{proof} at the and of the file`;
         if(err_msg) return new Error(err_msg);
-        editor.visual_mode(false);
         FileIO.compile(cur);
         GraphHistory.active = false;
         return cur;
@@ -85,12 +91,12 @@ class FileIO {
         for(const child of data) node.html_div.appendChild(child);
     }
     static link(now, args, id, implicit_id) {
-        if(isNaN(args[id].slice(1))) return `invalid syntax, expect the ${id}-th arguement \
-                                        to be a valid reference or a '\\' follow by a number`;
+        if(isNaN(args[id].slice(1))) return `invalid syntax, expect the ${id}-th arguement`
+                                        + `to be a valid reference or a '#' follow by a number`;
         let line = parseInt(args[id].slice(1));
         let node = implicit_id.get(line);
-        if(!node) return `can not reference to node at line ${line}
-                         because there are no node's comment (start with %%) at that line`;
+        if(!node) return `can not reference to node at line ${line}`
+                        + `because there are no node's comment (start with %%) at that line`;
         return now.reference(node);
 
     }
@@ -100,45 +106,6 @@ function parse_int_px(str, i) {
     if(isNaN(str)) throw i;
     return str.trim() + "px";
 }
-document.addEventListener('DOMContentLoaded', () => {
-    let input = document.getElementById('uploader');
-    document.querySelector('.upload').onclick = () => input.click();
-    input.onchange = (e) => {
-        let file = e.target.files[0];
-        let reader = new FileReader();
-        reader.onload = (e1) => {
-            if(!file.name.endsWith('.tex')) return UI.signal('Can only upload proof stored in .tex file');
-            let replace = FileIO.parse_file(e1.target.result, file.name);
-            e.target.value = "";
-            if(replace instanceof Error) return UI.signal(replace.message);
-
-            GraphHistory.stack = [];
-            GraphHistory.position = 0;
-        };
-        reader.readAsText(file);
-    }
-    document.querySelector('.download').onclick = async () => {
-        let root = window.MathGraph.current, name = null;
-        try {
-            let file_handler = await window.showSaveFilePicker({
-                startIn: FileIO.file_saver,
-                suggestedName: `${root.id}.tex`,
-                types: [{
-                    accept: {'text/plain': ['.tex']}
-                }]
-            });
-            FileIO.file_saver = file_handler;
-            let stream = await file_handler.createWritable();
-            await stream.write(FileIO.parse_children(root));
-            await stream.close();
-            UI.refresh_href();
-        } catch(e) {
-            if(!(e instanceof DOMException)) return;
-            if(e.message.includes('abort')) return;
-            UI.signal(`Fail to save your proof${name ? ' into' + name: ''}, reason: ${e.message}`);
-        }
-    }
-})
 function remove_ext(name) {
     return name.split('.').slice(0, -1).join('');
 }
