@@ -18,7 +18,7 @@
       if(type === "resize") return;
       window.originalAddEventListener(type, handler, options);
     }
-    window.MathGraph = {readonly: false};
+    window.MathGraph = {readonly: false, workspace: 'playground'};
   </script>
   <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
   <script src="../dependency/leader-line.min.js"></script>
@@ -52,7 +52,7 @@
     <li> <i class="fa-solid fa-tag"></i> Rename</li>
     <li> <i class="fa-solid fa-trash"></i> Remove </li>
   </ul>
-  <div id="dot"></div>
+  <div class="dot" style="display: none;"></div>
   <div class="overlay">
     <div id="editor">
       <div class="settings">

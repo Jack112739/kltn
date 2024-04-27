@@ -71,7 +71,8 @@
     text-align: center;
     position: sticky;
     margin: 12px;
-    top: 0;
+    top: 12px;
+    left: 12px;
 }
 @keyframes zoom-out {
     0% {

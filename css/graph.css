@@ -54,15 +54,15 @@ body > .node.zoom > .tex_render {
 .highlighted.manual {
     border-color: #bee60c;
 }
-#dot {
+.dot {
     position: absolute;
-    display: none;
-    height: 0;
-    width: 0;
+    height: 1px;
+    width: 1px;
     z-index: 50000;
 }
 
 .leader-line {
+    position: absolute;
     z-index: 7;
 }
 .leader-line path {
