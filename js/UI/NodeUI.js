@@ -16,10 +16,10 @@ export default class NodeUI {
     raw_text;
     /**@type {'claim' | 'define' | 'given'| 'result' | 'lemma'} */
     type
-    /**  @type{Map<NodeUI, EdgeUI> | NodeUI}*/
-    from;
-    /** @type{Map.<NodeUI, EdgeUI>}*/ 
-    to;
+    /**@type {{from: Map<NodeUI, EdgeUI>, to: Map<NodeUI, EdgeUI> }}*/
+    display;
+    /**@type {{from: Map<NodeUI, EdgeUI>, to: Map<NodeUI, EdgeUI> } | NodeUI}*/ 
+    math;
     /** @type{Set<NodeUI>} the detail of the proof presented in this node if needed */
     children;
     /**@type {NodeUI} */
@@ -28,22 +28,25 @@ export default class NodeUI {
     external_ref;
     /** @type{HTMLDivElement} the HTML element respected to this node*/
     html_div;
+    /** @type {NodeUI} the respective pseudo node*/
+    ref;
 
     /**@param {NodeUI} parent @param {NodeUI?} pseudo */
     constructor(parent, pseudo) {
         this.id = '';
         this.parent = parent;
         this.highlighted = false;
-        this.to = new Map();
         this.children = new Set();
         this.external_ref = new Set();
         // pseudo node's data is the clone data of the original
-        this.raw_text = pseudo ? pseudo.raw_text: "";
-        this.type =     pseudo ? pseudo.type    : 'claim';
-        this.from =     pseudo ? pseudo         : new Map();
-        this.html_div = pseudo ? pseudo.html_div: document.createElement('div');
+        this.ref        = pseudo ? pseudo :null;
+        this.display    = { from: pseudo ? null: new Map(), to: new Map() };
+        this.raw_text   = pseudo ? pseudo.raw_text: "";
+        this.type       = pseudo ? pseudo.type    : 'claim';
+        this.math       = pseudo ? null        : {from: new Map(), to: new Map()};
+        this.html_div   = pseudo ? pseudo.html_div: document.createElement('div');
         this.html_div.assoc_node = this;
-        if(pseudo) return;
+        if(pseudo) { pseudo.ref = this; return; }
 
         this.html_div.className = "node claim";
         this.html_div.innerHTML = `
@@ -111,7 +114,7 @@ export default class NodeUI {
                    this.is_pseudo ? 'is a pseudo node': 'does not have type claim nor lemma'}`;
         }
         if(opt === this.is_maximize) return;
-        ['oncontextmenu', 'ondblclick'].forEach(f => {
+        ['onmousedown', 'oncontextmenu', 'ondblclick'].forEach(f => {
             [this.html_div[f], this.renderer[f]] = [this.renderer[f], this.html_div[f]];
         });
         this.renderer.style.width = "";
@@ -136,9 +139,9 @@ export default class NodeUI {
         if(this.id) window.MathGraph.all_label[op](this.id, this);
     }
     reposition() {
-        for(const [_, line] of this.from) line.reposition();
-        for(const [_, line] of this.to) line.reposition();
-        for(const line of this.external_ref) line.reposition(true);
+        for(const [_, line] of this.math.from) line.reposition();
+        for(const [_, line] of this.math.to) line.reposition();
+        for(const line of this.external_ref) line.reposition();
     }
     /**@param {MouseEvent} e0  */
     start_scroll(e0) {
@@ -170,14 +173,9 @@ export default class NodeUI {
     remove() {
         if(this.is_pseudo) GraphUI.signal('can not delete the pseudo node');
         this.modify_name_recursive('delete')
-        for(let [id, line] of this.from) {
-            id.to.delete(this);
-            line.remove();
-        }
-        for(let [id, line] of this.to) {
-            id.from.delete(this);
-            line.remove();
-        }
+        for(let [_, line] of this.math.from) line.remove();
+        for(let [_, line] of this.math.to) line.remove();
+        for(const edge of this.external_ref) edge.remove();
         this.parent.child_div.removeChild(this.html_div);
         this.parent.children.delete(this);
         GraphHistory.register('remove', {node: this});
@@ -231,6 +229,7 @@ export default class NodeUI {
         if(!this.parent) return this;
         return this.parent.root;
     }
+    /** @returns {HTMLDivElement} */
     get child_div() {
         return this.html_div.querySelector('.children');
     }
@@ -244,12 +243,20 @@ export default class NodeUI {
         return this.html_div.classList.contains('highlight');
     }
     get is_pseudo() {
-        return this.from instanceof NodeUI;
+        return this.html_div.classList.contains('pseudo');
     }
     /**@param {Element} elem @returns {NodeUI} */
     static is_node_component(elem) {
         while(elem && !elem.assoc_node) elem = elem.parentNode;
         return elem?.assoc_node;
+    }
+    /**@param {NodeUI} n1  @param {NodeUI} n2  @returns {NodeUI} */
+    static lca(n1, n2) {
+        let range = document.createRange();
+        range.setStart(n1.child_div, 0);
+        range.setEnd(n2.child_div, 0);
+        if(range.collapsed) range.setEnd(n1.child_div, 0); 
+        return range.commonAncestorContainer.parentNode.assoc_node;
     }
 }
 document.addEventListener('DOMContentLoaded', (e) => {
@@ -279,7 +286,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
 });
 
 const EDIT = 0, HIGHTLIGHT = 1, MIN = 2, MAX = 3, DETAIL = 4, REF = 5, RENAME = 6, REMOVE = 7;
-const hints = {
+export const hints = {
     'given': ['assume', 'given', 'in case', 'otherwise', 'assumption'],
     'result': ['QED', 'result', 'contradiction', 'conclusion'],
     'claim': ['claim', 'substitution', 'equation', 'inequality'],

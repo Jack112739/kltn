@@ -67,6 +67,7 @@ body > .node.zoom > .tex_render {
 }
 .leader-line path {
     pointer-events: all;
+    cursor: help;
 }
 button.parent:hover {
     color: blue;
