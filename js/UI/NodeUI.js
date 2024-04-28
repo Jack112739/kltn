@@ -18,7 +18,7 @@ export default class NodeUI {
     type
     /**@type {{from: Map<NodeUI, EdgeUI>, to: Map<NodeUI, EdgeUI> }}*/
     display;
-    /**@type {{from: Map<NodeUI, EdgeUI>, to: Map<NodeUI, EdgeUI> } | NodeUI}*/ 
+    /**@type {{from: Map<NodeUI, EdgeUI>, to: Map<NodeUI, EdgeUI> }}*/ 
     math;
     /** @type{Set<NodeUI>} the detail of the proof presented in this node if needed */
     children;
@@ -38,9 +38,9 @@ export default class NodeUI {
         this.highlighted = false;
         this.children = new Set();
         this.external_ref = new Set();
+        this.display    = { from: new Map(), to: new Map() };
         // pseudo node's data is the clone data of the original
         this.ref        = pseudo ? pseudo :null;
-        this.display    = { from: pseudo ? null: new Map(), to: new Map() };
         this.raw_text   = pseudo ? pseudo.raw_text: "";
         this.type       = pseudo ? pseudo.type    : 'claim';
         this.math       = pseudo ? null        : {from: new Map(), to: new Map()};
@@ -54,10 +54,11 @@ export default class NodeUI {
             <div class="tex_render"></div>
             <div class="children"><h2>proof:</h2><div class="dot"></div>
         `;
-        this.html_div.onmousedown = (e) => {e.stopPropagation(); this.start_reshape(e)};
-        this.html_div.ondblclick = (e) => {e.stopPropagation(); this.toggle_detail()};
-        this.html_div.oncontextmenu = (e) => {e.stopPropagation(); this.open_context_menu(e)};
-        this.child_div.onmousedown = (e) => {e.stopPropagation(); this.start_scroll(e); }
+        let div = this.html_div;
+        this.html_div.onmousedown = (e) => {e.stopPropagation(); div.assoc_node.start_reshape(e)};
+        this.html_div.ondblclick = (e) => {e.stopPropagation(); div.assoc_node.toggle_detail()};
+        this.html_div.oncontextmenu = (e) => {e.stopPropagation(); div.assoc_node.open_context_menu(e)};
+        this.child_div.onmousedown = (e) => {e.stopPropagation(); div.assoc_node.start_scroll(e); }
         GraphHistory.register('create', {node: this});
     }
     /**@param {MouseEvent} e  */
@@ -144,8 +145,8 @@ export default class NodeUI {
         if(this.id) window.MathGraph.all_label[op](this.id, this);
     }
     reposition() {
-        for(const [_, line] of this.math.from) line.reposition();
-        for(const [_, line] of this.math.to) line.reposition();
+        for(const [_, line] of (this.math ?? this.display).from) line.reposition();
+        for(const [_, line] of (this.math ?? this.display).to) line.reposition();
         for(const line of this.external_ref) line.reposition();
     }
     /**@param {MouseEvent} e0  */
@@ -178,8 +179,8 @@ export default class NodeUI {
     remove() {
         if(this.is_pseudo) GraphUI.signal('can not delete the pseudo node');
         this.modify_name_recursive('delete')
-        for(let [_, line] of this.math.from) line.remove();
-        for(let [_, line] of this.math.to) line.remove();
+        for(let [_, line] of (this.math ?? this.display).from) line.remove();
+        for(let [_, line] of (this.math ?? this.display).to) line.remove();
         for(const edge of this.external_ref) edge.remove();
         this.parent.child_div.removeChild(this.html_div);
         this.parent.children.delete(this);
@@ -248,7 +249,7 @@ export default class NodeUI {
         return this.html_div.classList.contains('highlight');
     }
     get is_pseudo() {
-        return this.display.from === null;
+        return this.math === null;
     }
     /**@param {Element} elem @returns {NodeUI} */
     static is_node_component(elem) {
@@ -257,7 +258,9 @@ export default class NodeUI {
     }
     /**@param {NodeUI} n1  @param {NodeUI} n2  @returns {NodeUI} */
     static lca(n1, n2) {
-        let temp_n1 = (!n1.is_pseudo && n1.ref !== null), temp_n2 = (!n2.is_pseudo && n2.ref !== null);
+        if(n1.is_pseudo) n1 = n1.ref;
+        if(n2.is_pseudo) n2 = n2.ref;
+        let temp_n1 = n1.ref !== null, temp_n2 = n2.ref !== null;
         if(temp_n1) n1.parent.child_div.appendChild(n1.html_div);
         if(temp_n2) n2.parent.child_div.appendChild(n2.html_div);
         let range = document.createRange();

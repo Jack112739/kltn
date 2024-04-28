@@ -53,26 +53,29 @@ export default class GraphUI {
     }
     /**@param {NodeUI} node */
     static focus(node) {
-        let err = node.toggle_detail(true, true), current = window.MathGraph.current;
-        if(err && !node.is_pseudo) return GraphUI.signal(err);
         if(node.is_pseudo) node = node.ref;
+        let err = node.toggle_detail(true, true), current = window.MathGraph.current;
+        if(err) return this.signal(err);
         GraphHistory.register('jump', {from: current, to: node});
-        if(current.parent) {
-            current.toggle_detail(false, true);
-            current.parent.child_div.appendChild(current.html_div);
-        }
-        else document.body.removeChild(current.html_div);
-        document.body.appendChild(node.html_div);
+        let lca = NodeUI.lca(node, current);
+        this.switch_body(lca);
         for(const low of window.MathGraph.all_pseudo) {
-            if(low.ref !== node && NodeUI.lca(low.ref, node) === node) EdgeUI.reclaim_edges(low, true);
+            if(NodeUI.lca(lca, low) === lca) EdgeUI.reclaim_edges(low, true);
         }
-        window.MathGraph.current = node;
-        node.html_div.style.animation = "";
+        this.switch_body(node);
         for(const edge of node.external_ref) edge.refresh();
         this.refresh_href(node);
-        // node.html_div.style.animation = "focus 0.3s linear";
-        // node.html_div.addEventListener('animationend', (e) => {
-        // }, {once: true});
+        node.html_div.style.animation = "focus 0.3s linear";
+        node.html_div.addEventListener('animationend', (e) => {
+            for(const edge of node.external_ref) { edge.hide('none'); edge.show('draw'); }
+        }, {once: true});
+    }
+    static switch_body(target) {
+        let current = window.MathGraph.current;
+        if(current.parent) current.parent.child_div.appendChild(current.html_div);
+        else document.body.removeChild(current.html_div);
+        document.body.appendChild(target.html_div);
+        window.MathGraph.current = target;
     }
     /**@param {PointerEvent} e  */
     static monitor_node_at_cursor(e) {

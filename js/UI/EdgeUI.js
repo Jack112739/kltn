@@ -9,6 +9,8 @@ export default class EdgeUI {
     repr;
     /**@type {NodeUI} the parent of where this node was stolen from */
     from;
+    /**@type {NodeUI} */
+    alias
     /** @type {NodeUI[]} */
     hierarchy;
     /**@type {number} */
@@ -23,6 +25,7 @@ export default class EdgeUI {
     /**@param {NodeUI} from @param {NodeUI} to */
     constructor(from, to, option) {
         this.from = from.is_pseudo ? from.ref : from;
+        this.alias = from;
         this.hierarchy = [to];
         this.repr = new LeaderLine(from.html_div, to.html_div, option);
         this.repr.count = 1;
@@ -58,7 +61,6 @@ export default class EdgeUI {
         if(this.from.ref && this.from.ref.parent !== current) {
             EdgeUI.reclaim_edges(this.from.ref);
         }
-        let alias = this.alias;
         if(!this.from.ref) {
             let pseudo = new NodeUI(current, this.from);
             window.MathGraph.all_pseudo.add(pseudo);
@@ -66,11 +68,12 @@ export default class EdgeUI {
             current.children.add(pseudo);
             current.child_div.appendChild(pseudo.html_div);
         }
-        if(alias !== this.from.ref) {
-            alias.display.to.delete(this.shadow);
-            this.shadow.display.from.delete(alias);
+        if(this.alias !== this.from.ref) {
+            this.alias.display.to.delete(this.shadow);
+            this.shadow.display.from.delete(this.alias);
             this.from.ref.display.to.set(this.shadow, this);
-            this.shadow.display.from.set(this.from.ref, this)
+            this.shadow.display.from.set(this.from.ref, this);
+            this.alias = this.from.ref;
             this.repr.setOptions({start: this.from.ref});
         }
         current.child_div.appendChild(this.svg);
@@ -80,7 +83,7 @@ export default class EdgeUI {
     reposition() {
         if(this.offset_from === -1) {
             this.offset_from = this.offset_to;
-            while(this.hierarchy[this.offset_from + 1] !== this.alias.parent) this.offset_from++;
+            while(this.hierarchy[this.offset_from].parent !== this.alias.parent) this.offset_from++;
         }
         let {choose, socket} = this.get_offset();
         if(choose !== this.offset_to) this.change_to_fit(choose, socket);
@@ -90,18 +93,18 @@ export default class EdgeUI {
         this.adjust_svg();
     }
     change_to_fit(offset, socket) {
-        let alias = this.remove_from_shadow();
+        this.remove_from_shadow();
         this.offset_to = offset;
         let next = this.hierarchy[offset];
-        let edge = next.display.from.get(alias);
+        let edge = next.display.from.get(this.alias);
         if(!edge) {
             if(!this.repr) {
-                this.repr = new LeaderLine(alias.html_div, next.html_div, window.MathGraph.edge_opt);
+                this.repr = new LeaderLine(this.alias.html_div, next.html_div, window.MathGraph.edge_opt);
                 this.svg = document.body.lastChild;
-                alias.parent.child_div.appendChild(this.svg);
+                this.alias.parent.child_div.appendChild(this.svg);
             }
-            next.display.from.set(alias, this);
-            alias.display.to.set(next, this);
+            next.display.from.set(this.alias, this);
+            this.alias.display.to.set(next, this);
             this.repr.setOptions({end: next.html_div, endSocket: socket});
             edge = this;
         }
@@ -113,19 +116,17 @@ export default class EdgeUI {
         edge.repr.setOptions({middleLabel: label});
     }
     remove_from_shadow() {
-        let alias = this.alias;
         if(this.repr.count <= 2) {
             this.repr.count = 0;
-            alias.display.to.delete(this.shadow);
-            this.shadow.display.from.delete(alias);
+            this.alias.display.to.delete(this.shadow);
+            this.shadow.display.from.delete(this.alias);
         }
         else {
             let label =  (this.repr.count -= 2) == 1 ? '': '+' + (this.repr.count >> 1);
+            this.repr.setOptions({middleLabel: label ? LeaderLine.captionLabel(label, label_opt) : ''});
             this.svg = null;
             this.repr = null;
-            this.repr.setOptions({middleLabel: label ? LeaderLine.captionLabel(label, label_opt) : ''});
         }
-        return alias;
     }
     get_offset() {
         let cur = this.hierarchy[this.offset_from].html_div;
@@ -188,10 +189,7 @@ export default class EdgeUI {
         if(this.svg) document.body.appendChild(this.svg);
         this.repr?.remove();
         this.from.math.to.delete(this.to);
-    }
-    /**@returns {NodeUI} */
-    get alias() {
-        return this.repr.start.assoc_node;
+        for(const parent of this.hierarchy) parent.external_ref.delete(this);
     }
     /**@returns {NodeUI} */
     get shadow() {
@@ -225,6 +223,7 @@ export default class EdgeUI {
             node.display.from.set(pseudo.ref, edge);
             pseudo.ref.display.to.set(node, edge);
             edge.offset_from = edge.hierarchy.length - 1;
+            edge.alias = pseudo.ref;
             if(reposition) edge.reposition();
         }
         window.MathGraph.all_pseudo.delete(pseudo);
