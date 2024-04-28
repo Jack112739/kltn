@@ -214,9 +214,14 @@ export default class NodeUI {
         this.type = new_type;
         this.renderer.style.minWidth = Math.max(this.name_rect.width, 45) + "px";
     }
-    /**@param {String} link */
+    /**@param {NodeUI} link */
     reference(link) {
-        throw new Error('this feature has not been implemented');
+        if(link.is_pseudo) link = link.ref
+        let edge  = EdgeUI.create(link, this);
+        if(typeof edge === 'string') return edge;
+        let current = window.MathGraph.current;
+        if(NodeUI.lca(current, edge.from) !== current) edge.refresh();
+        return null;
     }
     get name_rect() {
         let range = document.createRange();

@@ -3,12 +3,78 @@
 import Fragment from './../editor/Fragment.js';
 import NodeUI from './NodeUI.js';
 import GraphHistory from './HistoryUI.js';
+import EdgeUI from './EdgeUI.js';
 import GraphUI from './GraphUI.js';
 
 export default class FileIO {
-    /** @param {NodeUI} node @returns {String} */
-    static to_file(node) {
-        
+    /** 
+     * @param {NodeUI} node @returns {String} 
+    * @param {{ret: string[], map: Map<NodeUI, string>}} context
+    */
+    static parse_graph_recursive(node, context) {
+        let topo = new Map();
+        let deg = new Map();
+        let queue = [], i = 0;
+        for(const child of node.children) if(!child.is_pseudo) deg.set(child, 0);
+        for(const child of node.children) {
+            if(child.is_pseudo) continue;
+            let adj = new Set();
+            if(child.type === 'given') queue.push(child);
+            for(const [_, edge]of child.math.to) {
+                let relative_to = edge.hierarchy.at(-1);
+                adj.add(relative_to);
+                deg.set(relative_to, deg.get(relative_to) + 1);
+            }
+            topo.set(child, adj);
+            deg.set(child, adj.size);
+        }
+        for(const [child, degree] of deg) if(child.type !== 'given' && degree === 0) queue.add(degree);
+        bfs:
+        while(i < queue.length) {
+            let cur = queue[i];
+            let header = `%% ${cur.header.textContent}`
+                        + `, ${cur.html_div.offsetTop}, ${cur.html_div.offsetLeft}`
+                        + `, ${cur.renderer.ofsetHeight}, ${cur.renderer.offsetHeight}`;
+            for(const ref of cur.math.from) {
+                let num = context.get(ref);
+                if(!num) { queue = []; break bfs;}
+                header += ', ' + num;
+            } 
+            context.map.set(cur, cur.id !== '' ? cur.id : '#' + context.ret.length);
+            context.ret.push(header);
+            if(cur.id) context.ret.push(`\\label{${cur.id}}`);
+            context.ret.concat(cur.raw_text.split('\n'));
+            for(const adj of topo.get(cur)) {
+                deg.set(adj, deg.get(adj) - 1);
+                if(deg.get(adj) === 0) queue.push(adj);
+            }
+            if(cur.children.size > 0) {
+                context.ret.push('\\begin{proof}');
+                for(const child of cur.children) {
+                    let err = this.parse_graph_recursive(child, context);
+                    if(err) return err;
+                }
+                context.ret.push('\\end{proof}');
+            }
+            i++;
+        }
+        if(queue.length !== node.children.size) {
+            return `Error at node ${
+                !node.parent ? `root (${window.MathGraph.workspace})`:
+                !node.parent.id ? `with content ${node.parent.raw_text}`:
+                                 `with label ${node.parent.id}` 
+                }: A graph can not contain cyclic references`;
+        }
+        return null;
+    }
+    static parse_graph(root) {
+        let context = {
+            map: new Map(),
+            ret : [window.MathGraph.workspace + ':\n\n']
+        };
+        let err = this.parse_graph_recursive(root, context);
+        if(err) return new Error(err);
+        return context.join('\n');
     }
     static parse_file(str, file_name) {
         let lines = str.split('\n');
@@ -23,6 +89,7 @@ export default class FileIO {
             let line = lines[i].trim();
             if(line.startsWith('%%')) {
                 now = new NodeUI(cur);
+                cur.children.add(now);
                 implicit_id.set(i, now);
                 let headers = line.slice(2).split(',').map(str => str.trim());
                 let implicit_start = 5;
@@ -89,6 +156,7 @@ export default class FileIO {
         for(const [_, child] of node.children) FileIO.compile(child);
         let data = (new Fragment(node.raw_text, 'text')).output('html');
         for(const child of data) node.html_div.appendChild(child);
+        node.parent.child_div.appendChild(node.html_div);
     }
     static link(now, args, id, implicit_id) {
         if(isNaN(args[id].slice(1))) return `invalid syntax, expect the ${id}-th arguement`

@@ -82,6 +82,28 @@ class Editor {
         GraphHistory.active = true;
         GraphUI.signal(this.node.rename(this.name.value));
         GraphHistory.active = false;
+        this.link_all_references();
+    }
+    link_all_references() {
+        let unknow = [];
+        let invalid = [];
+        for(const refs of editor.latex.querySelectorAll('mjx-container.ref')) {
+            let ref_str = refs.lastChild.textContent.slice('\\ref{'.length, -1);
+            let ref_node = window.MathGraph.all_label.get(ref_str);
+            if(!ref_node) {
+                let pre = document.createElement('pre');
+                pre.classList.add('err');
+                pre.textContent = refs.lastChild.textContent;
+                refs.parentNode.replaceChild(pre, refs);
+                unknow.push(ref_str)
+            }
+            else {
+                let test = this.node.reference(ref_node);
+                if(test) invalid.add(ref_str);
+            }
+        }
+        if(unknow.length !== 0) GraphUI.signal(`the references ${unknow.join(', ')}does not exist`)
+        if(invalid.length !== 0) GraphUI.signal(`invalid references to nodes ${invalid.join(', ')}`);
     }
     render() {
         this.latex.innerHTML = '';
@@ -242,7 +264,7 @@ class Editor {
                     range.setStart(range.startContainer, range.startOffset + search.length);
                 }
                 if(search === '\\ref') setTimeout(() => {
-                    editor.popup_menu(GraphUI.current_graph.get_name().sort());
+                    editor.popup_menu(Array.from(window.MathGraph.all_label.keys()).sort());
                     Menu.suggest.load(str.slice(start, end));
                 });
             }

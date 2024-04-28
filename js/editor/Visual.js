@@ -51,16 +51,21 @@ export default class Visual {
             change = range.startContainer.parentNode;
         }
         if(!editor.focus_element) return need_render ? range: (editor.focus_element = change, null);
-        let cmp_left = range.comparePoint(editor.focus_element, 0);
-        let cmp_right = range.comparePoint(editor.focus_element, 1);
-        if(cmp_left === 1 || cmp_right === -1) {
-            Visual.rerender(editor.focus_element);
-            return need_render ? range : editor.focus_element = null;
-        }
-        else if((cmp_left === 0 && cmp_right === 0) || !need_render) 
-            return null;
-        else
+        try {
+            let cmp_left = range.comparePoint(editor.focus_element, 0);
+            let cmp_right = range.comparePoint(editor.focus_element, 1);
+            if(cmp_left === 1 || cmp_right === -1) {
+                Visual.rerender(editor.focus_element);
+                return need_render ? range : editor.focus_element = null;
+            }
+            else if((cmp_left === 0 && cmp_right === 0) || !need_render) 
+                return null;
+            else
+                return range;
+        } catch (e) {
+            editor.focus_element = null;
             return range;
+        }
     }
     /**@param {Node} elem  */
     static rerender(elem) {

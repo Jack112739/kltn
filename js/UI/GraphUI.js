@@ -72,6 +72,8 @@ export default class GraphUI {
     }
     static switch_body(target) {
         let current = window.MathGraph.current;
+        target.child_div.style.width = "";
+        target.child_div.style.height = "";
         if(current.parent) current.parent.child_div.appendChild(current.html_div);
         else document.body.removeChild(current.html_div);
         document.body.appendChild(target.html_div);
@@ -130,14 +132,16 @@ function read_file(e) {
         let replace = FileIO.parse_file(e1.target.result, file.name);
         e.target.value = "";
         if(replace instanceof Error) return GraphUI.signal(replace.message);
-
+        window.MathGraph.workspace = file.name;
+        GraphUI.switch_body(replace);
+        window.MathGraph.current.querySelector('h2').textContent = file.name;
         GraphHistory.stack = [];
         GraphHistory.position = 0;
     };
     reader.readAsText(file);
 }
 async function download(e) {
-    let root = window.MathGraph.current, name = null;
+    let root = window.MathGraph.current.root, name = null;
     try {
         let file_handler = await window.showSaveFilePicker({
             startIn: FileIO.file_saver,
@@ -148,13 +152,15 @@ async function download(e) {
         });
         FileIO.file_saver = file_handler;
         let stream = await file_handler.createWritable();
-        await stream.write(FileIO.parse_children(root));
+        let data = FileIO.parse_graph(root);
+        if(data instanceof Error) return GraphUI.signal(data);
+        await stream.write(root);
         await stream.close();
-        UI.refresh_href();
+        GraphUI.refresh_href();
     } catch(e) {
         if(!(e instanceof DOMException)) return;
         if(e.message.includes('abort')) return;
-        UI.signal(`Fail to save your proof${name ? ' into' + name: ''}, reason: ${e.message}`);
+        GraphUI.signal(`Fail to save your proof${name ? ' into' + name: ''}, reason: ${e.message}`);
     }
 }
 //setup function
