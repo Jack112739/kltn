@@ -107,7 +107,7 @@ export default class NodeUI {
         return !this.is_maximize ? 'move' : 'grab';
     }
     /**@param {boolean} opt */
-    toggle_detail(opt) {
+    toggle_detail(opt, silent) {
         if(typeof opt === 'undefined') opt = !this.is_maximize;
         if(opt && (this.is_pseudo|| !['lemma', 'claim'].includes(this.type))) {
             return `this node can not be expanded since it ${ 
@@ -119,11 +119,16 @@ export default class NodeUI {
         });
         this.renderer.style.width = "";
         this.renderer.style.height = ""
-        if(opt) this.html_div.classList.add('zoom');
-        this.html_div.style.animation = opt ? "zoom-out 0.2s": "zoom-in 0.2s";
-        if(!opt) setTimeout(() => this.html_div.classList.remove('zoom'), 150);
-        setTimeout(() => this.reposition(), 230);
-        GraphHistory.register('zoom', {node: this});
+        this.html_div.style.animation = silent ? "" : opt ? "zoom-out 0.2s": "zoom-in 0.2s";
+        if(silent) this.html_div.classList.toggle('zoom', opt);
+        else {
+            if(opt) this.html_div.classList.add('zoom');
+            this.html_div.addEventListener('animationend', () => {
+                if(!opt) this.html_div.classList.remove('zoom');
+                this.reposition(); 
+            }, {once: true});
+            GraphHistory.register('zoom', {node: this});
+        }
     }
     /**@param {boolean} opt @param {boolean} manual  */
     toggle_highlight(opt, manual) {
@@ -243,7 +248,7 @@ export default class NodeUI {
         return this.html_div.classList.contains('highlight');
     }
     get is_pseudo() {
-        return this.html_div.classList.contains('pseudo');
+        return this.display.from === null;
     }
     /**@param {Element} elem @returns {NodeUI} */
     static is_node_component(elem) {
@@ -252,10 +257,15 @@ export default class NodeUI {
     }
     /**@param {NodeUI} n1  @param {NodeUI} n2  @returns {NodeUI} */
     static lca(n1, n2) {
+        let temp_n1 = (!n1.is_pseudo && n1.ref !== null), temp_n2 = (!n2.is_pseudo && n2.ref !== null);
+        if(temp_n1) n1.parent.child_div.appendChild(n1.html_div);
+        if(temp_n2) n2.parent.child_div.appendChild(n2.html_div);
         let range = document.createRange();
         range.setStart(n1.child_div, 0);
         range.setEnd(n2.child_div, 0);
         if(range.collapsed) range.setEnd(n1.child_div, 0); 
+        if(temp_n1) n1.ref.parent.child_div.appendChild(n1.html_div);
+        if(temp_n2) n2.ref.parent.child_div.appendChild(n2.html_div);
         return range.commonAncestorContainer.parentNode.assoc_node;
     }
 }

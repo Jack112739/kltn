@@ -87,3 +87,11 @@ button.parent::after {
 div.toolbar {
     margin-left: auto;
 }
+@keyframes focus {
+    0% { 
+        transform: scale(0) translate(20%, 20%); 
+    }    
+    100% {
+        transform: scale(1) translate(0, 0);
+    }
+}

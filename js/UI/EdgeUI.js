@@ -5,7 +5,7 @@ import GraphUI from './GraphUI.js';
 
 export default class EdgeUI {
 
-    /**@type {LeaderLine>} */
+    /**@type {LeaderLine>} sometime work as a shared pointer, count odd = owned, count/2 = borrow*/
     repr;
     /**@type {NodeUI} the parent of where this node was stolen from */
     from;
@@ -19,16 +19,13 @@ export default class EdgeUI {
     truncate;
     /**@type {SVGElement} */
     svg;
-    /**@type {EdgeUI}*/
-    next = null; 
-    /**@type {EdgeUI} */
-    prev = null;
 
     /**@param {NodeUI} from @param {NodeUI} to */
     constructor(from, to, option) {
         this.from = from.is_pseudo ? from.ref : from;
         this.hierarchy = [to];
         this.repr = new LeaderLine(from.html_div, to.html_div, option);
+        this.repr.count = 1;
         this.svg = document.body.lastChild;
         this.offset_to = 0;
         this.offset_from = 0;
@@ -64,6 +61,7 @@ export default class EdgeUI {
         let alias = this.alias;
         if(!this.from.ref) {
             let pseudo = new NodeUI(current, this.from);
+            window.MathGraph.all_pseudo.add(pseudo);
             pseudo.html_div.classList.add('refer', 'pseudo');
             current.children.add(pseudo);
             current.child_div.appendChild(pseudo.html_div);
@@ -72,109 +70,96 @@ export default class EdgeUI {
             alias.display.to.delete(this.shadow);
             this.shadow.display.from.delete(alias);
             this.from.ref.display.to.set(this.shadow, this);
-            this.shadow.display.from.set(this.shadow, this)
+            this.shadow.display.from.set(this.from.ref, this)
             this.repr.setOptions({start: this.from.ref});
         }
         current.child_div.appendChild(this.svg);
         this.offset_from = -1;
         this.reposition();
-        this.repr.hide("none");
-        setTimeout(() => this.repr.show('draw'), 320);
     }
     reposition() {
         if(this.offset_from === -1) {
             this.offset_from = this.offset_to;
             while(this.hierarchy[this.offset_from + 1] !== this.alias.parent) this.offset_from++;
         }
-        let cur = this.hierarchy[this.offset_from].html_div;
-        let [w0, h0] = [cur.offsetWidth, cur.offsetHeight];
-        let choose = this.offset_from, socket = 'auto';
-        let rect = new DOMRect(0, 0, cur.offsetHeight, cur.offsetWidth);
-        for(let i = this.offset_from - 1; i >= 0; i--) {
-            cur = this.hierarchy[i].html_div;
-            rect.x += cur.offsetLeft - cur.parentNode.scrollLeft;
-            rect.y += cur.offsetTop - cur.parentNode.scrollTop;
-            rect.width = cur.offsetWidth;
-            rect.height = cur.offsetHeight;
-            if(rect.x >= w0 || rect.right <= 0 || rect.y >= h0 || rect.bottom <= 0) break;
-            else if(rect.x > 0 && rect.right < w0 && rect.y > 0) socket = 'top';
-            else if(rect.x > 0 && rect.right < w0 && rect.bottom < h0) socket = 'bottom';
-            else if(rect.y > 0 && rect.bottom < h0 && rect.x > 0) socket = 'left';
-            else if(rect.y > 0 && rect.bottom < h0 && rect.right < w0) socket = 'right';
-            else continue;
-            choose = i;
-            if(!cur.assoc_node.is_maximize) break;
-        }
+        let {choose, socket} = this.get_offset();
         if(choose !== this.offset_to) this.change_to_fit(choose, socket);
-        if(socket !== this.repr.endSocket) this.repr.setOptions({endSocket: socket});
+        else if(socket !== this.repr.endSocket) this.repr.setOptions({endSocket: socket});
         if(this.is_hidden) return;
         this.repr.position();
         this.adjust_svg();
     }
     change_to_fit(offset, socket) {
-        this.remove_from_shadow();
-        let next = this.hierarchy[offset];
-        let cur = this.alias.display.to.get(next);
-        if(cur) {
-            let count = parseInt(cur.repr.middleLabel.text.slice(1));
-            this.hide('none');
-            this.prev = cur;
-            this.next = cur.next;
-            if(cur.next) cur.next.prev = this;
-            cur.next = this;
-            cur.setOptions({ middleLabel: '+' + (count + 1)});
-        }
-        else {
-            this.alias.display.to.set(next, this);
-            next.display.from.set(this.alias, this);
-            if(!next.is_maximize) this.repr.setOptions({middleLabel: ''});
-            else this.repr.setOptions({end: next.html_div, endSocket: socket,
-                middleLabel: LeaderLine.captionLabel('+1', {
-                    outlineColor: '',
-                    fontFamily: 'sans-serif',
-                    fontSize: '16px',
-                    color: '#2edb76',
-                })
-            })
-        }
+        let alias = this.remove_from_shadow();
         this.offset_to = offset;
+        let next = this.hierarchy[offset];
+        let edge = next.display.from.get(alias);
+        if(!edge) {
+            if(!this.repr) {
+                this.repr = new LeaderLine(alias.html_div, next.html_div, window.MathGraph.edge_opt);
+                this.svg = document.body.lastChild;
+                alias.parent.child_div.appendChild(this.svg);
+            }
+            next.display.from.set(alias, this);
+            alias.display.to.set(next, this);
+            this.repr.setOptions({end: next.html_div, endSocket: socket});
+            edge = this;
+        }
+        if(this !== edge) { document.body.appendChild(this.svg); this.repr.remove(); }
+        this.repr = edge.repr;
+        this.svg = edge.svg;
+        let count = (edge.repr.count = (edge.repr.count ?? 0) + (this.to === next ? 1 : 2));
+        let label = count >= 2 ? LeaderLine.captionLabel('+' + (count >> 1), label_opt) : '';
+        edge.repr.setOptions({middleLabel: label});
     }
     remove_from_shadow() {
-        let edge = this.alias.display.to.get(this.shadow);
-        let count_str = edge?.repr.middleLabel.text, count = 0;
-        if(!count_str || (count = parseInt(count_str.slice(1))) === 1) {
-            edge?.repr.setOptions({middleLabel: ""});
-            this.shadow.display.from.delete(this.alias);
-            this.alias.display.to.delete(this.shadow);
-            return;
-        }
-        if (this === edge) {
-            this.shadow.display.from.set(this.alias, this.next);
-            this.alias.display.to.set(this.shadow, this.next);
-            this.next.prev = null;
-            this.next.repr.setOptions({
-                middleLabel: LeaderLine.captionLabel('+' + (count - 1), {
-                    outlineColor: '',
-                    fontFamily: 'sans-serif',
-                    fontSize: '16px',
-                    color: '#2edb76',
-                })
-            });
+        let alias = this.alias;
+        if(this.repr.count <= 2) {
+            this.repr.count = 0;
+            alias.display.to.delete(this.shadow);
+            this.shadow.display.from.delete(alias);
         }
         else {
-            this.prev.next = this.next;
-            if(this.next) this.next.prev = this.prev;
-            this.repr.setOptions({middleLabel: '+' + (count - 1)});
+            let label =  (this.repr.count -= 2) == 1 ? '': '+' + (this.repr.count >> 1);
+            this.svg = null;
+            this.repr = null;
+            this.repr.setOptions({middleLabel: label ? LeaderLine.captionLabel(label, label_opt) : ''});
         }
-        this.next = null;
-        this.prev = null;
+        return alias;
+    }
+    get_offset() {
+        let cur = this.hierarchy[this.offset_from].html_div;
+        let render_h = cur.assoc_node.renderer.offsetHeight;
+        let [x0, y0, x1, y1] = [0, 0, cur.offsetWidth, cur.offsetHeight - render_h];
+        let [dx, dy] = [0, 0];
+        let choose = this.offset_from, socket = 'auto';
+        for(let i = this.offset_from - 1; i >= 0; i--) {
+            cur = this.hierarchy[i].html_div
+            dx += cur.offsetLeft - cur.parentNode.scrollLeft;
+            dy += cur.offsetTop - cur.parentNode.scrollTop;
+            let dy1 = dy + cur.offsetHeight, dx1 = dx + cur.offsetWidth;
+            let test = 0, maybe_socket = 'auto';
+            if(dx > x1 || dy > y1 || dy1 < y0 || dx1 < x0) break;
+            if(dx > x0) { test++; x0 = dx; } else maybe_socket = 'right';
+            if(dy > y0) { test++; y0 = dy; } else maybe_socket = 'bottom'; 
+            if(dx1 < x1) { test++; x1 = dx1; } else maybe_socket = 'left'; 
+            if(dy1 < y1) { test++; y1 = dy1; } else maybe_socket = 'top';
+            dy += this.hierarchy[i + 1].renderer.offsetHeight;
+            y0 = Math.max(dy, y0);
+            if(test < 3) continue;
+            socket = maybe_socket;
+            choose = i;
+            if(!this.hierarchy[i].is_maximize) break;
+        }
+        return {choose: choose, socket: socket};
     }
     option(opt) {
         this.repr.setOptions(opt);
     }
     /**@param {NodeUI} from @param {NodeUI} to @returns {EdgeUI | string} */
-    static create(from, to, option) {
-        if(option === undefined) option = {path: 'curve', size: 3}
+    static create(from, to) {
+        let option = window.MathGraph.edge_opt;
+        if(option === undefined) option = (window.MathGraph.edge_opt = {path: 'curve', size: 3});
         if(to.is_pseudo) return "can not create edge connect to a pseudo node";
         /** @type {NodeUI}*/
         let actual = from.is_pseudo ? from.ref : from;
@@ -193,14 +178,16 @@ export default class EdgeUI {
         this.repr.show(effect);
     }
     hide(effect) {
-        this.parent.hide(effect);
+        this.repr.hide(effect);
     }
     release_truncate() {
 
     }
     remove() {
-        this.repr.remove();
-        this.svg = null;
+        this.remove_from_shadow();
+        if(this.svg) document.body.appendChild(this.svg);
+        this.repr?.remove();
+        this.from.math.to.delete(this.to);
     }
     /**@returns {NodeUI} */
     get alias() {
@@ -224,20 +211,31 @@ export default class EdgeUI {
 
     }
     /**@param {NodeUI} pseudo */
-    static reclaim_edges(pseudo) {
+    static reclaim_edges(pseudo, reposition) {
         pseudo.html_div.classList.remove('pseudo');
         if(!hints['refer'].some(hint => pseudo.header.textContent.startsWith(hint))) {
             pseudo.html_div.classList.remove('refer')
         }
+        pseudo.html_div.assoc_node = pseudo.ref;
         pseudo.ref.parent.child_div.appendChild(pseudo.html_div);
-        for(let [_, edge] of pseudo.to) {
+        for(let [node, edge] of pseudo.display.to) {
             edge.release_truncate();
-            edge.shadow.display.from.remove(edge.alias);
-            edge.alias.display.to.remove(edge.shadow);
-            edge.repr.setOptions({start: pseudo.from.html_div});
+            pseudo.ref.parent.child_div.appendChild(edge.svg);
+            node.display.from.delete(pseudo);
+            node.display.from.set(pseudo.ref, edge);
+            pseudo.ref.display.to.set(node, edge);
             edge.offset_from = edge.hierarchy.length - 1;
+            if(reposition) edge.reposition();
         }
+        window.MathGraph.all_pseudo.delete(pseudo);
         pseudo.parent.children.delete(pseudo);
-        if(pseudo.from.ref == pseudo) pseudo.from.ref = null;
+        if(pseudo.ref.ref == pseudo) pseudo.ref.ref = null;
     }
+}
+const label_opt = {
+    fontFamily: 'serif',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    color: '#2edb76',
+    outlineColor: ''
 }

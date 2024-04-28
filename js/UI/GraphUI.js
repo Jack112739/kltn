@@ -53,30 +53,26 @@ export default class GraphUI {
     }
     /**@param {NodeUI} node */
     static focus(node) {
-        let err = node.toggle_detail(true), current = window.MathGraph.current;
+        let err = node.toggle_detail(true, true), current = window.MathGraph.current;
         if(err && !node.is_pseudo) return GraphUI.signal(err);
         if(node.is_pseudo) node = node.ref;
         GraphHistory.register('jump', {from: current, to: node});
         if(current.parent) {
-            current.toggle_detail(false);
+            current.toggle_detail(false, true);
             current.parent.child_div.appendChild(current.html_div);
         }
         else document.body.removeChild(current.html_div);
         document.body.appendChild(node.html_div);
+        for(const low of window.MathGraph.all_pseudo) {
+            if(low.ref !== node && NodeUI.lca(low.ref, node) === node) EdgeUI.reclaim_edges(low, true);
+        }
         window.MathGraph.current = node;
-        this.refresh_href(node);
-        for(const edge of node.external_ref) edge.refresh();
         node.html_div.style.animation = "";
-        node.html_div.animate(
-            [
-                {transform: 'scale(0) translate(10%, 10%)'}, 
-                {transform: 'scale(1) translate(0, 0)'}
-            ],
-            {
-                duration: 300,
-                easing: "linear",
-            }
-        );
+        for(const edge of node.external_ref) edge.refresh();
+        this.refresh_href(node);
+        // node.html_div.style.animation = "focus 0.3s linear";
+        // node.html_div.addEventListener('animationend', (e) => {
+        // }, {once: true});
     }
     /**@param {PointerEvent} e  */
     static monitor_node_at_cursor(e) {
@@ -161,6 +157,7 @@ async function download(e) {
 //setup function
 document.addEventListener('DOMContentLoaded', () => {
     window.MathGraph.all_label = new Map();
+    window.MathGraph.all_pseudo = new Set();
     GraphHistory.active = true;
     window.MathGraph.current = new NodeUI(null);
     window.MathGraph.current.toggle_detail(true);
