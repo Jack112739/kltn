@@ -46,7 +46,7 @@ export default class GraphUI {
         href.innerHTML = '';
         for(let cur = node; cur.parent; cur = cur.parent) {
             href.insertAdjacentHTML('afterbegin', `
-                <button class="parent">${map_to_html(node.id ? node.id : '..')}</button>
+                <button class="parent">${map_to_html(cur.id ? cur.id : '..')}</button>
             `);
             href.firstElementChild.onclick = (e) => GraphUI.focus(cur.parent);
         }
@@ -60,15 +60,20 @@ export default class GraphUI {
         let lca = NodeUI.lca(node, current);
         this.switch_body(lca);
         for(const low of window.MathGraph.all_pseudo) {
-            if(NodeUI.lca(lca, low) === lca) EdgeUI.reclaim_edges(low, true);
+            if(lca.is_ancestor(low)) EdgeUI.reclaim_edges(low, lca.is_ancestor(low.ref));
         }
         this.switch_body(node);
-        for(const edge of node.external_ref) edge.refresh();
+        for(const edge of node.external_ref) if(edge.to !== node) {
+            edge.refresh();
+            edge.reposition();
+            edge.repr.hide('none');
+        };
         this.refresh_href(node);
-        node.html_div.style.animation = "focus 0.3s linear";
         node.html_div.addEventListener('animationend', (e) => {
-            for(const edge of node.external_ref) { edge.hide('none'); edge.show('draw'); }
+            for(const edge of node.external_ref) if(edge.to !== node) edge.show('draw');
+            node.html_div.style.animation = "";
         }, {once: true});
+        node.html_div.style.animation = "focus 0.3s linear";
     }
     static switch_body(target) {
         let current = window.MathGraph.current;

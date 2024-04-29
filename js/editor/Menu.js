@@ -142,12 +142,14 @@ export default class Menu {
     }
     static menu_complete = (e) => Menu.suggest.handle_key_event(e);
     
-    /**@type Menu? */
+    /**@type { Menu} */
     static suggest = null;
-    /** @type Menu? */
+    /** @type { Menu} */
+    
     static node = null;
-    /** @type Menu? */
-    static edges = null;
+    /** @type {Menu} */
+    static edge = null;
+    /**@type {Menu} */
 }
 
 document.addEventListener('DOMContentLoaded', () => {

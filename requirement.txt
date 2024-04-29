@@ -61,3 +61,15 @@ linting for typing latex
 
 make the compiler understand wether the proof is correct or not (at certain degree)
 make this a compeptitive website
+
+
+TODO debug
+
+reference v
+input output from files
+edge features
+    highliht v
+    truncate
+    move v
+    delete v
+history

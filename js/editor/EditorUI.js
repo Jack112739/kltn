@@ -90,19 +90,16 @@ class Editor {
         for(const refs of editor.latex.querySelectorAll('mjx-container.ref')) {
             let ref_str = refs.lastChild.textContent.slice('\\ref{'.length, -1);
             let ref_node = window.MathGraph.all_label.get(ref_str);
-            if(!ref_node) {
+            if(!ref_node || this.node.reference(ref_node)) {
                 let pre = document.createElement('pre');
                 pre.classList.add('err');
                 pre.textContent = refs.lastChild.textContent;
                 refs.parentNode.replaceChild(pre, refs);
-                unknow.push(ref_str)
-            }
-            else {
-                let test = this.node.reference(ref_node);
-                if(test) invalid.add(ref_str);
+                if(!ref_node) unknow.push(ref_str);
+                else invalid.push(ref_str);
             }
         }
-        if(unknow.length !== 0) GraphUI.signal(`the references ${unknow.join(', ')}does not exist`)
+        if(unknow.length !== 0) GraphUI.signal(`the nodes to reference: ${unknow.join(', ')}does not exist`);
         if(invalid.length !== 0) GraphUI.signal(`invalid references to nodes ${invalid.join(', ')}`);
     }
     render() {

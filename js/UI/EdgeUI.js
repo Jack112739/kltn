@@ -2,6 +2,7 @@
 import GraphHistory from './HistoryUI.js';
 import NodeUI, {hints} from './NodeUI.js'
 import GraphUI from './GraphUI.js';
+import Menu from './../editor/Menu.js';
 
 export default class EdgeUI {
 
@@ -26,25 +27,28 @@ export default class EdgeUI {
     constructor(from, to, option) {
         this.from = from.is_pseudo ? from.ref : from;
         this.alias = from;
-        this.hierarchy = [to];
         this.repr = new LeaderLine(from.html_div, to.html_div, option);
         this.repr.count = 1;
         this.svg = document.body.lastChild;
+        this.init_mouse_event();
         this.offset_to = 0;
         this.offset_from = 0;
         from.parent.child_div.appendChild(this.svg);
-        this.from.math.to.set(to, this);
-        to.math.from.set(this.from, this);
+        if(!option?.truncate) {
+            this.from.math.to.set(to, this);
+            to.math.from.set(this.from, this);
+        }
         from.display.to.set(to, this);
         to.display.from.set(from, this);
-        for(let cur = to.parent; cur !== this.from.parent; cur = cur.parent) {
+        this.hierarchy = [];
+        for(let cur = to; cur !== this.from.parent; cur = cur.parent) {
             if(cur.parent === from.parent) this.offset_from = this.hierarchy.length;
             this.hierarchy.push(cur);
             cur.external_ref.add(this);
         }
         this.adjust_svg();
         //TODO : create some explaination for this (automatically ?)
-        this.truncate = null;
+        this.truncate = option?.truncate ?? null;
     }
     /**@param {NodeUI} to */
     adjust_svg() {
@@ -61,26 +65,22 @@ export default class EdgeUI {
         if(this.from.ref && this.from.ref.parent !== current) {
             EdgeUI.reclaim_edges(this.from.ref);
         }
-        if(!this.from.ref) {
-            let pseudo = new NodeUI(current, this.from);
-            window.MathGraph.all_pseudo.add(pseudo);
-            pseudo.html_div.classList.add('refer', 'pseudo');
-            current.children.add(pseudo);
-            current.child_div.appendChild(pseudo.html_div);
-        }
+        if(!this.from.ref) EdgeUI.create_pseudo(this.from);
         if(this.alias !== this.from.ref) {
             this.alias.display.to.delete(this.shadow);
             this.shadow.display.from.delete(this.alias);
             this.from.ref.display.to.set(this.shadow, this);
             this.shadow.display.from.set(this.from.ref, this);
             this.alias = this.from.ref;
-            this.repr.setOptions({start: this.from.ref});
+            this.repr.start = this.from.ref.html_div;
         }
         current.child_div.appendChild(this.svg);
         this.offset_from = -1;
-        this.reposition();
+        this.offset_to = 0;
+        this.repr.setOptions({end: this.to.html_div, middleLabel: ''});
     }
     reposition() {
+        if(this.is_hidden) return;
         if(this.offset_from === -1) {
             this.offset_from = this.offset_to;
             while(this.hierarchy[this.offset_from].parent !== this.alias.parent) this.offset_from++;
@@ -88,9 +88,36 @@ export default class EdgeUI {
         let {choose, socket} = this.get_offset();
         if(choose !== this.offset_to) this.change_to_fit(choose, socket);
         else if(socket !== this.repr.endSocket) this.repr.setOptions({endSocket: socket});
-        if(this.is_hidden) return;
         this.repr.position();
         this.adjust_svg();
+    }
+    init_mouse_event() {
+        let path = this.svg.querySelector('path');
+        path.onclick = (e) => {
+            e.stopPropagation();
+            if(e.ctrlKey) this.release_truncate(); 
+        };
+        path.oncontextmenu = (e) => { e.preventDefault(); Menu.edge.popup(e, this)};
+        path.onmousedown = (e0) => this.change_gravity(e0);
+    }
+    /**@param {MouseEvent} e  */
+    change_gravity(e0) {
+        e0.stopPropagation();
+        this.reposition();
+        let move = null, start = null, end = null;
+        document.addEventListener('mousemove', move = (e) => {
+            e.preventDefault();
+            if(!start || !end) [start, end] =   [this.alias, this.shadow]
+                                                .map(n => n.html_div.getBoundingClientRect())
+                                                .map(r => { r.width /= 2; r.height /= 2; return r});
+            this.repr.setOptions({
+                startSocketGravity: [e.x - start.right, e.y - start.bottom],
+                endSocketGravity: [e.x - end.right, e.y - end.bottom],
+            });
+        })
+        document.addEventListener('mouseup', (e) => {
+            document.removeEventListener('mousemove', move);
+        }, {once: true});
     }
     change_to_fit(offset, socket) {
         this.remove_from_shadow();
@@ -100,7 +127,9 @@ export default class EdgeUI {
         if(!edge) {
             if(!this.repr) {
                 this.repr = new LeaderLine(this.alias.html_div, next.html_div, window.MathGraph.edge_opt);
+                this.repr.setOptions({dash: this.truncate !== null});
                 this.svg = document.body.lastChild;
+                this.init_mouse_event();
                 this.alias.parent.child_div.appendChild(this.svg);
             }
             next.display.from.set(this.alias, this);
@@ -122,8 +151,13 @@ export default class EdgeUI {
             this.shadow.display.from.delete(this.alias);
         }
         else {
-            let label =  (this.repr.count -= 2) == 1 ? '': '+' + (this.repr.count >> 1);
-            this.repr.setOptions({middleLabel: label ? LeaderLine.captionLabel(label, label_opt) : ''});
+            let count = this.repr.count -= 2;
+            let label = count < 2 ? '':LeaderLine.captionLabel('+' + (count >> 1), label_opt);
+            if(this.repr.count < 2) {
+                let is_dash = this.alias.display.to.get(this.shadow).truncate !== null
+                this.repr.setOptions({dash: is_dash, middleLabel: ''});
+            }
+            else this.repr.setOptions({middleLabel: label});
             this.svg = null;
             this.repr = null;
         }
@@ -154,9 +188,6 @@ export default class EdgeUI {
         }
         return {choose: choose, socket: socket};
     }
-    option(opt) {
-        this.repr.setOptions(opt);
-    }
     /**@param {NodeUI} from @param {NodeUI} to @returns {EdgeUI | string} */
     static create(from, to) {
         let option = window.MathGraph.edge_opt;
@@ -171,29 +202,49 @@ export default class EdgeUI {
         if(actual.type === 'result') return 'can not connect from the conclusion node';
         if(to.type === 'given') return 'can not connect to an input node'
         if(actual.math.to.has(to) || to.math.from.has(actual)) return 'the edge is already connected';
+        if(!window.MathGraph.current.is_ancestor(from)) from = this.create_pseudo(from);
         let edge = new EdgeUI(from, to, option);
+        edge.reposition();
         GraphHistory.register('make_edge', {from: from, to: to});
         return edge;
     }
     show(effect) {
+        this.repr.hide('none');
         this.repr.show(effect);
     }
     hide(effect) {
         this.repr.hide(effect);
     }
     release_truncate() {
-
+        if(!this.truncate) return;
+        GraphHistory.register('release truncate', {node: this.truncate, from: this.from, to: this.to});
+        let to_edge = this.truncate.display.to.get(this.to);
+        this.truncate.html_div.style.display = "";
+        this.to.display.from.set(this.truncate, to_edge);
+        to_edge.show('draw');
+        to_edge.reposition();
+        for(const edge of this.truncate.external_ref) {
+            edge.alias.display.to.set(edge.shadow, edge);
+            this.alias.parent.child_div.appendChild(edge.svg);
+            edge.show('draw');
+            edge.reposition();
+        }
+        this.truncate = null;
+        this.remove();
     }
-    remove() {
+    remove(silent) {
+        if(this.truncate !== null) return this.release_truncate();
+        if(!silent) GraphHistory.register('remove edge', {from: this.from, to: this.to});
         this.remove_from_shadow();
         if(this.svg) document.body.appendChild(this.svg);
         this.repr?.remove();
         this.from.math.to.delete(this.to);
+        this.to.math.from.delete(this.from);
         for(const parent of this.hierarchy) parent.external_ref.delete(this);
     }
     /**@returns {NodeUI} */
     get shadow() {
-        return this.repr.end.assoc_node;
+        return this.hierarchy[this.offset_to];
     }
     get stored() {
         return this.alias.parent.child_div;
@@ -204,10 +255,6 @@ export default class EdgeUI {
     get is_hidden() {
         return this.svg.style.visibility === "hidden";
     }
-    /**@param {NodeUI} from @param {NodeUI} to  */
-    static reduce(from, to) {
-
-    }
     /**@param {NodeUI} pseudo */
     static reclaim_edges(pseudo, reposition) {
         pseudo.html_div.classList.remove('pseudo');
@@ -217,7 +264,6 @@ export default class EdgeUI {
         pseudo.html_div.assoc_node = pseudo.ref;
         pseudo.ref.parent.child_div.appendChild(pseudo.html_div);
         for(let [node, edge] of pseudo.display.to) {
-            edge.release_truncate();
             pseudo.ref.parent.child_div.appendChild(edge.svg);
             node.display.from.delete(pseudo);
             node.display.from.set(pseudo.ref, edge);
@@ -230,6 +276,15 @@ export default class EdgeUI {
         pseudo.parent.children.delete(pseudo);
         if(pseudo.ref.ref == pseudo) pseudo.ref.ref = null;
     }
+    static create_pseudo(from) {
+        let current = window.MathGraph.current;
+        let pseudo = new NodeUI(current, from);
+        window.MathGraph.all_pseudo.add(pseudo);
+        pseudo.html_div.classList.add('refer', 'pseudo');
+        current.children.add(pseudo);
+        current.child_div.appendChild(pseudo.html_div);
+        return pseudo;
+    }
 }
 const label_opt = {
     fontFamily: 'serif',
@@ -238,3 +293,16 @@ const label_opt = {
     color: '#2edb76',
     outlineColor: ''
 }
+document.addEventListener('DOMContentLoaded', e => {
+    Menu.edge = new Menu(document.getElementById('edge'));
+    let menu = Menu.edge.items.childNodes;
+    menu[HIGHTLIGHT].onclick = e => {
+        let target = Menu.edge.associate.repr, default_color = window.MathGraph.edge_opt?.color ?? 'coral';
+        if(target.color === default_color) target.setOptions({color: '#81ff93'});
+        else target.setOptions({color: default_color});
+    }
+    menu[TRUNCATE].onclick = e => Menu.edge.associate.release_truncate();
+    menu[REMOVE].onclick = e => Menu.edge.associate.remove();
+
+})
+const HIGHTLIGHT = 0, TRUNCATE = 1, REMOVE = 2;

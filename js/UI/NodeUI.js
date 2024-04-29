@@ -69,6 +69,7 @@ export default class NodeUI {
         menu[MIN].style.display = this.is_maximize ? "" : "none";
         menu[MAX].style.display = can_max ? "" : "none";
         menu[REF].style.display = this.type === 'result' ? "none" : ""; 
+        menu[RENAME].style.display = this.is_maximize ? 'none' : '';
         Menu.node.popup(e, this);
     }
     /**@param {MouseEvent} e0*/
@@ -120,14 +121,15 @@ export default class NodeUI {
         });
         this.renderer.style.width = "";
         this.renderer.style.height = ""
-        this.html_div.style.animation = silent ? "" : opt ? "zoom-out 0.2s": "zoom-in 0.2s";
         if(silent) this.html_div.classList.toggle('zoom', opt);
         else {
             if(opt) this.html_div.classList.add('zoom');
             this.html_div.addEventListener('animationend', () => {
+                this.html_div.style.animation = "";
                 if(!opt) this.html_div.classList.remove('zoom');
                 this.reposition(); 
             }, {once: true});
+            this.html_div.style.animation = opt ? "zoom-out 0.2s": "zoom-in 0.2s";
             GraphHistory.register('zoom', {node: this});
         }
     }
@@ -145,8 +147,8 @@ export default class NodeUI {
         if(this.id) window.MathGraph.all_label[op](this.id, this);
     }
     reposition() {
-        for(const [_, line] of (this.math ?? this.display).from) line.reposition();
-        for(const [_, line] of (this.math ?? this.display).to) line.reposition();
+        for(const [_, line] of this.display.from) line.reposition();
+        for(const [_, line] of this.display.to) line.reposition();
         for(const line of this.external_ref) line.reposition();
     }
     /**@param {MouseEvent} e0  */
@@ -171,17 +173,16 @@ export default class NodeUI {
     /** @param {number} x  @param {number} y   */
     adjust_dot(x, y) {
         let div = this.child_div, dot = div.querySelector('.dot');
-        let dot_x = Math.max(x, div.offsetWidth + div.scrollLeft, dot.offsetLeft);
-        let dot_y = Math.max(y, div.offsetHeight + div.scrollTop, dot.offsetTop);
+        let dot_x = Math.max(x + 200, div.offsetWidth + div.scrollLeft + 200, dot.offsetLeft);
+        let dot_y = Math.max(y + 200, div.offsetHeight + div.scrollTop + 200, dot.offsetTop);
         dot.style.left = dot_x + "px";
         dot.style.top = dot_y + "px";
     }
     remove() {
         if(this.is_pseudo) GraphUI.signal('can not delete the pseudo node');
         this.modify_name_recursive('delete')
-        for(let [_, line] of (this.math ?? this.display).from) line.remove();
-        for(let [_, line] of (this.math ?? this.display).to) line.remove();
-        for(const edge of this.external_ref) edge.remove();
+        for(let [_, line] of this.math.to) line.remove(true);
+        for(const edge of this.external_ref) edge.remove(true);
         this.parent.child_div.removeChild(this.html_div);
         this.parent.children.delete(this);
         GraphHistory.register('remove', {node: this});
@@ -217,11 +218,40 @@ export default class NodeUI {
     /**@param {NodeUI} link */
     reference(link) {
         if(link.is_pseudo) link = link.ref
+        if(this.math.from.has(link)) return null;
         let edge  = EdgeUI.create(link, this);
         if(typeof edge === 'string') return edge;
-        let current = window.MathGraph.current;
-        if(NodeUI.lca(current, edge.from) !== current) edge.refresh();
+        edge.show('draw');
         return null;
+    }
+    truncate() {
+        if(this.is_pseudo) return 'can not truncate pseudo nodes';
+        if(this.display.to.size !== 1) return 'can not truncate nodes exactly 1 outcomming edges';
+        let unique = null;
+        let [to, to_edge] = this.display.to[Symbol.iterator]().next().value;
+        for(const edge of this.external_ref) {
+            if(unique == null) unique = edge.alias;
+            else if(unique !== edge.alias) {
+                return 'can not truncate node that reference from two diffrent nodes';
+            }
+        }
+        GraphHistory.register('truncate', {node: this});
+        unique.display.from.delete(this);
+        to_edge.hide('none');
+        for(const edge of this.external_ref) {
+            unique.display.to.delete(edge.shadow);
+            edge.hide('none');
+        }
+        this.html_div.style.display = 'none';
+        let edge = new EdgeUI(unique, to, {truncate: this});
+        edge.repr.setOptions({dash: true});
+        edge.show('draw');
+        return null;
+    }
+    /**@param {NodeUI} node   */
+    is_ancestor(node) {
+        while(node && node !== this) node = node.parent;
+        return node === this;
     }
     get name_rect() {
         let range = document.createRange();
@@ -263,18 +293,13 @@ export default class NodeUI {
     }
     /**@param {NodeUI} n1  @param {NodeUI} n2  @returns {NodeUI} */
     static lca(n1, n2) {
-        if(n1.is_pseudo) n1 = n1.ref;
-        if(n2.is_pseudo) n2 = n2.ref;
-        let temp_n1 = n1.ref !== null, temp_n2 = n2.ref !== null;
-        if(temp_n1) n1.parent.child_div.appendChild(n1.html_div);
-        if(temp_n2) n2.parent.child_div.appendChild(n2.html_div);
-        let range = document.createRange();
-        range.setStart(n1.child_div, 0);
-        range.setEnd(n2.child_div, 0);
-        if(range.collapsed) range.setEnd(n1.child_div, 0); 
-        if(temp_n1) n1.ref.parent.child_div.appendChild(n1.html_div);
-        if(temp_n2) n2.ref.parent.child_div.appendChild(n2.html_div);
-        return range.commonAncestorContainer.parentNode.assoc_node;
+        if(n1 === n2) return n1;
+        // O(N) function, but the deep of the graph is small though
+        let par_1 = [], par_2 = [], i = 1;
+        for(let it = n1; it; it = it.parent) par_1.push(it);
+        for(let it = n2; it; it = it.parent) par_2.push(it);
+        while(par_1.at(-i) === par_2.at(-i)) i++;
+        return(par_1.at(-i + 1));
     }
 }
 document.addEventListener('DOMContentLoaded', (e) => {
@@ -301,9 +326,10 @@ document.addEventListener('DOMContentLoaded', (e) => {
     menu[REMOVE].onclick = (e) => {
         if(window.confirm(`Do you want to delete this node?`)) Menu.node.associate.remove();
     }
+    menu[TRUNCATE].onclick = (e) => GraphUI.signal(Menu.node.associate.truncate());
 });
 
-const EDIT = 0, HIGHTLIGHT = 1, MIN = 2, MAX = 3, DETAIL = 4, REF = 5, RENAME = 6, REMOVE = 7;
+const EDIT = 0, HIGHTLIGHT = 1, MIN = 2, MAX = 3, DETAIL = 4, REF = 5, RENAME = 6, REMOVE = 7, TRUNCATE = 8;
 export const hints = {
     'given': ['assume', 'given', 'in case', 'otherwise', 'assumption'],
     'result': ['QED', 'result', 'contradiction', 'conclusion'],
