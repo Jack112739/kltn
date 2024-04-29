@@ -22,38 +22,35 @@ export default class FileIO {
             if(child.type === 'given') queue.push(child);
             for(const [_, edge]of child.math.to) {
                 let relative_to = edge.hierarchy.at(-1);
+                if(!adj.has(relative_to)) deg.set(relative_to, deg.get(relative_to) + 1);
                 adj.add(relative_to);
-                deg.set(relative_to, deg.get(relative_to) + 1);
             }
             topo.set(child, adj);
-            deg.set(child, adj.size);
         }
-        for(const [child, degree] of deg) if(child.type !== 'given' && degree === 0) queue.add(degree);
+        for(const [child, degree] of deg) if(child.type !== 'given' && degree === 0) queue.push(child);
         bfs:
         while(i < queue.length) {
             let cur = queue[i];
             let header = `%% ${cur.header.textContent}`
                         + `, ${cur.html_div.offsetTop}, ${cur.html_div.offsetLeft}`
-                        + `, ${cur.renderer.ofsetHeight}, ${cur.renderer.offsetHeight}`;
-            for(const ref of cur.math.from) {
-                let num = context.get(ref);
+                        + `, ${cur.renderer.offsetHeight}, ${cur.renderer.offsetHeight}`;
+            for(const [ref, _] of cur.math.from) {
+                let num = context.map.get(ref);
                 if(!num) { queue = []; break bfs;}
                 header += ', ' + num;
             } 
-            context.map.set(cur, cur.id !== '' ? cur.id : '#' + context.ret.length);
             context.ret.push(header);
+            context.map.set(cur, cur.id !== '' ? cur.id : '#' + context.ret.length);
             if(cur.id) context.ret.push(`\\label{${cur.id}}`);
-            context.ret.concat(cur.raw_text.split('\n'));
+            context.ret = context.ret.concat(cur.raw_text.split('\n'));
             for(const adj of topo.get(cur)) {
                 deg.set(adj, deg.get(adj) - 1);
                 if(deg.get(adj) === 0) queue.push(adj);
             }
             if(cur.children.size > 0) {
                 context.ret.push('\\begin{proof}');
-                for(const child of cur.children) {
-                    let err = this.parse_graph_recursive(child, context);
-                    if(err) return err;
-                }
+                let err = this.parse_graph_recursive(cur, context);
+                if(err) return err;
                 context.ret.push('\\end{proof}');
             }
             i++;
@@ -70,19 +67,20 @@ export default class FileIO {
     static parse_graph(root) {
         let context = {
             map: new Map(),
-            ret : [window.MathGraph.workspace + ':\n\n']
+            ret : [`%created on ${(new Date()).toLocaleString()}:`, '', '']
         };
         let err = this.parse_graph_recursive(root, context);
         if(err) return new Error(err);
-        return context.join('\n');
+        return context.ret.join('\n');
     }
     static parse_file(str, file_name) {
         let lines = str.split('\n');
         let cur = null, err_msg = null, now = null;
         let implicit_id = new Map();
+        let old = window.MathGraph.current;
+        window.MathGraph.current = null;
         GraphHistory.active = true;
         cur = new NodeUI(null);
-        cur.rename(remove_ext(file_name));
         window.MathGraph.all_label = new Map();
         parse:
         for(let i = 0; i < lines.length; i++) {
@@ -95,7 +93,7 @@ export default class FileIO {
                 let implicit_start = 5;
                 let test = now.rename(headers[0]);
                 if(test) {
-                    err_msg = `error at line ${i}: ${test}`;
+                    err_msg = `error at line ${i+1}: ${test}`;
                     break parse;
                 }
                 try {
@@ -111,20 +109,20 @@ export default class FileIO {
                     if(headers[j].startsWith('#')) test = FileIO.link(now, headers, j, implicit_id);
                     else test = now.reference(headers[j]);
                     if(test) {
-                        err_msg = `error at line ${i}: ${test}`;
+                        err_msg = `error at line ${i+1}: ${test}`;
                         break parse;
                     }
                 }
             }
             else if(line === '\\begin{proof}') {
                 if(!now) {
-                    err_msg = `error at line ${i}: exptected the %% comment at the begining of a node`;
+                    err_msg = `error at line ${i+1}: exptected the %% comment at the begining of a node`;
                     break parse;
                 }
                 now.raw_text = now.raw_text.trim();
                 if(now.raw_text.startsWith('\\begin{lemma}')) {
                     if(!now.raw_text.endsWith('\\end{lemma}')) {
-                        err_msg = `error at line ${i}: missing \\end{lemma}`;
+                        err_msg = `error at line ${i+1}: missing \\end{lemma}`;
                         break parse;
                     }
                     now.raw_text = now.raw_text.slice('\\begin{lemma}'.length, -'\\end{lemma}'.length);
@@ -137,32 +135,35 @@ export default class FileIO {
                 now = null;
             }
             else {
-                if(line.length === 0) continue;
+                // comments
+                if(line.startsWith('%') || line.length === 0) continue 
                 if(!now) {
-                    err_msg = `error at line ${i}: exptected the %% comment at the begining of a node`;
+                    err_msg = `error at line ${i+1}: exptected the %% comment at the begining of a node`;
                     break parse;
                 }
                 now.raw_text += '\n';
                 now.raw_text += line;
             }
         }
-        if(cur.parent && !err_msg) err_msg = `missing \\end{proof} at the and of the file`;
+        if(cur.parent && !err_msg) err_msg = `missing \\end{proof} at the end of the document`;
         if(err_msg) return new Error(err_msg);
         FileIO.compile(cur);
+        window.MathGraph.current = old;
+        GraphUI.finish_initialize(cur, remove_ext(file_name));
         GraphHistory.active = false;
         return cur;
     }
     static compile(node) {
-        for(const [_, child] of node.children) FileIO.compile(child);
+        for(const child of node.children) FileIO.compile(child);
         let data = (new Fragment(node.raw_text, 'text')).output('html');
-        for(const child of data) node.html_div.appendChild(child);
-        node.parent.child_div.appendChild(node.html_div);
+        for(const child of data) node.renderer.appendChild(child);
+        node.parent?.child_div.appendChild(node.html_div);
     }
     static link(now, args, id, implicit_id) {
         if(isNaN(args[id].slice(1))) return `invalid syntax, expect the ${id}-th arguement`
                                         + `to be a valid reference or a '#' follow by a number`;
         let line = parseInt(args[id].slice(1));
-        let node = implicit_id.get(line);
+        let node = implicit_id.get(line - 1);
         if(!node) return `can not reference to node at line ${line}`
                         + `because there are no node's comment (start with %%) at that line`;
         return now.reference(node);

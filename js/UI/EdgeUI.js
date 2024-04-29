@@ -27,13 +27,8 @@ export default class EdgeUI {
     constructor(from, to, option) {
         this.from = from.is_pseudo ? from.ref : from;
         this.alias = from;
-        this.repr = new LeaderLine(from.html_div, to.html_div, option);
-        this.repr.count = 1;
-        this.svg = document.body.lastChild;
-        this.init_mouse_event();
         this.offset_to = 0;
         this.offset_from = 0;
-        from.parent.child_div.appendChild(this.svg);
         if(!option?.truncate) {
             this.from.math.to.set(to, this);
             to.math.from.set(this.from, this);
@@ -47,7 +42,7 @@ export default class EdgeUI {
             this.hierarchy.push(cur);
             cur.external_ref.add(this);
         }
-        this.adjust_svg();
+        if(window.MathGraph.current !== null)  this.init_repr(option);
         //TODO : create some explaination for this (automatically ?)
         this.truncate = option?.truncate ?? null;
     }
@@ -80,8 +75,15 @@ export default class EdgeUI {
         this.offset_to = 0;
         this.repr.setOptions({end: this.to.html_div, middleLabel: ''});
     }
+    init_repr(option) {
+        this.repr = new LeaderLine(this.alias.html_div, this.to.html_div, option);
+        this.repr.count = 1;
+        this.svg = document.body.lastChild;
+        this.alias.parent.child_div.appendChild(this.svg);
+        this.init_mouse_event();
+    }
     reposition() {
-        if(this.is_hidden) return;
+        if(!this.repr || this.is_hidden) return;
         if(this.offset_from === -1) {
             this.offset_from = this.offset_to;
             while(this.hierarchy[this.offset_from].parent !== this.alias.parent) this.offset_from++;
@@ -201,7 +203,7 @@ export default class EdgeUI {
         if(option === undefined) option = (window.MathGraph.edge_opt = {path: 'curve', size: 3});
         if(to.is_pseudo) return "can not create edge connect to a pseudo node";
         /** @type {NodeUI}*/
-        let actual = from.is_pseudo ? from.ref : from;
+        let actual = from.is_pseudo ? from.ref : from, current = window.MathGraph.current;
         if(NodeUI.lca(actual, to) !== actual.parent) {
             return "can only connect a node to it's sibling's descendant" + (actual !== from ? 
                 " (the anchor node is a pseudo node which is not define primarly inside this node)" : "");
@@ -209,13 +211,14 @@ export default class EdgeUI {
         if(actual.type === 'result') return 'can not connect from the conclusion node';
         if(to.type === 'given') return 'can not connect to an input node'
         if(actual.math.to.has(to) || to.math.from.has(actual)) return 'the edge is already connected';
-        if(!window.MathGraph.current.is_ancestor(from)) from = this.create_pseudo(from);
+        if(current && !current.is_ancestor(from)) from = this.create_pseudo(from);
         let edge = new EdgeUI(from, to, option);
         edge.reposition();
         GraphHistory.register('make_edge', {from: actual, to: to, ref: actual.ref !== null});
         return edge;
     }
     show(effect) {
+        if(!this.repr) return;
         this.repr.hide('none');
         this.repr.show(effect);
     }

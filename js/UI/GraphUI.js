@@ -74,11 +74,11 @@ export default class GraphUI {
     }
     static switch_body(target) {
         let current = window.MathGraph.current;
-        target.child_div.style.width = "";
-        target.child_div.style.height = "";
-        if(current.parent) current.parent.child_div.appendChild(current.html_div);
-        else document.body.removeChild(current.html_div);
-        document.body.appendChild(target.html_div);
+        if(target) target.child_div.style.width = "";
+        if(target) target.child_div.style.height = "";
+        if(current?.parent) current.parent.child_div.appendChild(current.html_div);
+        else if(current) document.body.removeChild(current.html_div);
+        if(target) document.body.appendChild(target.html_div);
         window.MathGraph.current = target;
     }
     /**@param {PointerEvent} e  */
@@ -123,6 +123,55 @@ export default class GraphUI {
         }
         return rect.x <= x && x <= rect.right && rect.y <= y && y <= rect.bottom;
     }
+    static initialize() {
+        if(window.MathGraph.workspace !== 'playground') {
+            fetch('../library/' + window.MathGraph.workspace)
+            .then(response => response.text())
+            .then(data => {
+                let root = FileIO.parse_file(data, window.curr);
+                if(root instanceof Error) throw root;
+                window.MathGraph.current = root;
+                document.body.appendChild(root);
+            })
+            .catch(error => {
+                GraphUI.signal(error.message);
+                window.MathGraph.workspace = 'playground';
+                GraphUI.initialize();
+            });
+            return;
+        }
+        GraphHistory.active = true;
+        let current = new NodeUI(null);
+        current.html_div.classList.add('playground');
+        GraphUI.finish_initialize(current, 'playground');
+        this.switch_body(current);
+        GraphHistory.active = false;
+    }
+    static finish_initialize(node, name) {
+        node.rename(name);
+        node.toggle_detail(true);
+        node.child_div.querySelector('h2').textContent = name;
+        node.html_div.style.animation = "";
+        let prev = window.MathGraph.current;
+        this.switch_body(node);
+        let edges = [];
+        this.dfs(node, (each) => each.toggle_detail(true), (edge) => edges.push(edge));
+        for(const edge of edges) {
+            edge.init_repr();
+            edge.reposition();
+        }
+        this.dfs(node, (each) => each.toggle_detail(!each.parent || each.children.size > 0, true), null);
+        this.switch_body(prev);
+    }
+    /** 
+     * @param {NodeUI} node 
+     * @param {(NodeUI) => void} callback 
+     * @param {(EdgeUI) => void} edges_callback   */
+    static dfs(node, callback, edges_callback) {
+        if(callback) callback(node);
+        for(const [_, edges] of node.math.to) if(edges_callback) edges_callback(edges);
+        for(const child of node.children) this.dfs(child, callback, edges_callback);
+    }
 }
 function read_file(e) {
     let file = e.target.files[0];
@@ -134,9 +183,8 @@ function read_file(e) {
         let replace = FileIO.parse_file(e1.target.result, file.name);
         e.target.value = "";
         if(replace instanceof Error) return GraphUI.signal(replace.message);
-        window.MathGraph.workspace = file.name;
+        window.MathGraph.workspace = replace.id;
         GraphUI.switch_body(replace);
-        window.MathGraph.current.querySelector('h2').textContent = file.name;
         GraphHistory.stack = [];
         GraphHistory.position = 0;
     };
@@ -156,11 +204,10 @@ async function download(e) {
         let stream = await file_handler.createWritable();
         let data = FileIO.parse_graph(root);
         if(data instanceof Error) return GraphUI.signal(data);
-        await stream.write(root);
+        await stream.write(data);
         await stream.close();
-        GraphUI.refresh_href();
     } catch(e) {
-        if(!(e instanceof DOMException)) return;
+        if(!(e instanceof DOMException)) throw e;
         if(e.message.includes('abort')) return;
         GraphUI.signal(`Fail to save your proof${name ? ' into' + name: ''}, reason: ${e.message}`);
     }
@@ -169,14 +216,10 @@ async function download(e) {
 document.addEventListener('DOMContentLoaded', () => {
     window.MathGraph.all_label = new Map();
     window.MathGraph.all_pseudo = new Set();
-    GraphHistory.active = true;
-    window.MathGraph.current = new NodeUI(null);
-    window.MathGraph.current.toggle_detail(true);
-    GraphHistory.active = false;
-    window.MathGraph.current.html_div.classList.add('playground');
-    window.MathGraph.current.child_div.querySelector('h2').textContent = "playground";
-    window.MathGraph.current.html_div.style.animation = "";
-    document.body.appendChild(window.MathGraph.current.html_div);
+    let param = new URLSearchParams(window.location.search);
+    let workspace = param.get('data');
+    if(workspace) window.MathGraph.workspace = workspace;
+    GraphUI.initialize();
 
     document.addEventListener('click', GraphUI.monitor_node_at_cursor);
     document.querySelector('.undo').onclick = () => GraphHistory.undo();
