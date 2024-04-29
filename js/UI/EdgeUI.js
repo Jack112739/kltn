@@ -38,6 +38,7 @@ export default class EdgeUI {
             this.from.math.to.set(to, this);
             to.math.from.set(this.from, this);
         }
+        else option.truncate.ref = this;
         from.display.to.set(to, this);
         to.display.from.set(from, this);
         this.hierarchy = [];
@@ -105,6 +106,7 @@ export default class EdgeUI {
         e0.stopPropagation();
         this.reposition();
         let move = null, start = null, end = null;
+        let start0 = this.repr.startSocketGravity, end0 = this.repr.endSocketGravity;
         document.addEventListener('mousemove', move = (e) => {
             e.preventDefault();
             if(!start || !end) [start, end] =   [this.alias, this.shadow]
@@ -116,6 +118,11 @@ export default class EdgeUI {
             });
         })
         document.addEventListener('mouseup', (e) => {
+            if(start && end) GraphHistory.register('gravity', {
+                from: this.alias, to: this.shadow,
+                old_start: start0, old_end: end0,
+                start: [e.x - start.right, e.y - start.bottom], end: [e.x - end.right, e.y - end.bottom]
+            });
             document.removeEventListener('mousemove', move);
         }, {once: true});
     }
@@ -205,7 +212,7 @@ export default class EdgeUI {
         if(!window.MathGraph.current.is_ancestor(from)) from = this.create_pseudo(from);
         let edge = new EdgeUI(from, to, option);
         edge.reposition();
-        GraphHistory.register('make_edge', {from: from, to: to});
+        GraphHistory.register('make_edge', {from: actual, to: to, ref: actual.ref !== null});
         return edge;
     }
     show(effect) {
@@ -217,7 +224,10 @@ export default class EdgeUI {
     }
     release_truncate() {
         if(!this.truncate) return;
-        GraphHistory.register('release truncate', {node: this.truncate, from: this.from, to: this.to});
+        let old = GraphHistory.active;
+        GraphHistory.register('release_truncate', {node: this.truncate});
+        GraphHistory.active = true;
+        this.truncate.ref = null;
         let to_edge = this.truncate.display.to.get(this.to);
         this.truncate.html_div.style.display = "";
         this.to.display.from.set(this.truncate, to_edge);
@@ -231,16 +241,20 @@ export default class EdgeUI {
         }
         this.truncate = null;
         this.remove();
+        GraphHistory.active = old;
     }
-    remove(silent) {
+    remove() {
         if(this.truncate !== null) return this.release_truncate();
-        if(!silent) GraphHistory.register('remove edge', {from: this.from, to: this.to});
+        let old = GraphHistory.active;
+        GraphHistory.register('remove_edge', {from: this.from, to: this.to, ref: this.from.ref !== null});
+        GraphHistory.active = true;
         this.remove_from_shadow();
         if(this.svg) document.body.appendChild(this.svg);
         this.repr?.remove();
         this.from.math.to.delete(this.to);
         this.to.math.from.delete(this.from);
         for(const parent of this.hierarchy) parent.external_ref.delete(this);
+        GraphHistory.active = old;
     }
     /**@returns {NodeUI} */
     get shadow() {
@@ -302,7 +316,12 @@ document.addEventListener('DOMContentLoaded', e => {
         else target.setOptions({color: default_color});
     }
     menu[TRUNCATE].onclick = e => Menu.edge.associate.release_truncate();
-    menu[REMOVE].onclick = e => Menu.edge.associate.remove();
+    menu[REMOVE].onclick = e => {
+        let edge = Menu.edge.associate;
+        if(edge.repr.count > 2) GraphUI.signal('can not remove this edge because this edge is shared among'
+                                                + (edge.repr.count >> 1) + 'other edges');
+        Menu.edge.associate.remove()
+    };
 
 })
 const HIGHTLIGHT = 0, TRUNCATE = 1, REMOVE = 2;

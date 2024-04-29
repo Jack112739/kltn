@@ -28,7 +28,7 @@ export default class NodeUI {
     external_ref;
     /** @type{HTMLDivElement} the HTML element respected to this node*/
     html_div;
-    /** @type {NodeUI} the respective pseudo node*/
+    /** @type {NodeUI| EdgeUI} the respective pseudo node or truncated edge*/
     ref;
 
     /**@param {NodeUI} parent @param {NodeUI?} pseudo */
@@ -69,7 +69,7 @@ export default class NodeUI {
         menu[MIN].style.display = this.is_maximize ? "" : "none";
         menu[MAX].style.display = can_max ? "" : "none";
         menu[REF].style.display = this.type === 'result' ? "none" : ""; 
-        menu[RENAME].style.display = this.is_maximize ? 'none' : '';
+        menu[RENAME].style.display = this.is_maximize || this.is_pseudo ? 'none' : '';
         Menu.node.popup(e, this);
     }
     /**@param {MouseEvent} e0*/
@@ -166,8 +166,9 @@ export default class NodeUI {
         document.addEventListener('mouseup', (e) => {
             document.removeEventListener('mousemove', move);
             this.child_div.style.cursor = "";
-            if(e.x == e0.x || e.y ==  e0.y) return;
-            GraphHistory.register('grab', {node: this, dx: e.x - e0.x, dy: e.y - e0.y});
+            if(e.x == e0.x && e.y ==  e0.y) return;
+            GraphHistory.register('grab', {node: this, 
+                    dx: this.child_div.scrollLeft- sx0, dy: this.child_div.scrollTop - sy0});
         }, {once: true})
     }
     /** @param {number} x  @param {number} y   */
@@ -180,12 +181,18 @@ export default class NodeUI {
     }
     remove() {
         if(this.is_pseudo) GraphUI.signal('can not delete the pseudo node');
+        let old = GraphHistory.active;
+        let to = this.math.to, external = this.external_ref;
+        GraphHistory.register('remove', {node: this, reserve_to: to, reserve_external: external});
+        GraphHistory.active = true;
         this.modify_name_recursive('delete')
-        for(let [_, line] of this.math.to) line.remove(true);
-        for(const edge of this.external_ref) edge.remove(true);
+        this.math.to = new Map();
+        this.external_ref = new Set();
+        for(let [_, line] of to) line.remove();
+        for(const edge of external) edge.remove();
         this.parent.child_div.removeChild(this.html_div);
         this.parent.children.delete(this);
-        GraphHistory.register('remove', {node: this});
+        GraphHistory.active = old;
     }
     /** @param {String} name @returns {String | undefined} */
     rename(name) {
@@ -226,9 +233,12 @@ export default class NodeUI {
     }
     truncate() {
         if(this.is_pseudo) return 'can not truncate pseudo nodes';
-        if(this.display.to.size !== 1) return 'can not truncate nodes exactly 1 outcomming edges';
+        let [_, to_edge] = this.display.to[Symbol.iterator]().next().value;
+        if(this.display.to.size !== 1 || to_edge.repr.count > 2) {
+            return 'can only truncate nodes that have exactly 1 outcomming edges (including hidden ones)';
+        }
+        let to = to_edge.to;
         let unique = null;
-        let [to, to_edge] = this.display.to[Symbol.iterator]().next().value;
         for(const edge of this.external_ref) {
             if(unique == null) unique = edge.alias;
             else if(unique !== edge.alias) {
@@ -236,6 +246,8 @@ export default class NodeUI {
             }
         }
         GraphHistory.register('truncate', {node: this});
+        let old = GraphHistory.active;
+        GraphHistory.active = true;
         unique.display.from.delete(this);
         to_edge.hide('none');
         for(const edge of this.external_ref) {
@@ -246,6 +258,7 @@ export default class NodeUI {
         let edge = new EdgeUI(unique, to, {truncate: this});
         edge.repr.setOptions({dash: true});
         edge.show('draw');
+        GraphHistory.active = old;
         return null;
     }
     /**@param {NodeUI} node   */

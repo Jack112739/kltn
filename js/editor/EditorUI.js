@@ -74,33 +74,16 @@ class Editor {
             data: this.raw.value, old_data: this.node.raw_text,
             html: this.latex.innerHTML, old_html: this.node.renderer.innerHTML,
             name: this.name.value, old_name: this.node.id,
+            new_edge: link_all_references(this.node, this.latex)
         });
+        let old = GraphHistory.active;
+        GraphHistory.active = true;
         this.node.raw_text = this.raw.value;
         this.node.renderer.innerHTML = this.latex.innerHTML;
         this.node.renderer.style.height = "";
         this.node.renderer.style.width = "";
-        GraphHistory.active = true;
         GraphUI.signal(this.node.rename(this.name.value));
-        GraphHistory.active = false;
-        this.link_all_references();
-    }
-    link_all_references() {
-        let unknow = [];
-        let invalid = [];
-        for(const refs of editor.latex.querySelectorAll('mjx-container.ref')) {
-            let ref_str = refs.lastChild.textContent.slice('\\ref{'.length, -1);
-            let ref_node = window.MathGraph.all_label.get(ref_str);
-            if(!ref_node || this.node.reference(ref_node)) {
-                let pre = document.createElement('pre');
-                pre.classList.add('err');
-                pre.textContent = refs.lastChild.textContent;
-                refs.parentNode.replaceChild(pre, refs);
-                if(!ref_node) unknow.push(ref_str);
-                else invalid.push(ref_str);
-            }
-        }
-        if(unknow.length !== 0) GraphUI.signal(`the nodes to reference: ${unknow.join(', ')}does not exist`);
-        if(invalid.length !== 0) GraphUI.signal(`invalid references to nodes ${invalid.join(', ')}`);
+        GraphHistory.active = old;
     }
     render() {
         this.latex.innerHTML = '';
@@ -292,6 +275,28 @@ function drag_editor(e) {
         document.body.style.cursor = "";
         document.removeEventListener('mousemove', move);
     }, {once: true});
+}
+/**@param {NodeUI} node @param {HTMLDivElement} div */
+export function link_all_references(node, div) {
+    let unknow = [];
+    let invalid = [];
+    let valid = [];
+    for(const refs of div.querySelectorAll('mjx-container.ref')) {
+        let ref_str = refs.lastChild.textContent.slice('\\ref{'.length, -1);
+        let ref_node = window.MathGraph.all_label.get(ref_str);
+        if(!ref_node || node.reference(ref_node)) {
+            let pre = document.createElement('pre');
+            pre.classList.add('err');
+            pre.textContent = refs.lastChild.textContent;
+            refs.parentNode.replaceChild(pre, refs);
+            if(!ref_node) unknow.push(ref_str);
+            else invalid.push(ref_str);
+        }
+        else valid.push(ref_node);
+    }
+    if(unknow.length !== 0) GraphUI.signal(`the nodes to reference: ${unknow.join(', ')}does not exist`);
+    if(invalid.length !== 0) GraphUI.signal(`invalid references to nodes ${invalid.join(', ')}`);
+    return valid;
 }
 
 /**@type {Editor} */

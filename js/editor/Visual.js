@@ -30,7 +30,8 @@ export default class Visual {
         editor.focus_element.append(document.createTextNode(frag.output('text')));
         range.insertNode(editor.focus_element);
         range.setStart(editor.focus_element.firstChild, offset.start);
-        range.setEnd(editor.focus_element.firstChild, offset.end);
+        range.setEnd(editor.focus_element.firstChild, 
+                    Math.min(editor.focus_element.firstChild.data.length, offset.end));
     }
     static normalize_selection() {
         if(window.getSelection().rangeCount === 0 || !editor.on_visual_mode) return null;

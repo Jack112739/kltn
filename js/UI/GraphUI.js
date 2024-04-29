@@ -37,9 +37,6 @@ export default class GraphUI {
             document.removeEventListener('mousemove', move);
         }, {once: true});
     }
-    static get_name() {
-
-    }
     /**@param {NodeUI} node  */
     static refresh_href(node) {
         let href = document.getElementById('href');
@@ -189,5 +186,4 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.upload').onclick = () => input.click();
     input.onchange = read_file;
     document.querySelector('.download').onclick = download;
-        
 });
