@@ -58,6 +58,7 @@ export default class EdgeUI {
     refresh() {
         /** @type {NodeUI} */
         let current = window.MathGraph.current;
+        if(this.from.is_truncated || this.to === current) return;
         if(this.from.ref && this.from.ref.parent !== current) {
             EdgeUI.reclaim_edges(this.from.ref);
         }
@@ -74,6 +75,7 @@ export default class EdgeUI {
         this.offset_from = -1;
         this.offset_to = 0;
         this.repr.setOptions({end: this.to.html_div, middleLabel: ''});
+        this.repr.count = 1;
     }
     init_repr(option) {
         this.repr = new LeaderLine(this.alias.html_div, this.to.html_div, option);
@@ -98,7 +100,7 @@ export default class EdgeUI {
         let path = this.svg.querySelector('path');
         path.onclick = (e) => {
             e.stopPropagation();
-            if(e.ctrlKey) this.release_truncate(); 
+            if(e.ctrlKey) GraphUI.signal(this.release_truncate()); 
         };
         path.oncontextmenu = (e) => { e.preventDefault(); Menu.edge.popup(e, this)};
         path.onmousedown = (e0) => this.change_gravity(e0);
@@ -227,6 +229,10 @@ export default class EdgeUI {
     }
     release_truncate() {
         if(!this.truncate) return;
+        if(!window.MathGraph.current.is_ancestor(this.truncate)) {
+            return `fail to remove the truncate, the truncated node ` +
+                    `associated with this edge is not a child of the current focusing node`;
+        }
         let old = GraphHistory.active;
         GraphHistory.register('release_truncate', {node: this.truncate});
         GraphHistory.active = true;
@@ -273,7 +279,7 @@ export default class EdgeUI {
         return this.svg.style.visibility === "hidden";
     }
     /**@param {NodeUI} pseudo */
-    static reclaim_edges(pseudo, reposition) {
+    static reclaim_edges(pseudo) {
         pseudo.html_div.classList.remove('pseudo');
         if(!hints['refer'].some(hint => pseudo.header.textContent.startsWith(hint))) {
             pseudo.html_div.classList.remove('refer')
@@ -287,9 +293,9 @@ export default class EdgeUI {
             pseudo.ref.display.to.set(node, edge);
             edge.offset_from = edge.hierarchy.length - 1;
             edge.alias = pseudo.ref;
-            if(reposition) edge.reposition();
         }
         window.MathGraph.all_pseudo.delete(pseudo);
+        window.MathGraph.not_rendered.add(pseudo.ref);
         pseudo.parent.children.delete(pseudo);
         if(pseudo.ref.ref == pseudo) pseudo.ref.ref = null;
     }
@@ -318,7 +324,7 @@ document.addEventListener('DOMContentLoaded', e => {
         if(target.color === default_color) target.setOptions({color: '#81ff93'});
         else target.setOptions({color: default_color});
     }
-    menu[TRUNCATE].onclick = e => Menu.edge.associate.release_truncate();
+    menu[TRUNCATE].onclick = e => GraphUI.signal(Menu.edge.associate.release_truncate());
     menu[REMOVE].onclick = e => {
         let edge = Menu.edge.associate;
         if(edge.repr.count > 2) GraphUI.signal('can not remove this edge because this edge is shared among'

@@ -54,20 +54,19 @@ export default class GraphUI {
         let err = node.toggle_detail(true, true), current = window.MathGraph.current;
         if(err) return this.signal(err);
         GraphHistory.register('jump', {from: current, to: node});
-        let lca = NodeUI.lca(node, current);
-        this.switch_body(lca);
-        for(const low of window.MathGraph.all_pseudo) {
-            if(lca.is_ancestor(low)) EdgeUI.reclaim_edges(low, lca.is_ancestor(low.ref));
-        }
         this.switch_body(node);
-        for(const edge of node.external_ref) if(edge.to !== node) {
-            edge.refresh();
-            edge.reposition();
-            edge.repr.hide('none');
-        };
+        for(const edge of node.external_ref) edge.refresh();
+        for(const pseudo of window.MathGraph.all_pseudo) if(node.is_ancestor(pseudo)) {
+            if(pseudo.parent !== node) EdgeUI.reclaim_edges(pseudo);
+            else window.MathGraph.not_rendered.add(pseudo);
+        }
         this.refresh_href(node);
         node.html_div.addEventListener('animationend', (e) => {
-            for(const edge of node.external_ref) if(edge.to !== node) edge.show('draw');
+            for(const render of window.MathGraph.not_rendered) if(node.is_ancestor(render)) {
+                render.reposition();
+                for(const [_, edge] of render.display.to) edge.show('draw');
+                window.MathGraph.not_rendered.delete(render);
+            }
             node.html_div.style.animation = "";
         }, {once: true});
         node.html_div.style.animation = "focus 0.3s linear";
@@ -152,16 +151,6 @@ export default class GraphUI {
         node.toggle_detail(true);
         node.child_div.querySelector('h2').textContent = name;
         node.html_div.style.animation = "";
-        let prev = window.MathGraph.current;
-        this.switch_body(node);
-        let edges = [];
-        this.dfs(node, (each) => each.toggle_detail(true), (edge) => edges.push(edge));
-        for(const edge of edges) {
-            edge.init_repr();
-            edge.reposition();
-        }
-        this.dfs(node, (each) => each.toggle_detail(!each.parent || each.children.size > 0, true), null);
-        this.switch_body(prev);
     }
     /** 
      * @param {NodeUI} node 
@@ -216,6 +205,7 @@ async function download(e) {
 document.addEventListener('DOMContentLoaded', () => {
     window.MathGraph.all_label = new Map();
     window.MathGraph.all_pseudo = new Set();
+    window.MathGraph.not_rendered = new Set();
     let param = new URLSearchParams(window.location.search);
     let workspace = param.get('data');
     if(workspace) window.MathGraph.workspace = workspace;

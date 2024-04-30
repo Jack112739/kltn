@@ -257,7 +257,7 @@ export default class NodeUI {
         this.html_div.style.display = 'none';
         let edge = new EdgeUI(unique, to, {truncate: this});
         edge.repr.setOptions({dash: true});
-        edge.show('draw');
+        edge.reposition(); edge.show('draw');
         GraphHistory.active = old;
         return null;
     }
@@ -298,6 +298,9 @@ export default class NodeUI {
     }
     get is_pseudo() {
         return this.math === null;
+    }
+    get is_truncated() {
+        return this.ref instanceof EdgeUI;
     }
     /**@param {Element} elem @returns {NodeUI} */
     static is_node_component(elem) {
