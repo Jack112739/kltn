@@ -31,9 +31,10 @@ export default class FileIO {
         bfs:
         while(i < queue.length) {
             let cur = queue[i];
-            let header = `%% ${cur.header.textContent}`
+            let header = `%% ${(cur.is_truncated ? '#': '') + cur.header.textContent}`
                         + `, ${cur.html_div.offsetTop}, ${cur.html_div.offsetLeft}`
-                        + `, ${cur.renderer.offsetHeight}, ${cur.renderer.offsetHeight}`;
+                        + `, ${cur.renderer.offsetHeight}, ${cur.renderer.offsetWidth}`
+                        + `, ${cur.child_div.offsetHeight}, ${cur.child_div.offsetWidth}`;
             for(const [ref, _] of cur.math.from) {
                 let num = context.map.get(ref);
                 if(!num) { queue = []; break bfs;}
@@ -77,9 +78,9 @@ export default class FileIO {
         let lines = str.split('\n');
         let cur = null, err_msg = null, now = null;
         let implicit_id = new Map();
-        let old = window.MathGraph.current;
-        window.MathGraph.current = null;
+        let all_edge = [], all_truncate = [];
         GraphHistory.active = true;
+        window.MathGraph.is_parsing = true;
         cur = new NodeUI(null);
         window.MathGraph.all_label = new Map();
         parse:
@@ -90,7 +91,11 @@ export default class FileIO {
                 cur.children.add(now);
                 implicit_id.set(i, now);
                 let headers = line.slice(2).split(',').map(str => str.trim());
-                let implicit_start = 5;
+                let implicit_start = 7;
+                if(headers[0].startsWith('#')) {
+                    all_truncate.push(now);
+                    headers[0] = headers[0].slice(1);
+                }
                 let test = now.rename(headers[0]);
                 if(test) {
                     err_msg = `error at line ${i+1}: ${test}`;
@@ -101,6 +106,8 @@ export default class FileIO {
                     now.html_div.style.left = parse_int_px(headers[2], 2);
                     now.renderer.style.height = parse_int_px(headers[3], 3);
                     now.renderer.style.width = parse_int_px(headers[4], 4);
+                    now.child_div.style.height = parse_int_px(headers[5], 5);
+                    now.child_div.style.width = parse_int_px(headers[6], 6);
                 } catch(e) {
                     implicit_start = e;
                 }
@@ -108,10 +115,12 @@ export default class FileIO {
                     if(headers[j] === '') continue;
                     if(headers[j].startsWith('#')) test = FileIO.link(now, headers, j, implicit_id);
                     else test = now.reference(headers[j]);
-                    if(test) {
+                    
+                    if(test instanceof String) {
                         err_msg = `error at line ${i+1}: ${test}`;
                         break parse;
                     }
+                    else all_edge.push(test);
                 }
             }
             else if(line === '\\begin{proof}') {
@@ -146,9 +155,10 @@ export default class FileIO {
             }
         }
         if(cur.parent && !err_msg) err_msg = `missing \\end{proof} at the end of the document`;
+        window.MathGraph.is_parsing = false;
         if(err_msg) return new Error(err_msg);
         FileIO.compile(cur);
-        window.MathGraph.current = old;
+        FileIO.render(cur, all_edge, all_truncate);
         GraphUI.finish_initialize(cur, remove_ext(file_name));
         GraphHistory.active = false;
         return cur;
@@ -168,6 +178,22 @@ export default class FileIO {
                         + `because there are no node's comment (start with %%) at that line`;
         return now.reference(node);
 
+    }
+    static render(node, edges, truncate) {
+        let old = window.MathGraph.current;
+        GraphUI.switch_body(node);
+        let maximize_recursive = (node1) => {
+            node1.toggle_detail(!node1.parent || node1.children.size !== 0, true);
+            for(const child of node1.children) maximize_recursive(child);
+        }
+        maximize_recursive(node);
+        for(const edge of edges) {
+            edge.init_repr(window.MathGraph.edge_opt);
+            edge.reposition();
+            edge.show('draw');
+        }
+        for(const truncate_node of truncate) truncate_node.truncate();
+        GraphUI.switch_body(old);
     }
     static file_saver;
 }

@@ -225,11 +225,11 @@ export default class NodeUI {
     /**@param {NodeUI} link */
     reference(link) {
         if(link.is_pseudo) link = link.ref
-        if(this.math.from.has(link)) return null;
+        if(this.math.from.has(link)) return this.math.from.get(link);
         let edge  = EdgeUI.create(link, this);
         if(typeof edge === 'string') return edge;
         edge.show('draw');
-        return null;
+        return edge;
     }
     truncate() {
         if(this.is_pseudo) return 'can not truncate pseudo nodes';
@@ -255,7 +255,7 @@ export default class NodeUI {
             edge.hide('none');
         }
         this.html_div.style.display = 'none';
-        let edge = new EdgeUI(unique, to, {truncate: this});
+        let edge = new EdgeUI(unique, to, {...window.MathGraph.edge_opt ,truncate: this});
         edge.repr.setOptions({dash: true});
         edge.reposition(); edge.show('draw');
         GraphHistory.active = old;

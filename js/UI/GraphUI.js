@@ -152,15 +152,6 @@ export default class GraphUI {
         node.child_div.querySelector('h2').textContent = name;
         node.html_div.style.animation = "";
     }
-    /** 
-     * @param {NodeUI} node 
-     * @param {(NodeUI) => void} callback 
-     * @param {(EdgeUI) => void} edges_callback   */
-    static dfs(node, callback, edges_callback) {
-        if(callback) callback(node);
-        for(const [_, edges] of node.math.to) if(edges_callback) edges_callback(edges);
-        for(const child of node.children) this.dfs(child, callback, edges_callback);
-    }
 }
 function read_file(e) {
     let file = e.target.files[0];

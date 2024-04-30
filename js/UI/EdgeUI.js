@@ -42,7 +42,7 @@ export default class EdgeUI {
             this.hierarchy.push(cur);
             cur.external_ref.add(this);
         }
-        if(window.MathGraph.current !== null)  this.init_repr(option);
+        if(!window.MathGraph.is_parsing)  this.init_repr(option);
         //TODO : create some explaination for this (automatically ?)
         this.truncate = option?.truncate ?? null;
     }
@@ -201,8 +201,6 @@ export default class EdgeUI {
     }
     /**@param {NodeUI} from @param {NodeUI} to @returns {EdgeUI | string} */
     static create(from, to) {
-        let option = window.MathGraph.edge_opt;
-        if(option === undefined) option = (window.MathGraph.edge_opt = {path: 'curve', size: 3});
         if(to.is_pseudo) return "can not create edge connect to a pseudo node";
         /** @type {NodeUI}*/
         let actual = from.is_pseudo ? from.ref : from, current = window.MathGraph.current;
@@ -213,8 +211,8 @@ export default class EdgeUI {
         if(actual.type === 'result') return 'can not connect from the conclusion node';
         if(to.type === 'given') return 'can not connect to an input node'
         if(actual.math.to.has(to) || to.math.from.has(actual)) return 'the edge is already connected';
-        if(current && !current.is_ancestor(from)) from = this.create_pseudo(from);
-        let edge = new EdgeUI(from, to, option);
+        if(!window.MathGraph.is_parsing && !current.is_ancestor(from)) from = this.create_pseudo(from);
+        let edge = new EdgeUI(from, to, window.MathGraph.edge_opt);
         edge.reposition();
         GraphHistory.register('make_edge', {from: actual, to: to, ref: actual.ref !== null});
         return edge;
@@ -320,7 +318,7 @@ document.addEventListener('DOMContentLoaded', e => {
     Menu.edge = new Menu(document.getElementById('edge'));
     let menu = Menu.edge.items.childNodes;
     menu[HIGHTLIGHT].onclick = e => {
-        let target = Menu.edge.associate.repr, default_color = window.MathGraph.edge_opt?.color ?? 'coral';
+        let target = Menu.edge.associate.repr, default_color = window.MathGraph.edge_opt.color;
         if(target.color === default_color) target.setOptions({color: '#81ff93'});
         else target.setOptions({color: default_color});
     }

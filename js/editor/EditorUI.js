@@ -283,8 +283,8 @@ export function link_all_references(node, div) {
     let valid = [];
     for(const refs of div.querySelectorAll('mjx-container.ref')) {
         let ref_str = refs.lastChild.textContent.slice('\\ref{'.length, -1);
-        let ref_node = window.MathGraph.all_label.get(ref_str);
-        if(!ref_node || node.reference(ref_node)) {
+        let ref_node = window.MathGraph.all_label.get(ref_str), ref_edge;
+        if(!ref_node || (ref_edge = node.reference(ref_node)) instanceof String) {
             let pre = document.createElement('pre');
             pre.classList.add('err');
             pre.textContent = refs.lastChild.textContent;
@@ -292,7 +292,7 @@ export function link_all_references(node, div) {
             if(!ref_node) unknow.push(ref_str);
             else invalid.push(ref_str);
         }
-        else valid.push(ref_node);
+        else valid.push(ref_edge);
     }
     if(unknow.length !== 0) GraphUI.signal(`the nodes to reference: ${unknow.join(', ')}does not exist`);
     if(invalid.length !== 0) GraphUI.signal(`invalid references to nodes ${invalid.join(', ')}`);
