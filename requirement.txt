@@ -15,8 +15,9 @@ Specification:
         v undo-redo option
         - have different modes (low priority)
         - show and hide has different meaning, change the name switch_to to focus
-        - update the css-style for nodes
-        - label now is optional, instead, show their math-type
+        v update the css-style for nodes
+        v label now is optional, instead, show their math-type
+        v make node zoomable
     2: the latex editor
         v automate a link if typed \ref, \cite
         v have a preview
@@ -29,13 +30,13 @@ Specification:
         v movable
         v responsive
     3: computer can understand the proof and judges wether it's true or not
-        - define define new variables / terms
-        - lemma is ones that can be reused like functions
-        - given is the input
-        - result is the output 
-        - claim is the default one
-        - using reference other
-        - reference node will partially apeared
+        v define define new variables / terms
+        v lemma is ones that can be reused like functions
+        v given is the input
+        v result is the output 
+        v claim is the default one
+        v using reference other
+        v reference node will partially apeared
         - add some keywords
         - user can explain their intention with the node further
         - every node is a "simple" mathematical arguement
@@ -43,10 +44,10 @@ Specification:
         v able to save the proof into a file
         v able to read to proof from a file
         - include 
-            + examples
-            + write an introduction into index file
-            + playground which is for user playing with the graph functionality
-            + a manual document on what this website provide
+            ? examples
+            v write an introduction into index file
+            v playground which is for user playing with the graph functionality
+            v a manual document on what this website provide
             + a resource page provide basic fundalmental theorem for mathematic 
             + (low) a problem set for user to solve them online
 

@@ -17,38 +17,45 @@
     </div>
     <hr>
     <h2> Introduction</h2>
-    <p>
-      In the tradditional way of display mathematical proof, we present it in a linearly way and read from line to
-      line. This sometime can make that proof harder to go through, especially when it is not well documented since the the relations between proof's arguement is not always linear and it's harder to keep track all the references when the proof is more complicated.
-    </p>
-    <p>
-      In this website we aim to make that mathematical proof become easier to visualize and increase the readablity so that even machines can understand wether the proof is correct or not. To do so we interpret it as a directed acyclic graph where arguements are represented as nodes and the dependencies between them are represented as edges. <br>
-    </p>
+    <div class="content">
+      <p>
+        In the tradditional way of display mathematical proof, we present it in a linearly way and read from line to
+        line. This sometime can make that proof harder to go through, especially when it is not well documented since the the relations between proof's arguement is not always linear and it's harder to keep track all the references when the proof is more complicated.
+      </p>
+      <p>
+        In this website we aim to make that mathematical proof become easier to visualize and increase the readablity so that even machines can understand wether the proof is correct or not. To do so we interpret it as a directed acyclic graph where arguements are represented as nodes and the dependencies between them are represented as edges. <br>
+      </p>
+    </div>
     <h2> Getting startted</h2>
-    <p>
-      You can create your own proof immediatedly by visiting this <a href="html/playground.html"> link</a>. 
-    </p>
-    <p>
-      Use ctrl + click to create in the cursor position and popup the editor for you the edit that node, if in that position there is already the node, the editor will popup to edit the node you clicked in instead.
-    </p>
-    <p>
-      There are fews editing options you can use, such as \bf for making bold text, \it for making italic text, \enumurate and \itemize for making ordered list and unordered list respectively.
-    </p>
-    <p>
-      For typing math equation we use the <a href="https://docs.mathjax.org/en/latest/index.html">MathJax</a> library and the markup language we use is latex. Latex is a common markup language to render mathematic, it has two mode which is inline mode and display mode that have the delimeters $ and $$ respectively, for the full documentation about latex that MathJax supported check out <a href="https://docs.mathjax.org/en/latest/input/tex/index.html"> this</a>. 
-    </p>
-    <p>
-      To structure your proof into lemmas and arguements you can double click a node to see it's full detail and treat those node as an sublemma. You can reference other node including nodes that defined outside of that sublemma by using \ref command or right-click into the node you want to reference from. 
-    </p>
-    <p>For further detail, checkout the full documentation <a href="html/doc.html">here</a></p>
+    <div class="content"> 
+      <p>
+        You can create your own proof immediatedly by visiting this <a href="html/playground.html"> link</a>., To have the best expiriences, I recommend you use the full screen feature by clicking 'F11' 
+      </p>
+      <p>
+        Use ctrl + click to create a node in the cursor position and popup the editor for you to edit that node, if in that position there is already the node, the editor will popup to edit the node you clicked in instead.
+      </p>
+      <p>
+        There are fews editing options you can use, such as \bf for making bold text, \it for making italic text, \enumurate and \itemize for making ordered list and unordered list respectively.
+      </p>
+      <p>
+        For typing math equation we use the <a href="https://docs.mathjax.org/en/latest/index.html">MathJax</a> library and the markup language we use is latex. Latex is a common markup language to render mathematic, it has two mode which is inline mode and display mode that have the delimeters $ and $$ respectively, for the full documentation about latex that MathJax supported check out <a href="https://docs.mathjax.org/en/latest/input/tex/index.html"> this</a>. 
+      </p>
+      <p>
+        To structure your proof into lemmas and arguements you can double click a node to see it's full detail and treat those node as an sublemma. You can reference other node including nodes that defined outside of that sublemma by using \ref command or right-click into the node you want to reference from. 
+      </p>
+      <p>For further detail, checkout the full documentation <a href="html/doc.html">here</a></p>
+    </div>
     <h2> Future works</h2>
-    <ol>
-      <li> Our top priority for this project is to make able to understand mathematical proof and able to reason about it such as proving wether it is true or not, or automatically insert cumbersome substitutions. </li>
-      <li> Later we will provide a large enough library with represented as fundalmental axioms that make the building blocks for the proof structure. </li>
-      <li>Finally, the most ambitious goal of this project is to build the "online judge" feature. For a long time this feature is exclusive for <em>competitive programming </em>alone because computer can not reason about the correctness of mathematical problems that well. But with the help of this program we hope that we could make a competitive webiste that can minimize the need for human to justify the correctness of the proof. </li>
-    </ol>
+    <div class="content">
+      This is my graduation thesis, I understand that their are many bug still remains as well as many useful features are missing, thus these are some goals that i may develops in the near future
+      <ol>
+        <li> My top priority for this project is to make able to understand mathematical proof and able to reason about it such as proving wether it is true or not, or automatically insert cumbersome substitutions. </li>
+        <li> Later we will provide a large enough library with represented as fundalmental axioms that make the building blocks for the proof structure. </li>
+        <li>Finally, the most ambitious goal of this project is to build the "online judge" feature. For a long time this feature is exclusive for <em>competitive programming </em>alone because computer can not reason about the correctness of mathematical problems that well. But with the help of this program we hope that we could make a competitive webiste that can minimize the need for human to justify the correctness of the proof. </li>
+      </ol>
+    </div>
     <footer>
-      <p>Contact info: <em>20020027@vnu.edu.vn</em> </p>
+      <p>Contact info: <em>20020027@vnu.edu.vn</em> (Nguyen Dac Quan) </p>
     </footer>
   </div>
 </body>

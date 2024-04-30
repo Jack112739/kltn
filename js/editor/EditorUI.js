@@ -3,13 +3,6 @@
  * The editor for writing latex
  */
 
-import NodeUI from '../UI/NodeUI.js';
-import Visual from './Visual.js';
-import Menu from './Menu.js';
-import mjx_support from './../../dependency/mjx_support.js';
-import Fragment from './Fragment.js';
-import GraphHistory from '../UI/HistoryUI.js';
-import GraphUI from '../UI/GraphUI.js';
 
 class Editor {
     
@@ -49,7 +42,6 @@ class Editor {
         this.div.style.animation = "reveal 0.3s ease"
         this.div.parentNode.style.display = "block";
         let readonly = node.is_pseudo || window.MathGraph?.readonly;
-        if(readonly) this.visual_mode(false);
         this.name.readOnly = readonly;
         this.latex.contentEditable = !readonly;
         this.raw.readOnly = readonly;
@@ -110,7 +102,7 @@ class Editor {
             this.history = {stack: new Array(), pos: 0, buffer: 0};
             this.raw.style.display = "none";
             this.on_visual_mode = true;
-            this.latex.contentEditable = true;
+            this.latex.contentEditable = !window.MathGraph.readonly;
             this.render();
         }
         else {
@@ -148,7 +140,14 @@ class Editor {
     }
     /**@param {'b' | 'i' | 'ol' | 'ul' | 'a' | 'rm'} o  */
     option(o) {
-        if(editor.on_visual_mode) Visual.wrap_selection();
+        if(editor.on_visual_mode) {
+            let range = new Range(), sel = window.getSelection().getRangeAt(0);
+            range.setStart(editor.latex, 0);
+            range.setEnd(editor.latex, editor.latex.childNodes.length);
+            if(range.compareBoundaryPoints(Range.END_TO_START, sel) > 0) return;
+            if(range.compareBoundaryPoints(Range.START_TO_END, sel) < 0) return;
+            Visual.wrap_selection();
+        }
         let {str, start, end} = editor.get_selection();
         if(str === null) return;
         let selected = str.slice(start, end);
@@ -277,7 +276,7 @@ function drag_editor(e) {
     }, {once: true});
 }
 /**@param {NodeUI} node @param {HTMLDivElement} div */
-export function link_all_references(node, div) {
+function link_all_references(node, div) {
     let unknow = [];
     let invalid = [];
     let valid = [];
@@ -301,7 +300,7 @@ export function link_all_references(node, div) {
 
 /**@type {Editor} */
 const editor = new Editor();
-export default editor;
+editor;
 
 document.addEventListener('DOMContentLoaded', () => {
     editor.div = document.getElementById('editor');
@@ -332,8 +331,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 //latex formating options
-export const format = {'\\itemize':'ul','\\item':'li', '\\it':'i', '\\bf':'b', '\\enumurate':'ol'};
-export const inv_format = {'i':'\\it', 'b':'\\bf', 'li':'\\item', 'ol':'\\enumurate', 'ul':'\\itemize'};
+const format = {'\\itemize':'ul','\\item':'li', '\\it':'i', '\\bf':'b', '\\enumurate':'ol'};
+const inv_format = {'i':'\\it', 'b':'\\bf', 'li':'\\item', 'ol':'\\enumurate', 'ul':'\\itemize'};
 const relations = [
     ['\\implies', '\\iff'],     // logical chaining 
     ['\\le', '<', '\\lessim'],  // less 

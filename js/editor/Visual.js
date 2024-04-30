@@ -1,9 +1,6 @@
 "use-strict"
 
-import editor from './EditorUI.js';
-import Fragment from './Fragment.js';
-
-export default class Visual {
+class Visual {
     /**@param {Node} elem  */
     static is_math_elem(elem) {
         if(!elem) return null;

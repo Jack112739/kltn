@@ -1,13 +1,6 @@
 "use strict";
 
-import  NodeUI  from './NodeUI.js';
-import EdgeUI from './EdgeUI.js';
-import GraphHistory from './HistoryUI.js';
-import editor from './../editor/EditorUI.js';
-import FileIO from './FileIO.js';
-import { map_to_html } from '../editor/Fragment.js';
-
-export default class GraphUI {
+class GraphUI {
     /**@param {PointerEvent} e @param {NodeUI} start   */
     static new_edge(start, e) {
         if(!e) return;
@@ -30,11 +23,12 @@ export default class GraphUI {
             prev = hover;
         });
         document.addEventListener('click', e => {
-            let try_edge = prev ? EdgeUI.create(start, prev) : '';
-            if(typeof try_edge === "string") this.signal(try_edge);
             line.remove();
             dot.style.display = "none";
             document.removeEventListener('mousemove', move);
+            if(window.MathGraph.readonly) return GraphUI.signal('can not make new edge in readonly mode');
+            let try_edge = prev ? EdgeUI.create(start, prev) : '';
+            if(typeof try_edge === "string") this.signal(try_edge);
         }, {once: true});
     }
     /**@param {NodeUI} node  */
@@ -83,11 +77,11 @@ export default class GraphUI {
     /**@param {PointerEvent} e  */
     static monitor_node_at_cursor(e) {
         if(!e.ctrlKey || editor.div.parentNode.style.display === "block") return;
-        if(window.MathGraph.readonly) return alert("can create or edit node in readonly mode");
 
         let node = NodeUI.is_node_component(e.target);
         if(!node || node.is_maximize) {
             /**@type {NodeUI} */
+            if(window.MathGraph.readonly) return GraphUI.signal('can not create node in readonly mode');
             let parent = node ? node : window.MathGraph.current;
             node = new NodeUI(parent);
             parent.children.add(node);
@@ -123,33 +117,20 @@ export default class GraphUI {
         return rect.x <= x && x <= rect.right && rect.y <= y && y <= rect.bottom;
     }
     static initialize() {
-        if(window.MathGraph.workspace !== 'playground') {
-            fetch('../library/' + window.MathGraph.workspace)
-            .then(response => response.text())
-            .then(data => {
-                let root = FileIO.parse_file(data, window.curr);
-                if(root instanceof Error) throw root;
-                window.MathGraph.current = root;
-                document.body.appendChild(root);
-            })
-            .catch(error => {
-                GraphUI.signal(error.message);
-                window.MathGraph.workspace = 'playground';
-                GraphUI.initialize();
-            });
-            return;
+        let param = new URLSearchParams(window.location.search);
+        let workspace = param.get('name');
+        if(workspace) {
+            let result = FileIO.parse_file(param.get('data'), workspace);
+            if(result instanceof Error) return GraphUI.signal('fail to the parse request URL: ' + result);
+            window.MathGraph.workspace = workspace;
+            window.MathGraph.readonly = true;
+            window.MathGraph.all_label = result.labels;
+            GraphUI.switch_body(result.root);
         }
-        GraphHistory.active = true;
-        let current = new NodeUI(null);
-        current.html_div.classList.add('playground');
-        GraphUI.finish_initialize(current, 'playground');
-        this.switch_body(current);
-        GraphHistory.active = false;
     }
     static finish_initialize(node, name) {
-        node.rename(name);
+        node.id = name;
         node.toggle_detail(true);
-        node.child_div.querySelector('h2').textContent = name;
         node.html_div.style.animation = "";
     }
 }
@@ -160,11 +141,14 @@ function read_file(e) {
         if(!file.name.endsWith('.tex')) {
             return GraphUI.signal('Can only upload proof stored in .tex file');
         }
-        let replace = FileIO.parse_file(e1.target.result, file.name);
+        let replace = FileIO.parse_file(e1.target.result, remove_ext(file.name));
         e.target.value = "";
         if(replace instanceof Error) return GraphUI.signal(replace.message);
-        window.MathGraph.workspace = replace.id;
-        GraphUI.switch_body(replace);
+        window.MathGraph.workspace = replace.root.id;
+        window.MathGraph.all_label = replace.labels;
+        window.MathGraph.all_pseudo = new Set();
+        window.MathGraph.not_rendered = new Set();
+        GraphUI.switch_body(replace.root);
         GraphHistory.stack = [];
         GraphHistory.position = 0;
     };
@@ -192,15 +176,22 @@ async function download(e) {
         GraphUI.signal(`Fail to save your proof${name ? ' into' + name: ''}, reason: ${e.message}`);
     }
 }
+function remove_ext(name) {
+    return name.split('.').slice(0, -1).join('');
+}
 //setup function
 document.addEventListener('DOMContentLoaded', () => {
     window.MathGraph.all_label = new Map();
     window.MathGraph.all_pseudo = new Set();
     window.MathGraph.not_rendered = new Set();
-    let param = new URLSearchParams(window.location.search);
-    let workspace = param.get('data');
-    if(workspace) window.MathGraph.workspace = workspace;
-    GraphUI.initialize();
+    GraphHistory.active = true;
+    let current = new NodeUI(null);
+    window.MathGraph.workspace = 'playground';
+    current.html_div.classList.add('playground');
+    GraphUI.finish_initialize(current, 'playground');
+    GraphUI.switch_body(current);
+    current.child_div.querySelector('h2').textContent = 'playground';
+    GraphHistory.active = false;
 
     document.addEventListener('click', GraphUI.monitor_node_at_cursor);
     document.querySelector('.undo').onclick = () => GraphHistory.undo();

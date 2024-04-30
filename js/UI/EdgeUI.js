@@ -1,10 +1,5 @@
 "use strict";
-import GraphHistory from './HistoryUI.js';
-import NodeUI, {hints} from './NodeUI.js'
-import GraphUI from './GraphUI.js';
-import Menu from './../editor/Menu.js';
-
-export default class EdgeUI {
+class EdgeUI {
 
     /**@type {LeaderLine>} sometime work as a shared pointer, count odd = owned, count/2 = borrow*/
     repr;
@@ -240,7 +235,7 @@ export default class EdgeUI {
         this.to.display.from.set(this.truncate, to_edge);
         to_edge.show('draw');
         to_edge.reposition();
-        for(const edge of this.truncate.external_ref) {
+        for(const edge of this.truncate.external_ref) if(!edge.alias.is_truncated) {
             edge.alias.display.to.set(edge.shadow, edge);
             this.alias.parent.child_div.appendChild(edge.svg);
             edge.show('draw');
@@ -317,18 +312,19 @@ const label_opt = {
 document.addEventListener('DOMContentLoaded', e => {
     Menu.edge = new Menu(document.getElementById('edge'));
     let menu = Menu.edge.items.childNodes;
-    menu[HIGHTLIGHT].onclick = e => {
+    menu[HIGHTLIGHT_].onclick = e => {
         let target = Menu.edge.associate.repr, default_color = window.MathGraph.edge_opt.color;
         if(target.color === default_color) target.setOptions({color: '#81ff93'});
         else target.setOptions({color: default_color});
     }
-    menu[TRUNCATE].onclick = e => GraphUI.signal(Menu.edge.associate.release_truncate());
-    menu[REMOVE].onclick = e => {
+    menu[TRUNCATE_].onclick = e => GraphUI.signal(Menu.edge.associate.release_truncate());
+    menu[REMOVE_].onclick = e => {
         let edge = Menu.edge.associate;
-        if(edge.repr.count > 2) GraphUI.signal('can not remove this edge because this edge is shared among'
-                                                + (edge.repr.count >> 1) + 'other edges');
+        if(window.MathGraph.readonly) return GraphUI.signal('can not delete edges in readonly mode');
+        if(edge.repr.count > 2) return GraphUI.signal('can not remove this edge because this edge is' +
+                                        'shared among' + (edge.repr.count >> 1) + 'other edges');
         Menu.edge.associate.remove()
     };
 
 })
-const HIGHTLIGHT = 0, TRUNCATE = 1, REMOVE = 2;
+const HIGHTLIGHT_ = 0, TRUNCATE_ = 1, REMOVE_ = 2;

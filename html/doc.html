@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="../css/index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+      body {
+        background-size: unset;
+      }
+    </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div id="title"> 
+      <h1>Documentation</h1>
+    </div>
+    <hr>
+    <div id="navigate">
+      <a href="../index.html">Home</a>
+      <a href="playground.html">Playground</a>
+      <a href="doc.html">Documentation</a>
+      <a href="example.html">Examples</a>
+    </div>
+    <hr>
+    <h2> The Graph representation:</h2>
+    <div class="content">
+      <h3 id="node"> The node of the graph </h3>
+      <p>
+        In this graph, we structurize agruements of proof into vertices, in theory a node can be as big as you want but to make the proof feel simpler, you should make each node be a simple arguement,
+      </p>
+      <p>
+        The details of how to create and edit a node will be on the <a href="#editor">editor</a> section the node can be drag and resize as freely as you want
+      </p>
+      <figure>
+        <img src="./img/node.png">
+        <figcaption>A simple node and a more complicated one</figcaption>
+      </figure>
+      <p>
+        There are a total of five types of nodes
+        <ul>
+          <li>
+            The given node, represent what were given by the problem statement
+            <figure>
+              <img src="./img/given.png">
+            </figure>
+          </li>
+          <li>
+            The definition node, defining the new terms and variables that use through out the proof
+            <figure>
+              <img src="./img/definition.png">
+            </figure>
+          </li>
+          <li>
+            The lemma node, represent as a reusable statement that going to be use multiple times throughout the proof and have a clear input-output relationship
+            <figure>
+              <img src="./img/lemma.png">
+            </figure>
+          </li>
+          <li>
+            The claim node, which is the default node, it represent an arguement that only true given with some context, this is also the main building block of the proof
+            <figure>
+              <img src="./img/claim.png">
+            </figure>
+          </li>
+          <li>
+            And finally, the conclusion node, represent the results one need to proof, or the variables they need to found as it demmand by the problem statement
+            <figure>
+              <img src="./img/conclusion.png">
+            </figure>
+          </li>
+        </ul>
+        The node can also be referenced, and in that case, their border will change and their title will have a small <i class="fa-solid fa-link"></i> icon at the begining.
+        <figure>
+          <img src="./img/reference.png">
+        </figure>
+      </p>
+      <h3 id="name"> The names of the node</h3>
+      <p> Each node can have a custom name (label) which is some string that does not start with '#' character </p>
+      <p> 
+        The label consist of two parts, the first few word is used to hint the program to use that node as the given type, and the rest are the label they intented to be, 
+      <p>
+        <em>Example: node named 'lemma foo12' will have name 'foo12' and type 'lemma'</em>
+      </p>
+        if the node begin with either 'refer', 'reference', 'preliminary', 'premise', 'requires' it indicate that the node are being referenced and skip that first word, After that the program start to look for the set of hinted label, the full list of them are
+        <ul>
+          <li> <b>Given:</b> 'assume', 'given', 'in case', 'otherwise', 'assumption </li>
+          <li> <b>Claim:</b> 'claim', 'substitution', 'equation', 'inequality'</li>
+          <li> <b>Lemma:</b> 'lemma', 'theorem', 'proposition', 'corollary' </li>
+          <li> <b>Definition:</b> 'define', 'definition', 'axiom' </li>
+          <li> <b>Conclusion:</b> 'QED', 'result', 'contradiction', 'conclusion' </li>
+        </ul>
+      </p>
+      <h3 id="edge"> The edges </h3>
+      <p>
+        The connection between parts of proof are represented as edges, To connect a node to other, right click the node you want to start the connection, choose reference and then left click the one you that want to connect to
+      </p>
+      <p> We treat the graph created by the node and edges as directed acyclic graph, and node A connect to node B meaning that B using the result given after A were given</p>
+      <figure>
+        <img src="./img/edge.png">
+        <figcaption> Example: connecting node with edges</figcaption>
+      </figure>
+      <p>
+        Edges can be drag close to the cursor when you click on them (a help cursor will appear to indicate that your cursor lie on an edge) 
+      </p>
+      <h3 id="zoom"> Zooming out a node</h3>
+      <p>
+        The actual proof may consist many claim and lemma, and a they might consist many other claims, to structurize this, we allow you to <i>zoom in-and-out</i> the node so that it can be structure more clearly. The limitation are only <b>claim</b> node and <b>lemma</b> node are zoomable
+      </p>
+      <p>
+        To zoom out a node, you can double click that node, and a small window will appear that consist of the arguements that were for that proof, which represent as the  <b>Children</b> of that node, and to minimize that node, you can double click it again
+        <figure>
+          <img src="./img/zoom.png" class="center-fit">
+          <figcaption> a proof that were structurized using zoomed nodes</figcaption>
+        </figure>
+      </p>
+      <p>
+        You can navigate (scroll) the content inside by click inside that window<br>
+        Also, you can drag the window and resize them as freely as you want, however you need to click on the title of that node (which in this case appear with the content of the node when zooming in) in order to move that node, 
+      </p>
+      <p>
+        When a node is zoom out, there will be some node that does not fit inside the window,and in this case the edge connecting them will be modify to one of the nodes' parent hence sometme form multiple edges. We indicate the number of node that is overflow by a small caption in the edge
+      </p>
+      <p>
+        We allow you to reference one node to the children of other node, however you can only reference such node to one of it's sibling <a href="#zoom">descendant</a>.
+      </p>
+      <h3 id="focus">Focusing on a node</h3>
+      <p>
+        When the proof become bigger, the process of navigating through the proof will become more tedious, especially when someone want read the content inside a focused node but get confused with a lots of unnecessary references from other node
+      </p>
+      <p>
+        We allow you to replace one node to fit the whole screen by right-click a node and choose the option 'focus', we will replace the whole screen with node that you selected and bring all the node you reference outside of that node inside and tagged them with a red <i class="fa-solid fa-link"></i> icon
+      </p>
+      <figure>
+        <img src="./img/focus.png" class="center-fit">
+        <figcaption> The previous proof when focusing in</figcaption>
+      </figure>
+      <p> 
+        You can navigate and return to the higher order proof by clicking one of the references at the top-left corner
+      </p>
+      <h3 id="truncate">Truncating nodes</h3>
+      <p>
+        To make the proof more clean, we allow you to hide the details of a node completely, to do that, right click a node and choose 'truncate' 
+      </p>
+      <p>
+        We only allow truncate node that were the middle of some proof, in details nodes that it's <a href="#zoom">descendant</a> only reference from exactly one node that are not the descendant of the truncated node, furthermore the truncated node can only reference to exactly one other node.
+      </p>
+      <p>
+        When you truncate a node B lie between A and C (i.e. the proof originally are A -> B -> C) the node B and all edges connecting to one of it's descendant will dissapear and a new edge between A and C will be made
+      </p>
+      <figure>
+        <img src="./img/truncate.png" class="center-fit">
+        <figcaption> The proof before and after being truncated</figcaption>
+      </figure>
+      <p>
+        We mark edges that represent the truncated node with dashed, ones can <code>ctrl + click</code> on them to remove the edge and make the truncated node appear again
+      </p>
+    </div>
+    <h2 id="editor"> The math editor:</h2>
+    <div class="content">
+      <p>
+        To popup an editor, <code>ctrl + click </code> into the node you want to edit, if you did not clicked on any node, the program will create a new one as the child of the <a href="#zoom">zoomed</a> node directly beneath your cursor
+      </p>
+      <figure>
+        <img src="./img/editor.png">
+        <figcaption> The editor</figcaption>
+      </figure>
+      <p>
+        We use <a href="https://www.mathjax.org/"> MathJax</a> for rendering math in the webpage, for full references of mathjax, checkout <a href="https://docs.mathjax.org/en/latest/basic/mathjax.html">this link</a> 
+      </p>
+      <p> 
+        We use <code>$</code> and <code>$$</code> to indicate inline math and display math respectively, furthermore, there are some formatting command that we supported outside of mathjax, specifically
+        <ul>
+          <li>for <b>bold</b> text, insert text as <code>\bf{<b>text...</b>}</code></li>
+          <li>for <i>italic</i> text, insert text as <code>\it{<i>text..</i>}</code> </li>
+          <li>for <i>ordered list</i> insert text as <code>\enumurate{...}</code> and denote each of the item with the <code>\item</code> command</li>
+          <li>for <i>unordered list</i> do the same as ordered list but this time, use <code>\itemize</code>command</li>
+        </ul>
+        We also support align equations when you click the <button><i class="fa-solid fa-align-left"></i></button> button, the selected text must be a latex pre-processed text, then we chopped them down with the delimeter are relations equation which are grouped into categories
+        <ul>
+          <li><b>logical chaining:</b> <code>'\implies', '\iff'</code></li>
+          <li><b>less than relation:</b> <code>\le, &lt;, \lessim, =</code></li>
+          <li><b> greater than relation:</b><code>\ge, >, \gtrssim, =</code></li>
+          <li><b>equivalent relations:</b><code>\equiv, \sim, =</code></li>
+        </ul>
+      </p>
+      <p>
+        The editor support two editiing mode, the text mode and the visual mode
+      </p>
+      <h3 id="text">Text mode</h3>
+      <p>
+        The text mode is the same as editting raw latex formula, they will be compiled each time you clicked the button <button><i class="fa-solid fa-save" style="color: blue;"></i></button>
+        <figure>
+          <img src="./img/textmode.png">
+          <figcaption>Editing using text mode</figcaption>
+        </figure>
+      </p>
+      <h3 id="visual">Visual mode</h3>
+      <p>
+        When using visual mode, when you start formatting text or enter the letters <code>$ or {}</code> a preprocessed section will appear, indicating with other color,  the compilation process will happend each time you leave the preprocessed section
+        <figure>
+          <img src="./img/visualmode.png">
+          <figcaption> Editing with visual mode</figcaption>
+        </figure>
+      </p>
+      <p>
+        For the ease of editing we recommend using the visual mode, however their might be some bug remaining which we fail to catch, in that case switch back to text mode and visual mode.
+      </p>
+    </div>
+    <h2 id="file"> Save and read from file</h2>
+    <div class="content">
+      To save or upload your custom proof using file, click the buttons at the top right corner, specifically:
+      <ul>
+        <li><button><i class="fa-solid fa-upload"></i></button> for uploading proof</li>
+        <li><button><i class="fa-solid fa-download"></i></button> to download your proof to local file</li>
+      </ul>
+      to proof will be stored as a standard .tex file, and we indicate each node with the <code>%%</code> comment follow by information about the node, such as name, size, references.
+      <p>
+        The format of the node header comment is as follow 
+      </p>
+      <code>%% `name`, `top`, `left`, `height`, `width`, `zoomed height`, `zommed width`, `references....`</code>
+      <p>
+        if you want to node to be <a href="#truncate">truncated</a>, append the <code>#</code> character to the start of the node's name. <code>`top`, `left`, `height`, `width`, `zoomed height`, `zommed width`</code> are not required as you can skip them entierly either by typing something that is not a number or leave them blank between the comma
+      </p>
+      <p>
+        since the name of the node are not requires, you can link the node in the references section by using the <code>#</code> sign, follow by the line number that have the header comment for that node. We discourage using this practice, as it might leave references become very hard to control
+      </p>
+    </div>
+    <h2>Other feature</h2>
+    <div class="content">
+      <h3 id="node-rightclick"> The Node's right click menu</h3>
+      <figure>
+        <img src="./img/menu_node.png">
+        <figcaption>the right click menu of a node:</figcaption>
+      </figure>
+      We have cover mostly the features of this menu including 
+      <ul>
+        <li><a href="#editor"> editing</a></li>
+        <li><a href="#zoom">maximize and minimize</a></li>
+        <li><a href="#focus">focus</a> </li>
+        <li><a href="#edge">reference</a> </li>
+        <li><a href="#truncate">truncate</a> </li>
+      </ul>
+      the option remove and rename will do exactly as it labeled 
+      <p>
+        For highlighting option, by default we will hightlight every node that you currently dragging, but that node will node be hightlighted anymore when you mouse are up, to make the node highlighted permanently click the button <button><i class="fa-solid fa-statr"></i></button>
+      </p>
+      <h3 id="edge-rightclick"> The edge's right click menu</h3>
+      edges also have a right click menu 
+      <figure>
+        <img src="./img/menu_edge.png">
+        <figcaption>the right click menu for edges</figcaption>
+      </figure>
+      The highlight option and remove option work the same. The show details option will remove that edge from being truncated which we have covered in <a href="#truncate">here</a>
+      <h3 id="history"> History</h3>
+      <p>
+        You can undo and redo your most recent action by clicking the <button><i class="fa-solid fa-undo"></i></button> and <button><i class="fa-solid fa-redo"></i></button> that appear at the top right of the screen for undo and redo action respectively.
+      </p>
+      <p>
+        You can also undo and redo using the tradditional key combination <code>ctrl+z</code> and <code>ctrl + y</code>
+      </p>
+      This is the full list of all currently supported command
+      <ol>
+        <li>Make new edges </li>
+        <li>Remove edge</li>
+        <li>remove truncated edge</li>
+        <li>grabbing edge</li>
+        <li>create new node</li>
+        <li>drag node</li>
+        <li>zoom-in, zoom-out node</li>
+        <li>remove node</li>
+        <li>rename node</li>
+        <li>truncate node</li>
+        <li>navigating in the zommed node's window</li>
+        <li>focusing node</li>
+        <li> editing node</li>
+      </ol>
+    </div>
+    <h2> Epilogue</h2>
+    <div class="content">
+      We hope that our program can make the user visualizing math better, hence learn math easier as well as have a better reputaion on math.
+      <p>
+        I have a special thank to <em>francoisschwarzentruber</em> and his project <a href="github.com/francoisschwarzentruber/prooffold"> prooffold</a>  as well as <em>Milan Cvitkovic</em> <a href="https://milan.cvitkovic.net/writing/pde/">article</a> for  heavily inspired me to make this project. Without them, this project might not has existed
+      </p>
+      <p>
+        Check out the <a href="./playground.html">playground</a> right away and start create your own proof. Or visit this <a href="./playground.html?data=%25created+on+4%2F30%2F2024%2C+11%3A28%3A57+PM%3A%0D%0A%0D%0A%0D%0A%25%25+definition+of+prime%2C+273%2C+16%2C+88%2C+279%2C+0%2C+0%0D%0A%5Clabel%7Bof+prime%7D%0D%0Aa+number+%24p%24+is+a+prime+if+and+only+if+it+is+greater+than+1+and+have+exactly+two+positive+divisor%2C+which+is+1+and+itself%0D%0A%25%25+theorem%2C+136%2C+890%2C+87%2C+172%2C+0%2C+0%0D%0Aevery+number+%24N+%3E+1%24+can+be+factored+into+products+of+primes%0D%0A%25%25+%2C+54%2C+319%2C+46%2C+480%2C+409%2C+480%0D%0Aif+there+are+finitely+many+prime+then+there+will%0D%0Abe+a+number+%24N+%3E+1%24+that+divide+no+primes%0D%0A%5Cbegin%7Bproof%7D%0D%0A%25%25+assume%2C+31%2C+301%2C+84%2C+147%2C+0%2C+0%0D%0Athe+set+of+all+primes+%24%5Cmathcal+P%24+is+finite%0D%0A%25%25+%2C+51%2C+21%2C+125%2C+190%2C+0%2C+0%2C+%2313%0D%0Awe+can+choose+the+number%0D%0A%24%24N+%3D+%5Cprod_%7Bp+%5Cin+%5Cmathcal+P%7D+p+%2B+1%24%24%0D%0A%25%25+%2C+240%2C+241%2C+50%2C+213%2C+0%2C+0%2C+%2315%0D%0A%24N+%5Cequiv+1+%5Cmod+p+%24+for+all+%24p+%5Cin+%5Cmathcal+P%24%0D%0A%25%25+QED%2C+280%2C+72%2C+50%2C+65%2C+0%2C+0%2C+of+prime%2C+%2318%0D%0A%0D%0A%5Cend%7Bproof%7D%0D%0A%25%25+contradiction%2C+375%2C+894%2C+50%2C+134%2C+0%2C+0%2C+%239%2C+%237%0D%0A&name=there%20are%20infinite%20primes">Example</a> in readonly mode to checkout functionality of the project.
+        <figure>
+          <img src="./img/screenshot.png">
+          <figcaption>The screenshot of the example</figcaption>
+        </figure>
+      </p>
+    </div>
+    <footer>
+      <p>Contact info: <em>20020027@vnu.edu.vn</em> (Nguyen Dac Quan) </p>
+    </footer>
+  </div>
+</body>
+</html>

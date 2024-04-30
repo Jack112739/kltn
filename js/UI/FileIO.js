@@ -1,12 +1,6 @@
 "use strict";
 
-import Fragment from './../editor/Fragment.js';
-import NodeUI from './NodeUI.js';
-import GraphHistory from './HistoryUI.js';
-import EdgeUI from './EdgeUI.js';
-import GraphUI from './GraphUI.js';
-
-export default class FileIO {
+class FileIO {
     /** 
      * @param {NodeUI} node @returns {String} 
     * @param {{ret: string[], map: Map<NodeUI, string>}} context
@@ -14,10 +8,11 @@ export default class FileIO {
     static parse_graph_recursive(node, context) {
         let topo = new Map();
         let deg = new Map();
-        let queue = [], i = 0;
+        let queue = [], i = 0, exclude_pseudo = 0;
         for(const child of node.children) if(!child.is_pseudo) deg.set(child, 0);
         for(const child of node.children) {
             if(child.is_pseudo) continue;
+            exclude_pseudo++;
             let adj = new Set();
             if(child.type === 'given') queue.push(child);
             for(const [_, edge]of child.math.to) {
@@ -56,7 +51,7 @@ export default class FileIO {
             }
             i++;
         }
-        if(queue.length !== node.children.size) {
+        if(queue.length !== exclude_pseudo) {
             return `Error at node ${
                 !node.parent ? `root (${window.MathGraph.workspace})`:
                 !node.parent.id ? `with content ${node.parent.raw_text}`:
@@ -79,6 +74,7 @@ export default class FileIO {
         let cur = null, err_msg = null, now = null;
         let implicit_id = new Map();
         let all_edge = [], all_truncate = [];
+        let labels = new Map();
         GraphHistory.active = true;
         window.MathGraph.is_parsing = true;
         cur = new NodeUI(null);
@@ -101,6 +97,9 @@ export default class FileIO {
                     err_msg = `error at line ${i+1}: ${test}`;
                     break parse;
                 }
+                else {
+                    labels.set(now.id, now);
+                }
                 try {
                     now.html_div.style.top = parse_int_px(headers[1], 1);
                     now.html_div.style.left = parse_int_px(headers[2], 2);
@@ -114,14 +113,18 @@ export default class FileIO {
                 for(let j = implicit_start; j < headers.length; j++) {
                     if(headers[j] === '') continue;
                     if(headers[j].startsWith('#')) test = FileIO.link(now, headers, j, implicit_id);
-                    else test = now.reference(headers[j]);
+                    else if(!labels.get(headers[j])) {
+                        test = `node named ${headers[j]} does not exist `;
+                    }
+                    else test = now.reference(labels.get(headers[j]));
                     
-                    if(test instanceof String) {
+                    if(typeof test === 'string') {
                         err_msg = `error at line ${i+1}: ${test}`;
                         break parse;
                     }
                     else all_edge.push(test);
                 }
+                if(lines[i+1].trim() === `\\label{${now.id}}`) i += 1;
             }
             else if(line === '\\begin{proof}') {
                 if(!now) {
@@ -159,11 +162,13 @@ export default class FileIO {
         if(err_msg) return new Error(err_msg);
         FileIO.compile(cur);
         FileIO.render(cur, all_edge, all_truncate);
-        GraphUI.finish_initialize(cur, remove_ext(file_name));
+        GraphUI.finish_initialize(cur, file_name);
+        cur.renderer.textContent = file_name;
         GraphHistory.active = false;
-        return cur;
+        return {root: cur, labels: labels};
     }
     static compile(node) {
+        node.raw_text = node.raw_text.trim();
         for(const child of node.children) FileIO.compile(child);
         let data = (new Fragment(node.raw_text, 'text')).output('html');
         for(const child of data) node.renderer.appendChild(child);
@@ -200,7 +205,4 @@ export default class FileIO {
 function parse_int_px(str, i) {
     if(isNaN(str)) throw i;
     return str.trim() + "px";
-}
-function remove_ext(name) {
-    return name.split('.').slice(0, -1).join('');
 }

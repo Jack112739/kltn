@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <script src="../js/UI/GraphUI.js"></script>
   <script>
     MathJax = {
       tex: {
@@ -11,6 +12,9 @@
       options: {enableMenu: false},
       loader: { 
         load: ['input/tex', 'output/chtml', '[tex]/ams', '[tex]/mathtools','[tex]/cases','[tex]/physics'] 
+      },
+      startup: {
+        pageReady: GraphUI.initialize
       }
     }
     window.originalAddEventListener = window.addEventListener;
@@ -47,7 +51,15 @@
       display: none;
     }
   </style>
-  <script type="module" src="../js/UI/GraphUI.js"></script>
+  <script src="../js/UI/EdgeUI.js"></script>
+  <script src="../js/UI/FileIO.js"></script>
+  <script src="../js/UI/HistoryUI.js"></script>
+  <script src="../js/UI/NodeUI.js"></script>
+  <script src="../js/editor/EditorUI.js"></script>
+  <script src="../js/editor/Fragment.js"></script>
+  <script src="../js/editor/Menu.js"></script>
+  <script src="../js/editor/Visual.js"></script>
+  <script src="../dependency/mjx_support.js"></script>
 </head>
 <body>
   <ul id="rightclick" class="menu" style="display: none;">

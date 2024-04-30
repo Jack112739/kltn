@@ -1,14 +1,11 @@
 "use strict";
 
-import GraphUI from './GraphUI.js';
-import EdgeUI from './EdgeUI.js';
-import NodeUI from './NodeUI.js';
-import {link_all_references} from '../editor/EditorUI.js';
+
 
 
 const GRAPH_HISTORY_MAX = 65536;
 
-export default class GraphHistory {
+class GraphHistory {
     static stack = [];
     static position = 0;
     static active = false;

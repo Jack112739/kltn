@@ -1,14 +1,10 @@
 "use strict";
 
-import Menu from './../editor/Menu.js';
-import editor from '../editor/EditorUI.js';
-import GraphUI from './GraphUI.js';
-import EdgeUI from './EdgeUI.js';
-import GraphHistory from './HistoryUI.js';
+
 /**
  * Represent the element of the proof, as a directed graph
  */
-export default class NodeUI {
+class NodeUI {
 
     // @type{string}
     id;
@@ -153,6 +149,7 @@ export default class NodeUI {
     }
     /**@param {MouseEvent} e0  */
     start_scroll(e0) {
+        if(this.get_cursor(e0) === 'resize') return this.start_reshape(e0);
         let [sx0, sy0] = [this.child_div.scrollLeft, this.child_div.scrollTop];
         let [w0, h0] = [sx0 + this.child_div.offsetLeft, sy0 + this.child_div.offsetHeight];
         let move = (e) => {
@@ -180,7 +177,8 @@ export default class NodeUI {
         dot.style.top = dot_y + "px";
     }
     remove() {
-        if(this.is_pseudo) GraphUI.signal('can not delete the pseudo node');
+        if(this.is_pseudo) return GraphUI.signal('can not delete the pseudo node');
+        if(window.MathGraph.readonly) return GraphUI.signal('can not delete node in readonly mode');
         let old = GraphHistory.active;
         let to = this.math.to, external = this.external_ref;
         GraphHistory.register('remove', {node: this, reserve_to: to, reserve_external: external});
@@ -213,8 +211,8 @@ export default class NodeUI {
             return `label ${truncate} has already exist`;
         }
         GraphHistory.register('rename', {node: this, name: name, old_name: this.header.textContent});
-        if(this.id) window.MathGraph.all_label.delete(this.id); 
-        if(truncate) window.MathGraph.all_label.set(truncate, this);
+        if(!window.MathGraph.is_parsing && this.id) window.MathGraph.all_label.delete(this.id); 
+        if(!window.MathGraph.is_parsing && truncate) window.MathGraph.all_label.set(truncate, this);
         this.header.textContent = name;
         this.html_div.classList.remove(this.type);
         this.html_div.classList.add(new_type);
@@ -239,12 +237,11 @@ export default class NodeUI {
         }
         let to = to_edge.to;
         let unique = null;
-        for(const edge of this.external_ref) {
+        for(const edge of this.external_ref) if(!edge.is_hidden) {
             if(unique == null) unique = edge.alias;
-            else if(unique !== edge.alias) {
-                return 'can not truncate node that reference from two diffrent nodes';
-            }
+            else if(unique !== edge.alias) { unique = null; break;}
         }
+        if(!unique) return 'can only truncate node that reference from exactly one other node';
         GraphHistory.register('truncate', {node: this});
         let old = GraphHistory.active;
         GraphHistory.active = true;
@@ -346,7 +343,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
 });
 
 const EDIT = 0, HIGHTLIGHT = 1, MIN = 2, MAX = 3, DETAIL = 4, REF = 5, RENAME = 6, REMOVE = 7, TRUNCATE = 8;
-export const hints = {
+const hints = {
     'given': ['assume', 'given', 'in case', 'otherwise', 'assumption'],
     'result': ['QED', 'result', 'contradiction', 'conclusion'],
     'claim': ['claim', 'substitution', 'equation', 'inequality'],

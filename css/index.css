@@ -13,8 +13,8 @@ div.wrapper {
     background-color: white;
     margin: 0px auto;
 }
-.wrapper > p {
-    margin-left: 25px;
+ .content {
+    padding: 10px;
 }
 #title {
     background-color: #1E1E2E;;
@@ -27,4 +27,21 @@ footer {
     display: flex;
     align-items: flex-end;
     flex-direction: column;
+}
+.wrapper >:not(#title) {
+    margin: 10px;
+}
+figure > img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+figure > figcaption {
+    text-align: center;
+    font-style: italic;
+}
+.center-fit {
+    max-width: 100%;
+    max-height: 100vh;
+    margin: auto;
 }
