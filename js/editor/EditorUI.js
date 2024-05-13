@@ -253,7 +253,10 @@ class Editor {
             editor.popup_menu(mjx_support);
             Menu.suggest.handle_key_event(new KeyboardEvent('keydown', {key: '\\'}));
             break;
-        default:
+        case 'r':
+            if(!e.altKey) break;
+            if(this.on_visual_mode) this.inverse_render();
+            this.render();
             break;
         }
     }
@@ -324,9 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.latex.addEventListener('keydown', Visual.key_handler);
     editor.latex.addEventListener('beforeinput', Visual.handle_input);
     editor.raw.addEventListener('keydown',e => editor.auto_complete(e));
-    editor.raw.addEventListener('keydown', e => {
-        if(e.key == 'R' && e.ctrlKey) editor.render();
-    })
 
     editor.div.querySelector('.settings').onmousedown = drag_editor;
     editor.visual_mode(true);
