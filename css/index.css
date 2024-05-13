@@ -5,8 +5,8 @@
 }
 body {
     background-image: url("https://png.pngtree.com/background/20210712/original/pngtree-cute-hand-drawn-style-math-education-plaid-background-picture-image_1176716.jpg");
-    background-size: cover;
     margin: 0;
+    background-size: 100% auto;
 }
 div.wrapper {
     max-width: 800px;
