@@ -140,6 +140,7 @@ class Editor {
     }
     /**@param {'b' | 'i' | 'ol' | 'ul' | 'a' | 'rm'} o  */
     option(o) {
+        if(window.MathGraph.readonly) return;
         if(editor.on_visual_mode) {
             let range = new Range(), sel = window.getSelection().getRangeAt(0);
             range.setStart(editor.latex, 0);
@@ -323,6 +324,9 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.latex.addEventListener('keydown', Visual.key_handler);
     editor.latex.addEventListener('beforeinput', Visual.handle_input);
     editor.raw.addEventListener('keydown',e => editor.auto_complete(e));
+    editor.raw.addEventListener('keydown', e => {
+        if(e.key == 'R' && e.ctrlKey) editor.render();
+    })
 
     editor.div.querySelector('.settings').onmousedown = drag_editor;
     editor.visual_mode(true);
