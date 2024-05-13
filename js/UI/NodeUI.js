@@ -184,6 +184,8 @@ class NodeUI {
         GraphHistory.register('remove', {node: this, reserve_to: to, reserve_external: external});
         GraphHistory.active = true;
         this.modify_name_recursive('delete')
+        for(let [_, line ] of this.display.from) line.release_truncate();
+        for(let [_, line] of this.display.to) line.release_truncate(); 
         this.math.to = new Map();
         this.external_ref = new Set();
         for(let [_, line] of to) line.remove();
