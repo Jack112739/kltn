@@ -27,9 +27,9 @@ class FileIO {
         while(i < queue.length) {
             let cur = queue[i];
             let header = `%% ${(cur.is_truncated ? '#': '') + cur.header.textContent}`
-                        + `, ${cur.html_div.style.top.slice(-2)}, ${cur.html_div.style.left.slice(-2)}`
-                        + `, ${cur.renderer.style.height.slice(-2)}, ${cur.renderer.style.width.slice(-2)}`
-                        + `, ${cur.child_div.style.height.slice(-2)}, ${cur.child_div.style.width.slice(-2)}`;
+                        + `, ${cur.html_div.style.top.slice(0, -2)}, ${cur.html_div.style.left.slice(0, -2)}`
+                        + `, ${cur.renderer.style.height.slice(0,-2)}, ${cur.renderer.style.width.slice(0, -2)}`
+                        + `, ${cur.child_div.style.height.slice(0, -2)}, ${cur.child_div.style.width.slice(0, -2)}`;
             for(const [ref, _] of cur.math.from) {
                 let num = context.map.get(ref);
                 if(!num) { queue = []; break bfs;}
