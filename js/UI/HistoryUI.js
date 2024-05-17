@@ -145,8 +145,8 @@ class GraphHistory {
         let div_wh = node.is_maximize ? node.child_div : node.renderer;
         div_xy.style.top = div_xy.offsetTop + to.top - from.top + "px";
         div_xy.style.left = div_xy.offsetLeft + to.left - from.left + "px";
-        div_wh.style.width = div_wh.offsetWidth + to.width - from.width - 15  + "px";
-        div_wh.style.height = div_wh.offsetHeight + to.height - from.height - 15 + "px";
+        div_wh.style.width = div_wh.offsetWidth + to.width - from.width - 12  + "px";
+        div_wh.style.height = div_wh.offsetHeight + to.height - from.height - 12 + "px";
         node.reposition();
     }
     /**@param {NodeUI} node, @param {number} dx @param {number} dy  */
