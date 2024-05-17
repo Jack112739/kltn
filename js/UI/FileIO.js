@@ -27,9 +27,9 @@ class FileIO {
         while(i < queue.length) {
             let cur = queue[i];
             let header = `%% ${(cur.is_truncated ? '#': '') + cur.header.textContent}`
-                        + `, ${cur.html_div.style.top.slice(0, -2)}, ${cur.html_div.style.left.slice(0, -2)}`
-                        + `, ${cur.renderer.style.height.slice(0,-2)}, ${cur.renderer.style.width.slice(0, -2)}`
-                        + `, ${cur.child_div.style.height.slice(0, -2)}, ${cur.child_div.style.width.slice(0, -2)}`;
+                        + remove_px(cur.html_div, "top", "left")
+                        + remove_px(cur.renderer, "height", "width")
+                        + remove_px(cur.child_div, "height", "width");
             for(const [ref, _] of cur.math.from) {
                 let num = context.map.get(ref);
                 if(!num) { queue = []; break bfs;}
@@ -188,10 +188,11 @@ class FileIO {
         let old = window.MathGraph.current;
         GraphUI.switch_body(node);
         let maximize_recursive = (node1) => {
+            node1.renderer.style.minWidth = Math.max(node1.name_rect.width, 45) + "px";
             node1.toggle_detail(!node1.parent || node1.children.size !== 0, true);
             for(const child of node1.children) maximize_recursive(child);
         }
-        maximize_recursive(node);
+        maximize_recursive(node, true);
         for(const edge of edges) {
             edge.init_repr(window.MathGraph.edge_opt);
             edge.reposition();
@@ -205,4 +206,7 @@ class FileIO {
 function parse_int_px(str, i) {
     if(isNaN(str)) throw i;
     return str.trim() + "px";
+}
+function remove_px(div, dim1, dim2) {
+    return `, ${div.style[dim1].slice(0, -2)}, ${div.style[dim2].slice(0, -2)}`;
 }

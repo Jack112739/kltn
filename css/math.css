@@ -61,7 +61,7 @@
     display: none;
 }
 .zoom {
-    background-color: transparent;
+    background-color: #1E1E2E;
     border: none;
     z-index: 0;
 }
