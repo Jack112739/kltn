@@ -74,6 +74,7 @@ class Editor {
         this.node.renderer.innerHTML = this.latex.innerHTML;
         this.node.renderer.style.height = "";
         this.node.renderer.style.width = "";
+        this.node.reposition();
         GraphUI.signal(this.node.rename(this.name.value));
         GraphHistory.active = old;
     }
