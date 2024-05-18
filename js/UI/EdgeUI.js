@@ -62,7 +62,9 @@ class EdgeUI {
     reposition() {
         if(!this.repr || this.is_hidden) return;
         let {choose, socket} = this.get_offset();
-        if(choose !== this.offset_to) this.change_to_fit(choose, socket);
+        if(choose !== this.offset_to || this.repr.svg.parentNode !== this.alias.parent.child_div) {
+            this.change_to_fit(choose, socket);
+        }
         else if(socket !== this.repr.endSocket) this.repr.setOptions({endSocket: socket});
         this.repr.position();
         this.adjust_svg();
