@@ -120,12 +120,12 @@ class NodeUI {
         if(silent) this.html_div.classList.toggle('zoom', opt);
         else {
             if(opt) this.html_div.classList.add('zoom');
-            //this.html_div.addEventListener('animationend', () => {
+            this.html_div.addEventListener('animationend', () => {
                 this.html_div.style.animation = "";
                 if(!opt) this.html_div.classList.remove('zoom');
                 this.reposition(); 
-            //}, {once: true});
-           // this.html_div.style.animation = opt ? "zoom-out 0.2s": "zoom-in 0.2s";
+            }, {once: true});
+           this.html_div.style.animation = opt ? "zoom-out 0.2s": "zoom-in 0.2s";
             GraphHistory.register('zoom', {node: this});
         }
     }
