@@ -95,8 +95,13 @@
         <figcaption> Example: connecting node with edges</figcaption>
       </figure>
       <p>
-        Edges can be drag close to the cursor when you click on them (a help cursor will appear to indicate that your cursor lie on an edge) 
+        Edges can be drag close to the cursor when you start dragging on them (a help cursor will appear to indicate that your cursor lie on an edge) 
       </p>
+      <p>If for some reasons the edge connecting A to B is not fully displayed (for example B's parent has been zoomed in, B has been drag too far away from it's parent boundary) The edge connecting A and B will be hidden and a new edge that connect A and the nearest fully display parent of B will be made. We mark these type of edges as <i>indirected</i>, there might be many indirected edge share the same representation </p>
+      <figure>
+        <img src="./img/indirect.png">
+        <figcaption> Example:indirected edges when some node is zommed-out</figcaption>
+      </figure>
       <h3 id="zoom"> Zooming out a node</h3>
       <p>
         The actual proof may consist many claim and lemma, and a they might consist many other claims, to structurize this, we allow you to <i>zoom in-and-out</i> the node so that it can be structure more clearly. The limitation are only <b>claim</b> node and <b>lemma</b> node are zoomable
