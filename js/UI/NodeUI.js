@@ -12,9 +12,9 @@ class NodeUI {
     raw_text;
     /**@type {'claim' | 'define' | 'given'| 'result' | 'lemma'} */
     type
-    /**@type {{from: Map<NodeUI, EdgeUI>, to: Map<NodeUI, EdgeUI> }}*/
+    /**@type {{from: Map<NodeUI, LeaderLine>, to: Map<NodeUI, LeaderLine> }}*/
     display;
-    /**@type {{from: Map<NodeUI, EdgeUI>, to: Map<NodeUI, EdgeUI> }}*/ 
+    /**@type {{from: Map<NodeUI, EdgeUI>?, to: Map<NodeUI, EdgeUI> }}*/ 
     math;
     /** @type{Set<NodeUI>} the detail of the proof presented in this node if needed */
     children;
@@ -34,12 +34,12 @@ class NodeUI {
         this.highlighted = false;
         this.children = new Set();
         this.external_ref = new Set();
-        this.display    = { from: new Map(), to: new Map() };
+        this.display    = {from: new Map(), to: new Map() };
+        this.math       = {from: pseudo ? null: new Map(), to: new Map()};
         // pseudo node's data is the clone data of the original
         this.ref        = pseudo ? pseudo :null;
         this.raw_text   = pseudo ? pseudo.raw_text: "";
         this.type       = pseudo ? pseudo.type    : 'claim';
-        this.math       = pseudo ? null        : {from: new Map(), to: new Map()};
         this.html_div   = pseudo ? pseudo.html_div: document.createElement('div');
         this.html_div.assoc_node = this;
         if(pseudo) { pseudo.ref = this; return; }
@@ -120,12 +120,12 @@ class NodeUI {
         if(silent) this.html_div.classList.toggle('zoom', opt);
         else {
             if(opt) this.html_div.classList.add('zoom');
-            this.html_div.addEventListener('animationend', () => {
+            //this.html_div.addEventListener('animationend', () => {
                 this.html_div.style.animation = "";
                 if(!opt) this.html_div.classList.remove('zoom');
                 this.reposition(); 
-            }, {once: true});
-            this.html_div.style.animation = opt ? "zoom-out 0.2s": "zoom-in 0.2s";
+            //}, {once: true});
+           // this.html_div.style.animation = opt ? "zoom-out 0.2s": "zoom-in 0.2s";
             GraphHistory.register('zoom', {node: this});
         }
     }
@@ -143,8 +143,7 @@ class NodeUI {
         if(this.id) window.MathGraph.all_label[op](this.id, this);
     }
     reposition() {
-        for(const [_, line] of this.display.from) line.reposition();
-        for(const [_, line] of this.display.to) line.reposition();
+        for(const [_, line] of this.math.to) line.reposition();
         for(const line of this.external_ref) line.reposition();
     }
     /**@param {MouseEvent} e0  */
@@ -184,8 +183,6 @@ class NodeUI {
         GraphHistory.register('remove', {node: this, reserve_to: to, reserve_external: external});
         GraphHistory.active = true;
         this.modify_name_recursive('delete')
-        for(let [_, line ] of this.display.from) line.release_truncate();
-        for(let [_, line] of this.display.to) line.release_truncate(); 
         this.math.to = new Map();
         this.external_ref = new Set();
         for(let [_, line] of to) line.remove();
@@ -231,32 +228,43 @@ class NodeUI {
         edge.show('draw');
         return edge;
     }
-    truncate() {
+    /**@returns {string | {to:NodeUI, from: NodeUI}} */
+    check_truncate() {
         if(this.is_pseudo) return 'can not truncate pseudo nodes';
         let [_, to_edge] = this.display.to[Symbol.iterator]().next().value;
-        if(this.display.to.size !== 1 || to_edge.repr.count > 2) {
-            return 'can only truncate nodes that have exactly 1 outcomming edges (including hidden ones)';
+        if(this.display.to.size !== 1 || to_edge.count > 2) {
+            return 'can only truncate nodes that have exactly 1 outcomming edges (including indirect ones)';
         }
-        let to = to_edge.to;
+        let to = to_edge.end.assoc_node;
         let unique = null;
         for(const edge of this.external_ref) if(!edge.is_hidden) {
             if(unique == null) unique = edge.alias;
             else if(unique !== edge.alias) { unique = null; break;}
         }
         if(!unique) return 'can only truncate node that reference from exactly one other node';
+        let overlap_index = unique.display.to.get(to)?.count;
+        if(overlap_index !== undefined && overlap_index % 2 == 1) {
+            return 'fail to truncate this node because the resulting edge will be overllaped permanently';
+        }
+        return {to: to, from: unique};
+    }
+    truncate() {
+        let target = this.check_truncate();
+        if(typeof target === 'string') return target;
         GraphHistory.register('truncate', {node: this});
         let old = GraphHistory.active;
         GraphHistory.active = true;
-        unique.display.from.delete(this);
-        to_edge.hide('none');
+        this.display.to.get(target.to).hide('none');
         for(const edge of this.external_ref) {
-            unique.display.to.delete(edge.shadow);
             edge.hide('none');
         }
         this.html_div.style.display = 'none';
-        let edge = new EdgeUI(unique, to, {...window.MathGraph.edge_opt ,truncate: this});
+        let edge = new EdgeUI(target.from, target.to);
+        edge.truncate = this;
+        this.ref = edge;
         edge.repr.setOptions({dash: true});
-        edge.reposition(); edge.show('draw');
+        edge.reposition();
+        edge.show('draw');
         GraphHistory.active = old;
         return null;
     }
@@ -296,7 +304,7 @@ class NodeUI {
         return this.html_div.classList.contains('highlight');
     }
     get is_pseudo() {
-        return this.math === null;
+        return this.math.from === null;
     }
     get is_truncated() {
         return this.ref instanceof EdgeUI;

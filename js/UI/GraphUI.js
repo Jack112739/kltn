@@ -58,7 +58,7 @@ class GraphUI {
         node.html_div.addEventListener('animationend', (e) => {
             for(const render of window.MathGraph.not_rendered) if(node.is_ancestor(render)) {
                 render.reposition();
-                for(const [_, edge] of render.display.to) edge.show('draw');
+                for(const [_, edge] of render.math.to) if(!edge.to.is_truncated) edge.show('draw');
                 window.MathGraph.not_rendered.delete(render);
             }
             node.html_div.style.animation = "";

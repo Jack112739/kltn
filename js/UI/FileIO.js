@@ -15,7 +15,7 @@ class FileIO {
             exclude_pseudo++;
             let adj = new Set();
             if(child.type === 'given') queue.push(child);
-            for(const [_, edge]of child.math.to) {
+            for(const [_, edge]of child.math.to) if(!edge.truncate) {
                 let relative_to = edge.hierarchy.at(-1);
                 if(!adj.has(relative_to)) deg.set(relative_to, deg.get(relative_to) + 1);
                 adj.add(relative_to);
@@ -194,7 +194,7 @@ class FileIO {
         }
         maximize_recursive(node, true);
         for(const edge of edges) {
-            edge.init_repr(window.MathGraph.edge_opt);
+            edge.change_to_fit(edge.offset_to, 'auto');
             edge.reposition();
             edge.show('draw');
         }

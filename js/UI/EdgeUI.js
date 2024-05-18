@@ -13,33 +13,27 @@ class EdgeUI {
     offset_to;
     /**@type {number} */
     offset_from;
-    /**@type {NodeUI?} appear when we want to shorten the proof this is a singly linked list*/
+    /**@type {NodeUI?} appear when we want to shorten the proof */
     truncate;
-    /**@type {SVGElement} */
-    svg;
 
     /**@param {NodeUI} from @param {NodeUI} to */
-    constructor(from, to, option) {
+    constructor(from, to) {
         this.from = from.is_pseudo ? from.ref : from;
         this.alias = from;
         this.offset_to = 0;
         this.offset_from = 0;
-        if(!option?.truncate) {
-            this.from.math.to.set(to, this);
-            to.math.from.set(this.from, this);
-        }
-        else option.truncate.ref = this;
-        from.display.to.set(to, this);
-        to.display.from.set(from, this);
+        from.math.to.set(to, this);
+        this.from.math.to.set(to, this);
+        to.math.from.set(this.from, this);
         this.hierarchy = [];
         for(let cur = to; cur !== this.from.parent; cur = cur.parent) {
             if(cur.parent === from.parent) this.offset_from = this.hierarchy.length;
             this.hierarchy.push(cur);
             cur.external_ref.add(this);
         }
-        if(!window.MathGraph.is_parsing)  this.init_repr(option);
         //TODO : create some explaination for this (automatically ?)
-        this.truncate = option?.truncate ?? null;
+        this.truncate = null;
+        if(!window.MathGraph.is_parsing)  this.change_to_fit(this.offset_to, 'auto');
     }
     /**@param {NodeUI} to */
     adjust_svg() {
@@ -47,7 +41,7 @@ class EdgeUI {
         let actual = this.stored.getBoundingClientRect();
         let dx = actual.x - this.stored.scrollLeft - screen.x;
         let dy = actual.y - this.stored.scrollTop - screen.y;
-        this.svg.setAttribute('transform', `translate(${-dx}, ${-dy})`);
+        this.repr.svg.setAttribute('transform', `translate(${-dx}, ${-dy})`);
     }
     // if the start plug is not rendered correctly
     refresh() {
@@ -61,30 +55,21 @@ class EdgeUI {
         if(this.alias !== this.from.ref) {
             this.alias.display.to.delete(this.shadow);
             this.shadow.display.from.delete(this.alias);
-            this.from.ref.display.to.set(this.shadow, this);
-            this.shadow.display.from.set(this.from.ref, this);
+            this.from.ref.display.to.set(this.shadow, this.repr);
+            this.shadow.display.from.set(this.from.ref, this.repr);
             this.alias = this.from.ref;
             this.repr.start = this.from.ref.html_div;
         }
-        current.child_div.appendChild(this.svg);
-        this.offset_from = -1;
+        this.from.ref.math.to.set(this.to, this);
+        this.offset_from = 0;
+        while(this.hierarchy[this.offset_from].parent !== current) this.offset_from++;
+        current.child_div.appendChild(this.repr.svg);
         this.offset_to = 0;
         this.repr.setOptions({end: this.to.html_div, middleLabel: ''});
         this.repr.count = 1;
     }
-    init_repr(option) {
-        this.repr = new LeaderLine(this.alias.html_div, this.to.html_div, option);
-        this.repr.count = 1;
-        this.svg = document.body.lastChild;
-        this.alias.parent.child_div.appendChild(this.svg);
-        this.init_mouse_event();
-    }
     reposition() {
         if(!this.repr || this.is_hidden) return;
-        if(this.offset_from === -1) {
-            this.offset_from = this.offset_to;
-            while(this.hierarchy[this.offset_from].parent !== this.alias.parent) this.offset_from++;
-        }
         let {choose, socket} = this.get_offset();
         if(choose !== this.offset_to) this.change_to_fit(choose, socket);
         else if(socket !== this.repr.endSocket) this.repr.setOptions({endSocket: socket});
@@ -92,7 +77,7 @@ class EdgeUI {
         this.adjust_svg();
     }
     init_mouse_event() {
-        let path = this.svg.querySelector('path');
+        let path = this.repr.svg.querySelector('path');
         path.onclick = (e) => {
             e.stopPropagation();
             if(e.ctrlKey) GraphUI.signal(this.release_truncate()); 
@@ -134,23 +119,27 @@ class EdgeUI {
             if(!this.repr) {
                 this.repr = new LeaderLine(this.alias.html_div, next.html_div, window.MathGraph.edge_opt);
                 this.repr.setOptions({dash: this.truncate !== null});
-                this.svg = document.body.lastChild;
+                this.repr.count = this.to === this.shadow ? 0 : 1;
+                this.repr.svg = document.body.lastChild;
+                this.alias.parent.child_div.appendChild(this.repr.svg);
                 this.init_mouse_event();
-                this.alias.parent.child_div.appendChild(this.svg);
             }
-            next.display.from.set(this.alias, this);
-            this.alias.display.to.set(next, this);
+            next.display.from.set(this.alias, this.repr);
+            this.alias.display.to.set(next, this.repr);
             this.repr.setOptions({end: next.html_div, endSocket: socket});
-            edge = this;
+            edge = this.repr;
         }
-        if(this !== edge) { document.body.appendChild(this.svg); this.repr.remove(); }
-        this.repr = edge.repr;
-        this.svg = edge.svg;
-        let count = (edge.repr.count = (edge.repr.count ?? 0) + (this.to === next ? 1 : 2));
-        let label = count >= 2 ? LeaderLine.captionLabel('+' + (count >> 1), label_opt) : '';
-        edge.repr.setOptions({middleLabel: label});
+        if(this.repr !== edge && this.repr) {
+            document.body.appendChild(this.repr.svg); 
+            this.repr.remove(); 
+        }
+        this.repr = edge;
+        let count = (edge.count = (edge.count ?? 0) + (this.to === next ? 1 : 2));
+        let label = count >= 2 ? LeaderLine.captionLabel((count >> 1) + ' indirect', label_opt) : '';
+        edge.setOptions({middleLabel: label});
     }
     remove_from_shadow() {
+        if(!this.repr) return;
         if(this.repr.count <= 2) {
             this.repr.count = 0;
             this.alias.display.to.delete(this.shadow);
@@ -158,13 +147,11 @@ class EdgeUI {
         }
         else {
             let count = this.repr.count -= 2;
-            let label = count < 2 ? '':LeaderLine.captionLabel('+' + (count >> 1), label_opt);
+            let label = count < 2 ? '':LeaderLine.captionLabel((count >> 1) + ' indirect', label_opt);
             if(this.repr.count < 2) {
-                let is_dash = this.alias.display.to.get(this.shadow).truncate !== null
-                this.repr.setOptions({dash: is_dash, middleLabel: ''});
+                this.repr.setOptions({dash: this.truncate !== null, middleLabel: ''});
             }
             else this.repr.setOptions({middleLabel: label});
-            this.svg = null;
             this.repr = null;
         }
     }
@@ -205,9 +192,10 @@ class EdgeUI {
         }
         if(actual.type === 'result') return 'can not connect from the conclusion node';
         if(to.type === 'given') return 'can not connect to an input node'
-        if(actual.math.to.has(to) || to.math.from.has(actual)) return 'the edge is already connected';
+        let index = from.display.to.get(to)?.count;
+        if(index && index % 2 == 1) return 'the edge is already connected';
         if(!window.MathGraph.is_parsing && !current.is_ancestor(from)) from = this.create_pseudo(from);
-        let edge = new EdgeUI(from, to, window.MathGraph.edge_opt);
+        let edge = new EdgeUI(from, to);
         edge.reposition();
         GraphHistory.register('make_edge', {from: actual, to: to, ref: actual.ref !== null});
         return edge;
@@ -221,23 +209,22 @@ class EdgeUI {
         this.repr.hide(effect);
     }
     release_truncate() {
-        if(!this.truncate) return;
+        if(!this.repr.dash) return '';
+        if(this.repr.count > 1) return 'can not de-truncate overllaped edge';
         if(!window.MathGraph.current.is_ancestor(this.truncate)) {
-            return `fail to remove the truncate, the truncated node ` +
+            return `fail to de-truncate, the truncated node ` +
                     `associated with this edge is not a child of the current focusing node`;
         }
         let old = GraphHistory.active;
         GraphHistory.register('release_truncate', {node: this.truncate});
         GraphHistory.active = true;
         this.truncate.ref = null;
-        let to_edge = this.truncate.display.to.get(this.to);
+        let to_edge = this.truncate.math.to.get(this.to);
         this.truncate.html_div.style.display = "";
-        this.to.display.from.set(this.truncate, to_edge);
         to_edge.show('draw');
         to_edge.reposition();
         for(const edge of this.truncate.external_ref) if(!edge.alias.is_truncated) {
-            edge.alias.display.to.set(edge.shadow, edge);
-            this.alias.parent.child_div.appendChild(edge.svg);
+            this.alias.parent.child_div.appendChild(edge.repr.svg);
             edge.show('draw');
             edge.reposition();
         }
@@ -251,7 +238,7 @@ class EdgeUI {
         GraphHistory.register('remove_edge', {from: this.from, to: this.to, ref: this.from.ref !== null});
         GraphHistory.active = true;
         this.remove_from_shadow();
-        if(this.svg) document.body.appendChild(this.svg);
+        if(this.repr?.svg) document.body.appendChild(this.repr.svg);
         this.repr?.remove();
         this.from.math.to.delete(this.to);
         this.to.math.from.delete(this.from);
@@ -269,7 +256,7 @@ class EdgeUI {
         return this.hierarchy[0];
     }
     get is_hidden() {
-        return this.svg.style.visibility === "hidden";
+        return this.repr.svg.style.visibility === "hidden";
     }
     /**@param {NodeUI} pseudo */
     static reclaim_edges(pseudo) {
@@ -279,11 +266,11 @@ class EdgeUI {
         }
         pseudo.html_div.assoc_node = pseudo.ref;
         pseudo.ref.parent.child_div.appendChild(pseudo.html_div);
-        for(let [node, edge] of pseudo.display.to) {
-            pseudo.ref.parent.child_div.appendChild(edge.svg);
+        for(let [node, edge] of pseudo.math.to) {
+            pseudo.ref.parent.child_div.appendChild(edge.repr.svg);
             node.display.from.delete(pseudo);
-            node.display.from.set(pseudo.ref, edge);
-            pseudo.ref.display.to.set(node, edge);
+            node.display.from.set(pseudo.ref, edge.repr);
+            pseudo.ref.display.to.set(node, edge.repr);
             edge.offset_from = edge.hierarchy.length - 1;
             edge.alias = pseudo.ref;
         }
@@ -314,7 +301,7 @@ document.addEventListener('DOMContentLoaded', e => {
     let menu = Menu.edge.items.childNodes;
     menu[HIGHTLIGHT_].onclick = e => {
         let target = Menu.edge.associate.repr, default_color = window.MathGraph.edge_opt.color;
-        if(target.color === default_color) target.setOptions({color: '#81ff93'});
+        if(target.color === default_color) target.setOptions({color: '#ff00ff'});
         else target.setOptions({color: default_color});
     }
     menu[TRUNCATE_].onclick = e => GraphUI.signal(Menu.edge.associate.release_truncate());
@@ -322,7 +309,7 @@ document.addEventListener('DOMContentLoaded', e => {
         let edge = Menu.edge.associate;
         if(window.MathGraph.readonly) return GraphUI.signal('can not delete edges in readonly mode');
         if(edge.repr.count > 2) return GraphUI.signal('can not remove this edge because this edge is' +
-                                        'shared among' + (edge.repr.count >> 1) + 'other edges');
+                                        'overlapped among' + (edge.repr.count >> 1) + 'other edges');
         Menu.edge.associate.remove()
     };
 

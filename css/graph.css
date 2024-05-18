@@ -63,7 +63,7 @@ body > .node.zoom > .tex_render {
 
 .leader-line {
     position: absolute;
-    z-index: 7;
+    z-index: 15;
 }
 .leader-line path {
     pointer-events: all;
