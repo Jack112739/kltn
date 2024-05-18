@@ -278,13 +278,13 @@ class EdgeUI {
     }
 }
 function label_of(count) {
-    return LeaderLine.captionLabel(count > 2 ? '+' + (count >> 1): '', {
+    return count >= 2 ? LeaderLine.captionLabel('+' + (count >> 1), {
         fontFamily: 'serif',
         fontSize: '16px',
         fontWeight: 'bold',
         color: '#2edb76',
         outlineColor: ''
-    });
+    }) : '';
 }
 document.addEventListener('DOMContentLoaded', e => {
     Menu.edge = new Menu(document.getElementById('edge'));
