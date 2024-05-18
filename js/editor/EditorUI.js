@@ -145,8 +145,8 @@ class Editor {
             let range = new Range(), sel = window.getSelection().getRangeAt(0);
             range.setStart(editor.latex, 0);
             range.setEnd(editor.latex, editor.latex.childNodes.length);
-            if(range.compareBoundaryPoints(Range.START_TO_START, sel) < 0) return;
-            if(range.compareBoundaryPoints(Range.END_TO_END, sel) > 0) return;
+            if(range.compareBoundaryPoints(Range.START_TO_START, sel) > 0) return;
+            if(range.compareBoundaryPoints(Range.END_TO_END, sel) < 0) return;
             Visual.wrap_selection();
         }
         let {str, start, end} = editor.get_selection();

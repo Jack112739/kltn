@@ -55,15 +55,15 @@ class GraphUI {
             else window.MathGraph.not_rendered.add(pseudo);
         }
         this.refresh_href(node);
-        node.html_div.addEventListener('animationend', (e) => {
+        //node.html_div.addEventListener('animationend', (e) => {
             for(const render of window.MathGraph.not_rendered) if(node.is_ancestor(render)) {
                 render.reposition();
                 for(const [_, edge] of render.math.to) if(!edge.to.is_truncated) edge.show('draw');
                 window.MathGraph.not_rendered.delete(render);
             }
             node.html_div.style.animation = "";
-        }, {once: true});
-        node.html_div.style.animation = "focus 0.3s linear";
+        //}, {once: true});
+        //node.html_div.style.animation = "focus 0.3s linear";
     }
     static switch_body(target) {
         let current = window.MathGraph.current;
@@ -135,6 +135,7 @@ class GraphUI {
     }
 }
 function read_file(e) {
+    if(window.MathGraph.readonly) return GraphUI.signal('can not upload file in readonly mode');
     let file = e.target.files[0];
     let reader = new FileReader();
     reader.onload = (e1) => {

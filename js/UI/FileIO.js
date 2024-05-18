@@ -30,7 +30,9 @@ class FileIO {
                         + remove_px(cur.html_div, "top", "left")
                         + remove_px(cur.renderer, "height", "width")
                         + remove_px(cur.child_div, "height", "width");
-            for(const [ref, _] of cur.math.from) {
+            for(const [ref, edge] of cur.math.from) {
+                if(edge.truncate) continue;
+                if(ref.id !== '') { header += ', ' + ref.id; continue; }
                 let num = context.map.get(ref);
                 if(!num) { queue = []; break bfs;}
                 header += ', ' + num;

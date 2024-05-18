@@ -125,9 +125,10 @@ class NodeUI {
                 if(!opt) this.html_div.classList.remove('zoom');
                 this.reposition(); 
             }, {once: true});
-           this.html_div.style.animation = opt ? "zoom-out 0.2s": "zoom-in 0.2s";
+            this.html_div.style.animation = opt ? "zoom-out 0.2s": "zoom-in 0.2s";
             GraphHistory.register('zoom', {node: this});
         }
+        if(opt) this.child_div.style.minWidth = Math.max(this.renderer.offsetWidth, 200) + "px";
     }
     /**@param {boolean} opt @param {boolean} manual  */
     toggle_highlight(opt, manual) {
@@ -231,7 +232,7 @@ class NodeUI {
     /**@returns {string | {to:NodeUI, from: NodeUI}} */
     check_truncate() {
         if(this.is_pseudo) return 'can not truncate pseudo nodes';
-        let [_, to_edge] = this.display.to[Symbol.iterator]().next().value;
+        let [_, to_edge] = this.display.to[Symbol.iterator]().next().value ?? [null, null];
         if(this.display.to.size !== 1 || to_edge.count > 2) {
             return 'can only truncate nodes that have exactly 1 outcomming edges (including indirect ones)';
         }

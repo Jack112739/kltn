@@ -62,6 +62,7 @@
 }
 .zoom {
     background-color: #1E1E2E;
+    font: unset;
     border: none;
     z-index: 0;
 }

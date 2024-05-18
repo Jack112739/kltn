@@ -52,21 +52,12 @@ class EdgeUI {
             EdgeUI.reclaim_edges(this.from.ref);
         }
         if(!this.from.ref) EdgeUI.create_pseudo(this.from);
-        if(this.alias !== this.from.ref) {
-            this.alias.display.to.delete(this.shadow);
-            this.shadow.display.from.delete(this.alias);
-            this.from.ref.display.to.set(this.shadow, this.repr);
-            this.shadow.display.from.set(this.from.ref, this.repr);
-            this.alias = this.from.ref;
-            this.repr.start = this.from.ref.html_div;
-        }
+        if(this.alias === this.from.ref) return; 
+        this.alias = this.from.ref;
         this.from.ref.math.to.set(this.to, this);
         this.offset_from = 0;
         while(this.hierarchy[this.offset_from].parent !== current) this.offset_from++;
-        current.child_div.appendChild(this.repr.svg);
-        this.offset_to = 0;
-        this.repr.setOptions({end: this.to.html_div, middleLabel: ''});
-        this.repr.count = 1;
+        this.reposition();
     }
     reposition() {
         if(!this.repr || this.is_hidden) return;
@@ -119,13 +110,13 @@ class EdgeUI {
             if(!this.repr) {
                 this.repr = new LeaderLine(this.alias.html_div, next.html_div, window.MathGraph.edge_opt);
                 this.repr.setOptions({dash: this.truncate !== null});
-                this.repr.count = this.to === this.shadow ? 0 : 1;
                 this.repr.svg = document.body.lastChild;
                 this.alias.parent.child_div.appendChild(this.repr.svg);
                 this.init_mouse_event();
             }
             next.display.from.set(this.alias, this.repr);
             this.alias.display.to.set(next, this.repr);
+            this.alias.parent.child_div.appendChild(this.repr.svg);
             this.repr.setOptions({end: next.html_div, endSocket: socket});
             edge = this.repr;
         }
@@ -135,23 +126,22 @@ class EdgeUI {
         }
         this.repr = edge;
         let count = (edge.count = (edge.count ?? 0) + (this.to === next ? 1 : 2));
-        let label = count >= 2 ? LeaderLine.captionLabel((count >> 1) + ' indirect', label_opt) : '';
-        edge.setOptions({middleLabel: label});
+        edge.setOptions({middleLabel: label_of(count)});
     }
     remove_from_shadow() {
         if(!this.repr) return;
         if(this.repr.count <= 2) {
             this.repr.count = 0;
-            this.alias.display.to.delete(this.shadow);
-            this.shadow.display.from.delete(this.alias);
+            let moving = this.alias.is_pseudo && !this.alias.display.to.has(this.shadow);
+            (moving ? this.alias.ref : this.alias).display.to.delete(this.shadow);
+            this.shadow.display.from.delete(moving ? this.alias.ref: this.alias);
         }
         else {
             let count = this.repr.count -= 2;
-            let label = count < 2 ? '':LeaderLine.captionLabel((count >> 1) + ' indirect', label_opt);
             if(this.repr.count < 2) {
                 this.repr.setOptions({dash: this.truncate !== null, middleLabel: ''});
             }
-            else this.repr.setOptions({middleLabel: label});
+            else this.repr.setOptions({middleLabel: label_of(count)});
             this.repr = null;
         }
     }
@@ -267,10 +257,8 @@ class EdgeUI {
         pseudo.html_div.assoc_node = pseudo.ref;
         pseudo.ref.parent.child_div.appendChild(pseudo.html_div);
         for(let [node, edge] of pseudo.math.to) {
-            pseudo.ref.parent.child_div.appendChild(edge.repr.svg);
             node.display.from.delete(pseudo);
-            node.display.from.set(pseudo.ref, edge.repr);
-            pseudo.ref.display.to.set(node, edge.repr);
+            pseudo.ref.parent.child_div.appendChild(edge.repr.svg);
             edge.offset_from = edge.hierarchy.length - 1;
             edge.alias = pseudo.ref;
         }
@@ -289,12 +277,14 @@ class EdgeUI {
         return pseudo;
     }
 }
-const label_opt = {
-    fontFamily: 'serif',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    color: '#2edb76',
-    outlineColor: ''
+function label_of(count) {
+    return LeaderLine.captionLabel(count > 2 ? '+' + (count >> 1): '', {
+        fontFamily: 'serif',
+        fontSize: '16px',
+        fontWeight: 'bold',
+        color: '#2edb76',
+        outlineColor: ''
+    });
 }
 document.addEventListener('DOMContentLoaded', e => {
     Menu.edge = new Menu(document.getElementById('edge'));
