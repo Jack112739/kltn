@@ -78,9 +78,10 @@ class EdgeUI {
         path.oncontextmenu = (e) => { e.preventDefault(); Menu.edge.popup(e, this)};
         path.onmousedown = (e0) => this.change_gravity(e0);
     }
-    /**@param {MouseEvent} e  */
+    /**@param {MouseEvent} e0  */
     change_gravity(e0) {
         e0.stopPropagation();
+        if(e0.button === 1) return window.MathGraph.current.start_scroll(e0);
         this.reposition();
         let move = null, start = null, end = null;
         let start0 = this.repr.startSocketGravity, end0 = this.repr.endSocketGravity;

@@ -42,7 +42,7 @@ class NodeUI {
         this.type       = pseudo ? pseudo.type    : 'claim';
         this.html_div   = pseudo ? pseudo.html_div: document.createElement('div');
         this.html_div.assoc_node = this;
-        if(pseudo) { pseudo.ref = this; return; }
+        if(pseudo) { pseudo.ref = this; pseudo.toggle_detail(false, true); return; }
 
         this.html_div.className = "node claim";
         this.html_div.innerHTML = `
@@ -70,6 +70,8 @@ class NodeUI {
     }
     /**@param {MouseEvent} e0*/
     start_reshape(e0) {
+        if(e0.button === 1) return window.MathGraph.current.start_scroll(e0);
+        if(e0.button !== 0) return;
         let cursor = this.get_cursor(e0);
         if(cursor !== 'move' && cursor !== 'resize') return;
         this.toggle_highlight(true);
@@ -150,6 +152,10 @@ class NodeUI {
     /**@param {MouseEvent} e0  */
     start_scroll(e0) {
         if(this.get_cursor(e0) === 'resize') return this.start_reshape(e0);
+        // preventing infinite recursion
+        if(e0.button === 1 && this !== window.MathGraph.current) {
+            return window.MathGraph.current.start_scroll(e0);
+        }
         let [sx0, sy0] = [this.child_div.scrollLeft, this.child_div.scrollTop];
         let [w0, h0] = [sx0 + this.child_div.offsetLeft, sy0 + this.child_div.offsetHeight];
         let move = (e) => {
