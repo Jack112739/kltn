@@ -52,13 +52,13 @@ class Menu {
         document.addEventListener('click', () => this.hide(), {once: true, capture: true});
         let viewpoint = document.body.getBoundingClientRect();
         this.items.style.left = `${e.clientX - viewpoint.left}px`;
-        this.items.style.top = `${e.clientY - viewpoint.top }px`;
+        this.items.style.top = `${e.clientY - viewpoint.top + 20}px`;
         let item_layout = this.items.getBoundingClientRect();
         if(item_layout.right > viewpoint.width) {
             this.items.style.left = (-viewpoint.x + e.clientX - this.items.offsetWidth) + "px";
         }
         if(item_layout.bottom > viewpoint.height) {
-            this.items.style.top = (-viewpoint.y + e.clientY - this.items.offsetHeight) + "px";
+            this.items.style.top = (-viewpoint.y + e.clientY - this.items.offsetHeight - 20) + "px";
         }
     }
     /**@param {HTMLLIElement} elem  */
