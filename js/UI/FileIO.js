@@ -41,6 +41,7 @@ class FileIO {
             context.map.set(cur, cur.id !== '' ? cur.id : '#' + context.ret.length);
             if(cur.id) context.ret.push(`\\label{${cur.id}}`);
             context.ret = context.ret.concat(cur.raw_text.split('\n'));
+            if(!cur.raw_text.endsWith('\\\\')) context.ret.push('\\\\');
             for(const adj of topo.get(cur)) {
                 deg.set(adj, deg.get(adj) - 1);
                 if(deg.get(adj) === 0) queue.push(adj);
@@ -171,6 +172,7 @@ class FileIO {
     }
     static compile(node) {
         node.raw_text = node.raw_text.trim();
+        if(node.raw_text.endsWith('\\\\')) node.raw_text = node.raw_text.slice(0, -2);
         for(const child of node.children) FileIO.compile(child);
         let data = (new Fragment(node.raw_text, 'text')).output('html');
         for(const child of data) node.renderer.appendChild(child);
