@@ -302,7 +302,7 @@ document.addEventListener('DOMContentLoaded', e => {
         let edge = Menu.edge.associate;
         if(window.MathGraph.readonly) return GraphUI.signal('can not delete edges in readonly mode');
         if(edge.repr.count > 2) return GraphUI.signal('can not remove this edge because this edge is' +
-                                        'overlapped among' + (edge.repr.count >> 1) + 'other edges');
+                                        'overlapped among ' + (edge.repr.count >> 1) + ' other edges');
         Menu.edge.associate.remove()
     };
 
