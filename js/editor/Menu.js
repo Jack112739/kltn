@@ -41,6 +41,7 @@ class Menu {
 
     hide() {
         if(this.associate instanceof Node) this.associate.removeEventListener('keydown', Menu.menu_complete);
+        this.associate = null;
         this.search = {str: '', span: ''};
         this.items.style.display = "none";
     }
@@ -49,7 +50,10 @@ class Menu {
     popup(e, associate) {
         this.items.style.display = "";
         this.associate = associate;
-        document.addEventListener('click', () => this.hide(), {once: true, capture: true});
+        document.addEventListener('click', (e) => { 
+            if(!this.items.contains(e.target)) this.hide()
+
+        }, {once: true, capture: true});
         let viewpoint = document.body.getBoundingClientRect();
         this.items.style.left = `${e.clientX - viewpoint.left}px`;
         this.items.style.top = `${e.clientY - viewpoint.top + 20}px`;
