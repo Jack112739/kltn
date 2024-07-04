@@ -30,6 +30,7 @@ class GraphUI {
             let try_edge = prev ? EdgeUI.create(start, prev) : '';
             if(typeof try_edge === "string") this.signal(try_edge);
         }, {once: true});
+        Menu.node.hide();
     }
     /**@param {NodeUI} node  */
     static refresh_href(node) {

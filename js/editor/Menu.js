@@ -21,6 +21,7 @@ class Menu {
             this.items = items;
             for(const node of items.childNodes) if(node.nodeName !== 'LI') items.removeChild(node);
             this.library = null;
+            this.items.onclick = (e) => this.hide();
         }
         else {
             this.items = document.createElement('ul');
@@ -28,7 +29,7 @@ class Menu {
             this.library = items;
             this.load("");
         }
-        if(invoke) this.items.addEventListener('click', (e) => this.hide(invoke(this.highlighted)));
+        if(invoke) this.items.addEventListener('click', (e) => {invoke(this.highlighted); this.hide(); });
         this.invoke = invoke ?? ((li) => li.onclick());
         this.items.addEventListener('mouseover', (e) => {
             let target = e.target;
