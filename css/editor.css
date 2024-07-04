@@ -71,6 +71,12 @@ div.latex {
     border: 1px solid grey;
     min-width: 150px;
 }
+ul, ol {
+    white-space: nowrap;
+}
+ul > li, ol > li {
+    white-space: pre;
+}
 button.close {
     background-color: red;
     color: white;
