@@ -1,0 +1,22 @@
+rewrite the editor
+    - visual editor is not that good of an idea, the argument of each proof want and should be small
+    - can be change to compile latex when needed or even rewrite the latex renderer
+    - need a structure parser for argument
+    - design a formal language, programming language-like for writing such proof 
+    - compile on input, need some suitable way for optimizing this, especially on long equaitons
+
+
+Equation helper and macros
+    - understand how latex work deeply
+    - make writing equations and linking them becomes easier 
+
+Add more structure and more customizable choices
+    - implicit linking, add background node
+    - allow user to customize color
+    - custom macros but more like meta-programming 
+
+
+Understand simple proofs
+    - building concepts and principles needed 
+    - allow create axioms
+    - implcit inference rules
